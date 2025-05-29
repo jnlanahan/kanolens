@@ -43,6 +43,10 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    console.log("=== CHAT DEBUG: Messages state changed ===", messages);
+  }, [messages]);
+
   const handleSendMessage = async () => {
     console.log("=== CHAT DEBUG: handleSendMessage called ===");
     console.log("Input value:", inputValue);
@@ -117,15 +121,7 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = async (file: File) => {
     if (!file) return;
 
     setIsUploading(true);
@@ -182,6 +178,13 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
   const autoResize = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -192,6 +195,8 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
   useEffect(() => {
     autoResize();
   }, [inputValue]);
+
+  console.log("=== CHAT DEBUG: Rendering ChatInterface, messages count:", messages.length);
 
   return (
     <div className="w-2/5 min-w-0 flex flex-col bg-white border-r border-slate-200">
@@ -210,11 +215,9 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {(() => {
-          console.log("=== CHAT DEBUG: Rendering messages ===", messages);
-          return messages.map((message, index) => {
-            console.log(`=== CHAT DEBUG: Rendering message ${index} ===`, message);
-            return (
+        {messages.map((message, index) => {
+          console.log(`=== CHAT DEBUG: Rendering message ${index} ===`, message);
+          return (
           <div
             key={index}
             className={`flex items-start space-x-3 animate-in slide-in-from-bottom-2 duration-300 ${
@@ -231,17 +234,21 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
               <div
                 className={`rounded-2xl p-3 ${
                   message.role === "user"
-                    ? "bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-tr-sm"
-                    : "bg-gray-100 rounded-tl-sm"
+                    ? "bg-slate-500 text-white rounded-tr-sm"
+                    : "bg-gray-100 text-gray-900 rounded-tl-sm"
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <div className="text-sm whitespace-pre-wrap break-words">
+                  {message.content}
+                </div>
+                {message.timestamp && (
+                  <div className={`text-xs mt-1 ${
+                    message.role === "user" ? "text-slate-200" : "text-slate-500"
+                  }`}>
+                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
               </div>
-              {message.timestamp && (
-                <p className="text-xs text-slate-500 mt-1 ml-3">
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
-              )}
             </div>
 
             {message.role === "user" && (
@@ -250,7 +257,7 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
               </div>
             )}
           </div>
-        );
+          );
         })}
 
         {isLoading && (
@@ -293,45 +300,51 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
       {/* Chat Input */}
       <div className="p-4 border-t border-slate-200 bg-white">
         <div className="flex items-end space-x-2">
-          <div className="flex-1 relative">
+          <div className="flex-1">
             <Textarea
               ref={textareaRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-full px-4 py-3 pr-12 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 resize-none"
-              rows={1}
+              onKeyDown={handleKeyPress}
               placeholder="Describe your product features, upload docs, or ask questions..."
+              className="min-h-[40px] max-h-[120px] resize-none border-slate-300 focus:border-blue-500 focus:ring-blue-500"
               disabled={isLoading}
             />
+          </div>
+          
+          <div className="flex space-x-1">
             <input
               ref={fileInputRef}
               type="file"
+              accept=".pdf,.doc,.docx,.txt,.md"
+              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
               className="hidden"
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleFileUpload}
             />
+            
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="absolute right-3 bottom-3 text-slate-500 hover:text-blue-500"
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading || isUploading}
+              className="border-slate-300 hover:border-slate-400"
             >
               <Paperclip className="w-4 h-4" />
             </Button>
+            
+            <Button
+              onClick={handleSendMessage}
+              disabled={!inputValue.trim() || isLoading}
+              size="sm"
+              className="bg-gradient-to-r from-blue-500 to-violet-500 hover:from-blue-600 hover:to-violet-600 text-white"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
           </div>
-          <Button
-            onClick={handleSendMessage}
-            disabled={!inputValue.trim() || isLoading}
-            className="p-3 bg-gradient-to-r from-blue-500 to-violet-500 text-white rounded-xl hover:shadow-lg transition-all duration-200 disabled:opacity-50"
-          >
-            <Send className="w-4 h-4" />
-          </Button>
         </div>
+        
         <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
           <span>Press Enter to send, Shift+Enter for new line</span>
-          <span>Powered by OpenAI GPT-4</span>
+          <span className="text-slate-400">Powered by OpenAI GPT-4</span>
         </div>
       </div>
     </div>
