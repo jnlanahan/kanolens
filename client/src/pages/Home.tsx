@@ -30,7 +30,7 @@ export default function Home() {
 
   // Fetch chat messages for current session
   const { data: messages, isLoading: messagesLoading } = useQuery({
-    queryKey: ["/api/analysis/sessions", currentSessionId, "messages"],
+    queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`],
     enabled: !!currentSessionId,
     retry: false,
   });
@@ -70,7 +70,7 @@ export default function Home() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/analysis/sessions", currentSessionId, "messages"] 
+        queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`] 
       });
       queryClient.invalidateQueries({ 
         queryKey: ["/api/analysis/sessions", currentSessionId] 
@@ -131,7 +131,7 @@ export default function Home() {
         {/* Chat Interface Panel */}
         <div className="w-2/5 min-w-0 flex flex-col bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
           <ChatInterface
-            messages={messages || []}
+            messages={Array.isArray(messages) ? messages : []}
             onSendMessage={handleSendMessage}
             isLoading={messagesLoading || sendMessageMutation.isPending}
             currentStep={currentSession?.currentStep || "discovery"}
