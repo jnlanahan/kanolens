@@ -2,8 +2,12 @@ import OpenAI from "openai";
 import type { KanoTableData, KanoFeature } from "@shared/schema";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+console.log("[OpenAI] Initializing OpenAI client...");
+console.log("[OpenAI] API Key present:", !!process.env.OPENAI_API_KEY);
+console.log("[OpenAI] API Key prefix:", process.env.OPENAI_API_KEY?.substring(0, 7) || "not found");
+
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_SECRET_KEY || "default_key"
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 // System prompt based on the Kano Instructions
@@ -82,8 +86,8 @@ Please respond following the Kano Model framework instructions.`;
       nextAction: result.nextAction
     };
   } catch (error) {
-    console.error("OpenAI API Error:", error);
-    throw new Error(`Failed to process message: ${error.message}`);
+    console.error("[OpenAI] API Error:", error);
+    throw new Error(`Failed to process message: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -133,8 +137,8 @@ Respond in JSON format:
       sources: result.sources || {}
     };
   } catch (error) {
-    console.error("Competitive research error:", error);
-    throw new Error(`Failed to conduct research: ${error.message}`);
+    console.error("[OpenAI] Competitive research error:", error);
+    throw new Error(`Failed to conduct research: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -188,22 +192,27 @@ Respond in JSON format:
       sources: result.sources || {}
     };
   } catch (error) {
-    console.error("Kano table generation error:", error);
-    throw new Error(`Failed to generate table: ${error.message}`);
+    console.error("[OpenAI] Kano table generation error:", error);
+    throw new Error(`Failed to generate table: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 export async function testOpenAIConnection(): Promise<boolean> {
   try {
+    console.log("[OpenAI] Testing connection...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [{ role: "user", content: "Hello, please respond with 'OpenAI connection successful'" }],
       max_tokens: 10,
     });
 
-    return response.choices[0].message.content?.includes("successful") || false;
+    const content = response.choices[0].message.content;
+    console.log("[OpenAI] Test response:", content);
+    const isSuccessful = content?.includes("successful") || false;
+    console.log("[OpenAI] Connection test result:", isSuccessful);
+    return isSuccessful;
   } catch (error) {
-    console.error("OpenAI connection test failed:", error);
+    console.error("[OpenAI] Connection test failed:", error);
     return false;
   }
 }

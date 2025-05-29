@@ -44,7 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         connected: false, 
         message: "OpenAI connection test failed",
-        error: error.message 
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
@@ -52,19 +52,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analysis session routes
   app.post('/api/analysis/sessions', isAuthenticated, async (req: any, res) => {
     try {
+      console.log("[Routes] Creating analysis session...");
       const userId = req.user.claims.sub;
+      console.log("[Routes] User ID:", userId);
+      console.log("[Routes] Request body:", req.body);
+      
       const sessionData = insertAnalysisSessionSchema.parse({
         ...req.body,
         userId,
       });
+      console.log("[Routes] Parsed session data:", sessionData);
 
       const session = await storage.createAnalysisSession(sessionData);
+      console.log("[Routes] Created session:", session);
       res.json(session);
     } catch (error) {
       if (error instanceof ZodError) {
+        console.error("[Routes] Validation error:", error.errors);
         return res.status(400).json({ message: "Invalid session data", errors: error.errors });
       }
-      console.error("Create session error:", error);
+      console.error("[Routes] Create session error:", error);
       res.status(500).json({ message: "Failed to create analysis session" });
     }
   });
