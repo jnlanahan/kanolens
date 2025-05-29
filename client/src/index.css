@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 220 13% 98%; /* #F8FAFC */
+  --foreground: 215 25% 27%; /* #374151 */
+  --muted: 210 11% 96%; /* #F1F5F9 */
+  --muted-foreground: 215 16% 47%; /* #64748B */
+  --popover: 0 0% 100%; /* #FFFFFF */
+  --popover-foreground: 215 25% 27%; /* #374151 */
+  --card: 0 0% 100%; /* #FFFFFF */
+  --card-foreground: 215 25% 27%; /* #374151 */
+  --border: 214 13% 91%; /* #E2E8F0 */
+  --input: 214 13% 91%; /* #E2E8F0 */
+  --primary: 221 83% 53%; /* #3B82F6 */
+  --primary-foreground: 213 100% 97%; /* #DBEAFE */
+  --secondary: 210 11% 96%; /* #F1F5F9 */
+  --secondary-foreground: 215 25% 27%; /* #374151 */
+  --accent: 210 11% 96%; /* #F1F5F9 */
+  --accent-foreground: 215 25% 27%; /* #374151 */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 0 0% 98%; /* #FEFEFE */
+  --ring: 221 83% 53%; /* #3B82F6 */
+  --radius: 0.5rem;
+  
+  /* KanoLens brand colors */
+  --kano-blue: 221 83% 53%; /* #3B82F6 */
+  --kano-blue-dark: 224 76% 48%; /* #1E40AF */
+  --kano-violet: 258 90% 66%; /* #8B5CF6 */
+  --kano-violet-dark: 262 83% 58%; /* #5B21B6 */
+  --kano-gray: 215 16% 47%; /* #64748B */
+  --kano-light: 220 13% 98%; /* #F8FAFC */
+  --kano-surface: 214 13% 91%; /* #E2E8F0 */
+}
+
+.dark {
+  --background: 224 71% 4%; /* #0F172A */
+  --foreground: 213 31% 91%; /* #E2E8F0 */
+  --muted: 223 47% 11%; /* #1E293B */
+  --muted-foreground: 215 16% 57%; /* #94A3B8 */
+  --popover: 224 71% 4%; /* #0F172A */
+  --popover-foreground: 213 31% 91%; /* #E2E8F0 */
+  --card: 224 71% 4%; /* #0F172A */
+  --card-foreground: 213 31% 91%; /* #E2E8F0 */
+  --border: 223 47% 11%; /* #1E293B */
+  --input: 223 47% 11%; /* #1E293B */
+  --primary: 221 83% 53%; /* #3B82F6 */
+  --primary-foreground: 213 100% 97%; /* #DBEAFE */
+  --secondary: 223 47% 11%; /* #1E293B */
+  --secondary-foreground: 213 31% 91%; /* #E2E8F0 */
+  --accent: 223 47% 11%; /* #1E293B */
+  --accent-foreground: 213 31% 91%; /* #E2E8F0 */
+  --destructive: 0 63% 31%; /* #991B1B */
+  --destructive-foreground: 213 31% 91%; /* #E2E8F0 */
+  --ring: 224 76% 48%; /* #1E40AF */
+  
+  /* Dark mode KanoLens colors */
+  --kano-blue: 221 83% 53%; /* #3B82F6 */
+  --kano-blue-dark: 224 76% 48%; /* #1E40AF */
+  --kano-violet: 258 90% 66%; /* #8B5CF6 */
+  --kano-violet-dark: 262 83% 58%; /* #5B21B6 */
+  --kano-gray: 215 16% 57%; /* #94A3B8 */
+  --kano-light: 224 71% 4%; /* #0F172A */
+  --kano-surface: 223 47% 11%; /* #1E293B */
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  /* Custom KanoLens utilities */
+  .kano-gradient {
+    background: linear-gradient(135deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)));
+  }
+  
+  .kano-gradient-light {
+    background: linear-gradient(135deg, hsl(var(--kano-blue) / 0.1), hsl(var(--kano-violet) / 0.1));
+  }
+  
+  .font-mono-heading {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  /* Chat message animations */
+  @keyframes slideUp {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes pulseGentle {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  .animate-pulse-gentle {
+    animation: pulseGentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  /* Lens logo component */
+  .kano-lens-logo {
+    position: relative;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .kano-lens-logo::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)));
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  
+  .kano-lens-logo::after {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    background: linear-gradient(135deg, hsl(var(--kano-violet)), hsl(var(--kano-blue)));
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+  
+  .kano-lens-logo .inner {
+    position: absolute;
+    inset: 8px;
+    background: white;
+    border-radius: 50%;
+  }
+  
+  .kano-lens-logo .core {
+    position: absolute;
+    inset: 12px;
+    background: linear-gradient(135deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)));
+    border-radius: 50%;
+  }
+}
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
