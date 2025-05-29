@@ -130,27 +130,17 @@ User Message: ${message}
 
 Please respond following the Kano Model framework instructions for the current step.`;
 
-    const response = await openai.responses.create({
-      model: "o1",
-      reasoning: { effort: "high" },
-      input: [
-        {
-          role: "user",
-          content: `${KANO_SYSTEM_PROMPT}\n\n${contextPrompt}`
-        }
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      messages: [
+        { role: "system", content: KANO_SYSTEM_PROMPT },
+        { role: "user", content: contextPrompt }
       ],
-      max_output_tokens: 25000,
+      response_format: { type: "json_object" },
+      temperature: 0.1,
     });
 
-    // Handle incomplete responses
-    if (response.status === "incomplete" && response.incomplete_details?.reason === "max_output_tokens") {
-      console.log("[OpenAI] Response incomplete due to max tokens");
-      if (!response.output_text || response.output_text.length === 0) {
-        throw new Error("Response incomplete during reasoning - try reducing complexity");
-      }
-    }
-
-    const result = JSON.parse(response.output_text || "{}");
+    const result = JSON.parse(response.choices[0].message.content || "{}");
     
     // Update session if step has progressed
     if (result.step && result.step !== session.currentStep) {
