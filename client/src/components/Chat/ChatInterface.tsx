@@ -27,6 +27,7 @@ export default function ChatInterface({
   isLoading, 
   currentStep 
 }: ChatInterfaceProps) {
+  console.log("ChatInterface received messages:", messages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -81,8 +82,8 @@ export default function ChatInterface({
           </div>
         )}
         
-        {/* Only render messages that have content */}
-        {messages.filter(message => message.content && message.content.trim()).map((message) => (
+        {/* Render all messages with content */}
+        {messages.map((message) => (
           <div key={message.id} className="animate-slide-up">
             <ChatMessage message={message} />
           </div>
