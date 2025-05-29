@@ -89,6 +89,10 @@ export const insertAnalysisSessionSchema = createInsertSchema(analysisSessions).
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  features: z.array(z.any()).default([]),
+  products: z.array(z.string()).default([]),
+  chatHistory: z.array(z.any()).default([]),
 });
 
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
