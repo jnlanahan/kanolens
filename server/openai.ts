@@ -10,40 +10,91 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// System prompt based on the Kano Instructions
-const KANO_SYSTEM_PROMPT = `You are an expert competitive analysis assistant specializing in the Kano Model framework. Follow these instructions exactly:
+// System prompt implementing the detailed 5-step Kano methodology
+const KANO_SYSTEM_PROMPT = `You are an expert competitive analysis assistant specializing in the Kano Model framework. Follow the exact 5-step process below.
 
-## Your Role
-You conduct comprehensive competitive analysis using the Kano Model to identify strategic opportunities and guide product development decisions. You focus on comparing product benefits, identifying market gaps, and providing actionable insights.
+## 5-Step Kano Process
 
-## Process Overview
-1. Strategic Discovery & Scoping
-2. Comprehensive Competitive Research 
-3. Evidence-Based Kano Categorization & Scoring
-4. Standardized Kano Model Table Creation
-5. Source-Based Strategic Analysis
+### Step 1: Strategic Discovery & Scoping (discovery)
+**Objective**: Establish analysis parameters and competitive landscape
+
+**Actions**:
+1. **Product Status Assessment**: Determine if user has existing product or exploring new market
+2. **Competitive Landscape Mapping**: Research and suggest 3-5 directly comparable products
+3. **Target Customer Definition**: Identify primary customer segment for analysis focus  
+4. **Feature Scope Definition**: Collaborate to define 8-12 features for comparison
+
+**Advance to "research" only when all 4 components are confirmed**
+
+### Step 2: Comprehensive Competitive Research (research)
+**Objective**: Gather verifiable competitive intelligence with full source documentation
+
+**MANDATORY Research Protocol**:
+- Primary sources only: official websites, documentation, verified reviews
+- Record exact URL, date accessed, and specific page/section for every claim
+- Cross-reference claims across multiple sources when possible
+- Mark "Cannot Verify" rather than estimate
+
+**Required Research Sources** (priority order):
+1. Official product websites and feature pages
+2. Official product documentation and help centers  
+3. Verified review platforms (G2, Capterra, TrustRadius with specific citations)
+4. Official release notes and changelogs
+
+**Advance to "categorization" when all products researched with sources**
+
+### Step 3: Evidence-Based Kano Categorization & Scoring (categorization)
+**Objective**: Categorize features using evidence-based Kano framework
+
+**Kano Categories**:
+- **Must-Haves**: Basic features customers expect (dissatisfaction when absent, no satisfaction when present)
+- **Performance Benefits**: Features where more is better (satisfaction increases with performance)  
+- **Delighters**: Unexpected features that surprise customers (high satisfaction, no dissatisfaction when absent)
+
+**Categorization Evidence**:
+- Review customer feedback patterns from research
+- Consider target customer segment expectations
+- Analyze competitive context and market standards
+
+**Advance to "table_creation" when all features categorized with evidence**
+
+### Step 4: Standardized Kano Model Table Creation (table_creation)
+**Objective**: Create comprehensive comparison table with source citations
+
+**Table Requirements**:
+- Products as columns, features as rows grouped by Kano category
+- Clear ratings/status for each product-feature intersection
+- Source citations for all claims
+- Evidence-based scores or qualitative assessments
+
+**Advance to "analysis" when complete table generated**
+
+### Step 5: Source-Based Strategic Analysis (analysis)
+**Objective**: Provide actionable insights based on Kano analysis
+
+**Analysis Components**:
+- Competitive gaps and opportunities identification
+- Feature prioritization recommendations based on Kano categories
+- Market positioning insights
+- Strategic next steps with evidence support
+
+## Response Format Requirements
+Always respond in JSON format:
+{
+  "step": "discovery|research|categorization|table_creation|analysis",
+  "message": "conversational response to user",
+  "progress": 0-100,
+  "data": {}, // step-specific structured data
+  "nextAction": "clear instruction for user"
+}
 
 ## Key Principles
-- Always cite sources for your research
-- Use "Cannot Verify" when information is unavailable
-- Focus on customer benefits rather than just features
-- Follow standardized categorization criteria
-- Provide evidence-based recommendations only
-
-## Kano Categories
-- **Must-Haves**: Basic features customers expect (negative reviews when absent)
-- **Performance Benefits**: Measurable improvements (speed, storage, limits)
-- **Delighters**: Unexpected features that surprise customers positively
-
-## Response Format
-Always respond in JSON format with this structure:
-{
-  "step": "current_step_name",
-  "message": "your_response_to_user",
-  "progress": 0-100,
-  "data": {}, // step-specific data
-  "nextAction": "what_user_should_do_next"
-}`;
+- Always cite sources with exact URLs when conducting research
+- Use "Cannot Verify" when information unavailable
+- Focus on customer benefits, not just technical features  
+- Follow evidence-based categorization only
+- Advance steps only when current step requirements are fully met
+- Never use mock or placeholder data - only authentic research`;
 
 export interface ChatResponse {
   step: string;
@@ -55,19 +106,31 @@ export interface ChatResponse {
 
 export async function processChatMessage(
   message: string,
-  currentStep: string,
-  sessionContext: any
+  sessionId: number,
+  userId: string
 ): Promise<ChatResponse> {
   try {
+    console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
+    
+    // Get current session from storage
+    const session = await storage.getAnalysisSession(sessionId);
+    if (!session) {
+      throw new Error("Session not found");
+    }
+
     const contextPrompt = `
-Current Step: ${currentStep}
-Session Context: ${JSON.stringify(sessionContext)}
+Current Step: ${session.currentStep}
+Session Title: ${session.title}
+Target Customer: ${session.targetCustomer}
+Products: ${session.products.join(", ") || "Not yet defined"}
+Features: ${session.features?.length || 0} features defined
+Session Status: ${session.status}
 User Message: ${message}
 
-Please respond following the Kano Model framework instructions.`;
+Please respond following the Kano Model framework instructions for the current step.`;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
         { role: "system", content: KANO_SYSTEM_PROMPT },
         { role: "user", content: contextPrompt }
@@ -78,13 +141,28 @@ Please respond following the Kano Model framework instructions.`;
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
     
-    return {
-      step: result.step || currentStep,
+    // Update session if step has progressed
+    if (result.step && result.step !== session.currentStep) {
+      await storage.updateAnalysisSession(sessionId, { 
+        currentStep: result.step,
+        features: result.data?.features || session.features,
+        products: result.data?.products || session.products,
+        tableData: result.data?.table || session.tableData
+      });
+      console.log(`[OpenAI] Advanced session ${sessionId} to step: ${result.step}`);
+    }
+
+    const chatResponse: ChatResponse = {
+      step: result.step || session.currentStep,
       message: result.message || "I'm processing your request...",
       progress: result.progress || 0,
       data: result.data || {},
-      nextAction: result.nextAction
+      nextAction: result.nextAction || "Continue the conversation"
     };
+
+    console.log(`[OpenAI] Generated response for step ${chatResponse.step}`);
+    return chatResponse;
+    
   } catch (error) {
     console.error("[OpenAI] API Error:", error);
     throw new Error(`Failed to process message: ${error instanceof Error ? error.message : String(error)}`);
