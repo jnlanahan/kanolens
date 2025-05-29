@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Settings } from "lucide-react";
@@ -27,7 +28,6 @@ export default function ChatInterface({
   isLoading, 
   currentStep 
 }: ChatInterfaceProps) {
-  console.log("ChatInterface received messages:", messages);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -37,6 +37,18 @@ export default function ChatInterface({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Filter messages to ensure we only have valid ChatMessage objects
+  const validMessages = messages.filter(msg => 
+    msg && 
+    typeof msg === 'object' && 
+    'role' in msg && 
+    'content' in msg &&
+    msg.content !== null &&
+    msg.content !== undefined
+  );
+
+  console.log("Valid messages count:", validMessages.length);
 
   return (
     <div className="flex flex-col h-full">
@@ -64,8 +76,8 @@ export default function ChatInterface({
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Show welcome message only if no real messages exist */}
-        {messages.length === 0 && (
+        {/* Show welcome message if no valid messages exist */}
+        {validMessages.length === 0 && (
           <div className="animate-slide-up">
             <ChatMessage
               message={{
@@ -82,8 +94,8 @@ export default function ChatInterface({
           </div>
         )}
         
-        {/* Render all messages with content */}
-        {messages.map((message) => (
+        {/* Render valid messages */}
+        {validMessages.map((message) => (
           <div key={message.id} className="animate-slide-up">
             <ChatMessage message={message} />
           </div>
