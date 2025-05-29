@@ -44,7 +44,20 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    console.log("=== CHAT DEBUG: handleSendMessage called ===");
+    console.log("Input value:", inputValue);
+    console.log("Session ID:", sessionId);
+    console.log("Is loading:", isLoading);
+    
+    if (!inputValue.trim() || isLoading) {
+      console.log("=== CHAT DEBUG: Message blocked - empty input or loading ===");
+      return;
+    }
+
+    if (!sessionId) {
+      console.log("=== CHAT DEBUG: No session ID available ===");
+      return;
+    }
 
     const userMessage: ChatMessage = {
       role: "user",
@@ -52,7 +65,13 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    console.log("=== CHAT DEBUG: Adding user message ===", userMessage);
+    setMessages(prev => {
+      console.log("=== CHAT DEBUG: Current messages before add:", prev);
+      const newMessages = [...prev, userMessage];
+      console.log("=== CHAT DEBUG: New messages after add:", newMessages);
+      return newMessages;
+    });
     setInputValue("");
     setIsLoading(true);
 
@@ -65,7 +84,7 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
       });
 
       const result = await response.json();
-      console.log("Response received:", result);
+      console.log("=== CHAT DEBUG: Response received ===", result);
       
       const assistantMessage: ChatMessage = {
         role: "assistant",
@@ -73,9 +92,16 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      console.log("=== CHAT DEBUG: Adding assistant message ===", assistantMessage);
+      setMessages(prev => {
+        console.log("=== CHAT DEBUG: Current messages before assistant add:", prev);
+        const newMessages = [...prev, assistantMessage];
+        console.log("=== CHAT DEBUG: New messages after assistant add:", newMessages);
+        return newMessages;
+      });
 
       if (result.sessionUpdate) {
+        console.log("=== CHAT DEBUG: Session update received ===", result.sessionUpdate);
         onAnalysisUpdate?.(result.sessionUpdate);
       }
     } catch (error) {
@@ -184,7 +210,11 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message, index) => (
+        {(() => {
+          console.log("=== CHAT DEBUG: Rendering messages ===", messages);
+          return messages.map((message, index) => {
+            console.log(`=== CHAT DEBUG: Rendering message ${index} ===`, message);
+            return (
           <div
             key={index}
             className={`flex items-start space-x-3 animate-in slide-in-from-bottom-2 duration-300 ${
@@ -220,7 +250,8 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
               </div>
             )}
           </div>
-        ))}
+        );
+        })}
 
         {isLoading && (
           <div className="flex items-start space-x-3 animate-in slide-in-from-bottom-2 duration-300">
