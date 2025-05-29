@@ -126,15 +126,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         metadata: req.body.metadata || null,
       });
 
-      // Process with OpenAI
+      // Process with OpenAI using the 5-step Kano methodology
       const aiResponse = await processChatMessage(
         req.body.content,
-        session.currentStep,
-        {
-          products: session.products,
-          features: session.features,
-          targetCustomer: session.targetCustomer,
-        }
+        sessionId,
+        userId
       );
 
       // Add AI response message
