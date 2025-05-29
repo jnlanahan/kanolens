@@ -37,9 +37,6 @@ export default function ChatInterface({
     scrollToBottom();
   }, [messages]);
 
-  // Show welcome message if no messages
-  const shouldShowWelcome = messages.length === 0;
-
   return (
     <div className="flex flex-col h-full">
       {/* Chat Header */}
@@ -66,7 +63,8 @@ export default function ChatInterface({
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {shouldShowWelcome && (
+        {/* Show welcome message only if no real messages exist */}
+        {messages.length === 0 && (
           <div className="animate-slide-up">
             <ChatMessage
               message={{
@@ -83,7 +81,8 @@ export default function ChatInterface({
           </div>
         )}
         
-        {messages.map((message) => (
+        {/* Only render messages that have content */}
+        {messages.filter(message => message.content && message.content.trim()).map((message) => (
           <div key={message.id} className="animate-slide-up">
             <ChatMessage message={message} />
           </div>

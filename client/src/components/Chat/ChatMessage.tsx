@@ -14,6 +14,11 @@ export default function ChatMessage({ message, isTyping = false }: ChatMessagePr
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
 
+  // Don't render if message has no content (unless it's a typing indicator)
+  if (!isTyping && (!message.content || !message.content.trim())) {
+    return null;
+  }
+
   if (isTyping) {
     return (
       <div className="flex items-start space-x-3">
