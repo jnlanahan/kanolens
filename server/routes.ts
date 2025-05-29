@@ -111,12 +111,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat message routes
   app.post('/api/analysis/sessions/:id/messages', isAuthenticated, async (req: any, res) => {
     try {
+      console.log("[Routes] Processing chat message...");
       const sessionId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      
+      console.log(`[Routes] Session ID: ${sessionId}, User ID: ${userId}`);
+      console.log(`[Routes] Message content: ${req.body.content}`);
+      
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session) {
+        console.log("[Routes] Session not found");
         return res.status(404).json({ message: "Session not found" });
       }
+      
+      if (session.userId !== userId) {
+        console.log("[Routes] Access denied - user mismatch");
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      console.log(`[Routes] Session found: ${session.title}, step: ${session.currentStep}`);
 
       // Add user message
       const userMessage = await storage.addChatMessage({
@@ -125,13 +139,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: req.body.content,
         metadata: req.body.metadata || null,
       });
+      console.log("[Routes] User message saved");
 
       // Process with OpenAI using the 5-step Kano methodology
+      console.log("[Routes] Calling OpenAI processChatMessage...");
       const aiResponse = await processChatMessage(
         req.body.content,
         sessionId,
         userId
       );
+      console.log("[Routes] OpenAI response received:", aiResponse);
 
       // Add AI response message
       const aiMessage = await storage.addChatMessage({
