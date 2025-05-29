@@ -47,6 +47,44 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
     console.log("=== CHAT DEBUG: Messages state changed ===", messages);
   }, [messages]);
 
+  // Load existing messages when sessionId changes
+  useEffect(() => {
+    const loadExistingMessages = async () => {
+      if (!sessionId) return;
+      
+      console.log("=== CHAT DEBUG: Loading existing messages for session:", sessionId);
+      
+      try {
+        const response = await apiRequest("GET", `/api/analysis/sessions/${sessionId}/messages`);
+        const existingMessages = await response.json();
+        
+        console.log("=== CHAT DEBUG: Existing messages loaded:", existingMessages);
+        
+        if (existingMessages && existingMessages.length > 0) {
+          const formattedMessages = existingMessages.map((msg: any) => ({
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.createdAt)
+          }));
+          
+          console.log("=== CHAT DEBUG: Setting formatted messages:", formattedMessages);
+          setMessages(formattedMessages);
+        } else {
+          // Keep the welcome message if no existing messages
+          setMessages([{
+            role: "assistant",
+            content: "Welcome to KanoLens! I'll help you create a comprehensive competitive analysis using the Kano Model framework.\n\nLet's start with **Strategic Discovery**. Do you have an existing product to compare, or are we exploring a new market opportunity?",
+            timestamp: new Date()
+          }]);
+        }
+      } catch (error) {
+        console.error("=== CHAT DEBUG: Error loading existing messages:", error);
+      }
+    };
+    
+    loadExistingMessages();
+  }, [sessionId]);
+
   const handleSendMessage = async () => {
     console.log("=== CHAT DEBUG: handleSendMessage called ===");
     console.log("Input value:", inputValue);
