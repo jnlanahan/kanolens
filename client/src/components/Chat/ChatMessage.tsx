@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -73,16 +74,18 @@ export default function ChatMessage({ message, isTyping = false }: ChatMessagePr
           )}
         </Card>
         
-        {/* Message metadata */}
-        <div className="flex items-center justify-between mt-1 ml-3 text-xs text-gray-500 dark:text-gray-400">
-          {message.metadata?.step && (
-            <span>{message.metadata.step}</span>
-          )}
-          <div className="flex items-center space-x-1">
-            <Clock className="h-3 w-3" />
-            <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
+        {/* Only show timestamp if message has a valid createdAt */}
+        {message.createdAt && (
+          <div className="flex items-center justify-between mt-1 ml-3 text-xs text-gray-500 dark:text-gray-400">
+            {message.metadata?.step && (
+              <span>{message.metadata.step}</span>
+            )}
+            <div className="flex items-center space-x-1">
+              <Clock className="h-3 w-3" />
+              <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
       {isUser && (
