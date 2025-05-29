@@ -89,10 +89,12 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
 
       const result = await response.json();
       console.log("=== CHAT DEBUG: Response received ===", result);
+      console.log("=== CHAT DEBUG: result.aiMessage ===", result.aiMessage);
+      console.log("=== CHAT DEBUG: result.aiMessage.content ===", result.aiMessage?.content);
       
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: result.aiMessage.content,
+        content: result.aiMessage?.content || "Error: No content received",
         timestamp: new Date()
       };
 
