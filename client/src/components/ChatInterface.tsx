@@ -57,24 +57,26 @@ export default function ChatInterface({ sessionId, onAnalysisUpdate, onNewSessio
     setIsLoading(true);
 
     try {
-      const response = await apiRequest("POST", "/api/analysis/chat", {
-        message: inputValue,
-        sessionId,
-        chatHistory: messages.map(m => ({ role: m.role, content: m.content }))
+      console.log("Sending message to:", `/api/analysis/sessions/${sessionId}/messages`);
+      console.log("Message content:", inputValue);
+      
+      const response = await apiRequest("POST", `/api/analysis/sessions/${sessionId}/messages`, {
+        content: inputValue
       });
 
       const result = await response.json();
+      console.log("Response received:", result);
       
       const assistantMessage: ChatMessage = {
         role: "assistant",
-        content: result.response,
+        content: result.aiMessage.content,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      if (result.analysis) {
-        onAnalysisUpdate?.(result.analysis);
+      if (result.sessionUpdate) {
+        onAnalysisUpdate?.(result.sessionUpdate);
       }
     } catch (error) {
       console.error("Error sending message:", error);
