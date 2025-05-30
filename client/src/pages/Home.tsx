@@ -111,12 +111,7 @@ export default function Home() {
   const handleSendMessage = (content: string, metadata?: any) => {
     if (!currentSessionId) return;
     
-    // Check if this is an initial analysis request (contains "Analysis Request:")
-    if (content.includes("Analysis Request:")) {
-      setShowProgressTracker(true);
-    }
-    
-    // Check if this is a "proceed" message indicating user approved suggestions
+    // Only show progress tracker when user approves suggestions (clicks "Proceed with Analysis")
     if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
       setShowProgressTracker(true);
     }

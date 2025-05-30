@@ -26,7 +26,7 @@ const ANALYSIS_STEPS: Record<string, ProgressStep> = {
     description: 'Understanding your products and target customers',
     icon: <Search className="w-5 h-5" />,
     status: 'pending',
-    estimatedTime: '10-15 sec'
+    estimatedTime: '15-20 sec'
   },
   research: {
     id: 'research',
@@ -34,7 +34,7 @@ const ANALYSIS_STEPS: Record<string, ProgressStep> = {
     description: 'Gathering competitive intelligence and product data',
     icon: <Zap className="w-5 h-5" />,
     status: 'pending',
-    estimatedTime: '30-45 sec'
+    estimatedTime: '20-25 sec'
   },
   categorization: {
     id: 'categorization',
@@ -42,15 +42,15 @@ const ANALYSIS_STEPS: Record<string, ProgressStep> = {
     description: 'Categorizing features using Kano Model methodology',
     icon: <BarChart3 className="w-5 h-5" />,
     status: 'pending',
-    estimatedTime: '15-20 sec'
+    estimatedTime: '20-25 sec'
   },
   table_creation: {
     id: 'table_creation',
-    title: 'Building Analysis',
+    title: 'Developing Competitive Analysis Report',
     description: 'Creating your comprehensive competitive comparison table',
     icon: <Table className="w-5 h-5" />,
     status: 'pending',
-    estimatedTime: '10-15 sec'
+    estimatedTime: '15-20 sec'
   }
 };
 
@@ -70,23 +70,23 @@ export default function ProgressTracker({
   useEffect(() => {
     if (currentStep === 'discovery') {
       setLocalStep('discovery');
-      setLocalProgress(20);
+      setLocalProgress(25);
       
-      // Auto-progress through steps with realistic timing
+      // Auto-progress through steps with balanced timing
       const timer1 = setTimeout(() => {
         setLocalStep('research');
-        setLocalProgress(40);
-      }, 3000); // 3 seconds for discovery
+        setLocalProgress(50);
+      }, 18000); // 18 seconds for discovery
       
       const timer2 = setTimeout(() => {
         setLocalStep('categorization');
-        setLocalProgress(60);
-      }, 15000); // 15 seconds total for research
+        setLocalProgress(75);
+      }, 40000); // 22 seconds for research
       
       const timer3 = setTimeout(() => {
         setLocalStep('table_creation');
-        setLocalProgress(80);
-      }, 25000); // 25 seconds total for categorization
+        setLocalProgress(90);
+      }, 62000); // 22 seconds for categorization
       
       return () => {
         clearTimeout(timer1);
