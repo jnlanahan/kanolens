@@ -1,20 +1,31 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import type { AnalysisSession, ChatMessage, KanoTableData } from "@shared/schema";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams } from "wouter";
 import Header from "@/components/Layout/Header";
 import ChatInterface from "@/components/Chat/ChatInterface";
-import SuggestionPanel from "@/components/Chat/SuggestionPanel";
 import KanoTable from "@/components/KanoTable/KanoTable";
+import SuggestionPanel from "@/components/Chat/SuggestionPanel";
+import { apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
+import type { AnalysisSession, ChatMessage, KanoTableData } from "@shared/schema";
 
 export default function Home() {
-  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-  const { toast } = useToast();
+  const { id } = useParams();
+  const queryClient = useQueryClient();
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(
+    id ? parseInt(id) : null
+  );
 
-  // Fetch all sessions
-  const { data: sessions, isLoading: sessionLoading } = useQuery({
+  // Fetch user sessions
+  const { data: sessions, isLoading: sessionsLoading } = useQuery({
     queryKey: ["/api/analysis/sessions"],
+    retry: false,
+  });
+
+  // Fetch current session details
+  const { data: currentSession, isLoading: sessionLoading } = useQuery({
+    queryKey: ["/api/analysis/sessions", currentSessionId],
+    enabled: !!currentSessionId,
     retry: false,
   });
 
@@ -66,14 +77,14 @@ export default function Home() {
         queryKey: ["/api/analysis/sessions"] 
       });
       
-      // Force refresh if table data was created
+      // Force a complete refresh if table data was created
       if (data?.sessionUpdate?.data?.tableData) {
         queryClient.removeQueries({ queryKey: ["/api/analysis/sessions"] });
         setTimeout(() => {
           queryClient.refetchQueries({ 
             queryKey: ["/api/analysis/sessions"] 
           });
-        }, 500);
+        }, 200);
       }
     },
     onError: (error) => {
@@ -87,27 +98,26 @@ export default function Home() {
 
   // Auto-create first session if none exists
   useEffect(() => {
-    if (sessions && Array.isArray(sessions) && sessions.length === 0 && !createSessionMutation.isPending) {
+    if (!sessionsLoading && sessions && sessions.length === 0 && !currentSessionId) {
       createSessionMutation.mutate({
-        title: `Analysis ${new Date().toLocaleDateString()}`,
+        title: "New Competitive Analysis",
         products: [],
         targetCustomer: "Product Managers",
       });
-    }
-  }, [sessions]);
-
-  // Auto-select first session
-  useEffect(() => {
-    if (sessions && Array.isArray(sessions) && sessions.length > 0 && !currentSessionId) {
+    } else if (!currentSessionId && sessions && sessions.length > 0) {
       setCurrentSessionId(sessions[0].id);
     }
-  }, [sessions, currentSessionId]);
-
-  const currentSession = sessions && Array.isArray(sessions) ? 
-    sessions.find((s: AnalysisSession) => s.id === currentSessionId) : null;
+  }, [sessions, sessionsLoading, currentSessionId]);
 
   const handleSendMessage = (content: string, metadata?: any) => {
-    if (!currentSessionId) return;
+    if (!currentSessionId) {
+      toast({
+        title: "No Session",
+        description: "Please create an analysis session first.",
+        variant: "destructive",
+      });
+      return;
+    }
     sendMessageMutation.mutate({ content, metadata });
   };
 
@@ -172,70 +182,28 @@ export default function Home() {
     return suggestions.products.length > 0 || suggestions.features.length > 0 ? suggestions : null;
   };
 
+  // Check what to show on the right panel
+  const suggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
+  
+  // More robust table data check
+  const hasValidTableData = currentSession && 
+    currentSession.tableData && 
+    typeof currentSession.tableData === 'object' &&
+    currentSession.tableData.products && 
+    currentSession.tableData.features &&
+    Array.isArray(currentSession.tableData.products) &&
+    Array.isArray(currentSession.tableData.features) &&
+    currentSession.tableData.products.length > 0 &&
+    currentSession.tableData.features.length > 0;
+  
+  const showSuggestionPanel = suggestions && !hasValidTableData;
+
   const handleProceedWithAnalysis = () => {
     handleSendMessage("Yes please proceed");
   };
 
   const handleMakeChanges = () => {
     handleSendMessage("I'd like to make some changes to the suggestions");
-  };
-
-  // Determine what to show in right panel
-  const renderRightPanel = () => {
-    console.log('Current session data:', currentSession);
-    console.log('Table data exists:', !!currentSession?.tableData);
-    
-    // Check for table data first
-    if (currentSession?.tableData && 
-        typeof currentSession.tableData === 'object' && 
-        Object.keys(currentSession.tableData).length > 0) {
-      console.log('Rendering Kano Table');
-      return (
-        <KanoTable
-          tableData={currentSession.tableData as KanoTableData}
-          isLoading={sessionLoading}
-          sessionId={currentSessionId}
-        />
-      );
-    }
-
-    // Check for suggestions
-    const suggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
-    if (suggestions && (suggestions.products.length > 0 || suggestions.features.length > 0)) {
-      console.log('Rendering Suggestion Panel');
-      return (
-        <SuggestionPanel
-          originalRequest={{
-            products: Array.isArray(messages) ? 
-              messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',').map(p => p.trim()) || [] 
-              : [],
-            targetCustomer: Array.isArray(messages) ? 
-              messages.find(m => m.role === 'user')?.content.match(/Target Customers?: ([^\n]+)/)?.[1] 
-              : undefined
-          }}
-          suggestions={suggestions}
-          onProceed={handleProceedWithAnalysis}
-          onMakeChanges={handleMakeChanges}
-          isLoading={sendMessageMutation.isPending}
-        />
-      );
-    }
-
-    // Default empty state
-    console.log('Rendering empty state');
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-        <div className="w-16 h-16 mb-4 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 00-2 2h-2a2 2 0 00-2-2z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium mb-2">No Analysis Data Yet</h3>
-        <p className="text-center max-w-md">
-          Start a conversation in the chat to begin your competitive analysis. The AI will generate your Kano Model comparison table as we progress through the analysis.
-        </p>
-      </div>
-    );
   };
 
   return (
@@ -264,7 +232,42 @@ export default function Home() {
             Kano Model Comparison
           </h2>
           
-          {renderRightPanel()}
+          {hasValidTableData ? (
+            <KanoTable
+              tableData={currentSession?.tableData as KanoTableData}
+              isLoading={sessionLoading}
+              sessionId={currentSessionId}
+            />
+          ) : showSuggestionPanel && suggestions ? (
+            <SuggestionPanel
+              originalRequest={{
+                products: Array.isArray(messages) ? 
+                  messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',').map(p => p.trim()) || [] 
+                  : [],
+                targetCustomer: Array.isArray(messages) ? 
+                  messages.find(m => m.role === 'user')?.content.match(/Target Customers?: ([^\n]+)/)?.[1] 
+                  : undefined
+              }}
+              suggestions={suggestions}
+              onProceed={handleProceedWithAnalysis}
+              onMakeChanges={handleMakeChanges}
+              isLoading={sendMessageMutation.isPending}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-96 text-center">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                No Analysis Data Yet
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 max-w-sm">
+                Start a conversation in the chat to begin your competitive analysis. The AI will generate your Kano Model comparison table as we progress through the analysis.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
