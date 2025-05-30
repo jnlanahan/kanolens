@@ -19,18 +19,18 @@ interface ChatResponse {
 }
 
 export async function processChatMessage(
-  message: string,
   sessionId: number,
-  userId: string,
-  currentStep: string
+  message: string,
+  currentStep: string,
+  sessionData: any
 ): Promise<ChatResponse> {
-  console.log(`[OpenAI] Processing chat message for session ${sessionId}, step: ${currentStep}, message: ${message.substring(0, 100)}...`);
-
+  console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
+  
   try {
     const systemPrompt = `You are an expert competitive analyst specializing in the Kano Model framework. 
 
 Current Step: ${currentStep}
-Session Data: ${JSON.stringify(sessionData, null, 2)}
+Session: Analysis for session ${sessionId}
 
 You guide users through a 5-step Kano analysis process:
 1. Discovery - Define products, customers, features to analyze
@@ -51,9 +51,9 @@ Respond with helpful, specific guidance to move the analysis forward.`;
     });
 
     const aiMessage = response.choices[0].message.content || "I'm sorry, I couldn't process that request.";
-
+    
     console.log("[OpenAI] Generated response for step", currentStep);
-
+    
     const chatResponse: ChatResponse = {
       step: currentStep,
       message: aiMessage,
@@ -93,7 +93,7 @@ function getNextActionForStep(step: string): string {
 
 export async function testOpenAIConnection(): Promise<boolean> {
   console.log("[OpenAI] Testing connection...");
-
+  
   try {
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
