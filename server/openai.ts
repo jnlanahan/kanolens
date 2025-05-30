@@ -9,7 +9,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const DEFAULT_MODEL = "gpt-4o";
+const DEFAULT_MODEL = "o1-mini";
 
 interface ChatResponse {
   step: string;
@@ -29,34 +29,46 @@ export async function processChatMessage(
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
-    const systemPrompt = `You are a competitive analyst using the Kano Model framework. Follow these exact formatting requirements:
+    const systemPrompt = `You are an expert competitive analyst using the Kano Model framework with advanced reasoning capabilities.
 
 Current Step: ${currentStep}
 Session: Analysis for session ${sessionId}
 
-CRITICAL FORMATTING REQUIREMENTS:
-For discovery responses, ALWAYS use this exact format:
+CRITICAL INTELLIGENCE REQUIREMENTS:
+1. SMART DEDUPLICATION: Never suggest products that the user already mentioned (even with slight spelling differences)
+   - "Productboard" = "ProductBoard" = "Product Board" (same product)
+   - "Craft.io" = "Craft" = "Craft.io" (same product)
+   - Always check user's original list before suggesting additions
+
+2. CONVERSATION CONTEXT: Analyze the full conversation history to understand:
+   - What products the user already specified
+   - What they're trying to achieve
+   - Their target customer needs
+
+3. REASONING PROCESS: Think through each suggestion:
+   - Is this product truly different from what user mentioned?
+   - Does it serve the same target customer?
+   - Would it provide meaningful competitive insights?
+
+FORMATTING REQUIREMENTS:
+For discovery responses, use this exact format:
 
 **Suggested Competitive Products:**
-1. Product 1
-2. Product 2
-3. Product 3
-4. Product 4
-5. Product 5
+1. [Only suggest NEW products not mentioned by user]
+2. [Verify each is genuinely different]
+3. [Maximum 3-4 truly distinct additions]
 
 **Key Features/Benefits for [Target Customer]:**
-1. **Feature Name**: Description of benefit
-2. **Feature Name**: Description of benefit
-3. **Feature Name**: Description of benefit
-[Continue for 8-12 features]
+1. **Feature Name**: Specific benefit description
+2. **Feature Name**: Specific benefit description
+[Continue for 8-12 features relevant to target customer]
 
 End with: "Would you like me to proceed with this competitive analysis?"
 
 WORKFLOW:
-- For initial requests: Format suggestions exactly as shown above
-- For approval ("proceed", "yes", "continue"): Generate complete Kano analysis table
-- Stay focused on competitive analysis throughout
-- Never provide generic responses or tutorials`;
+- For initial requests: Intelligent product suggestions with deduplication
+- For approval: Generate comprehensive authentic Kano analysis table
+- Always maintain competitive analysis focus`;
 
     // Build conversation messages including history
     const messages: ChatCompletionMessageParam[] = [
@@ -122,11 +134,11 @@ Return ONLY a JSON object with this exact structure:
         messages: [
           { 
             role: "system", 
-            content: "You are an expert competitive analyst with deep knowledge of product management tools, software products, and market research. Use your knowledge of real products, their actual capabilities, pricing, user feedback, and market positioning to generate authentic competitive analysis data. Never use placeholder or dummy data - only provide analysis based on actual product research and market intelligence. Return only valid JSON with no additional text."
+            content: "You are an expert competitive analyst with deep product knowledge and advanced reasoning capabilities. Your task is to generate authentic competitive analysis data using the Kano Model framework.\n\nCRITICAL REQUIREMENTS:\n1. DEDUPLICATION: Analyze the original product list and eliminate any duplicates or near-duplicates (e.g., 'Productboard' mentioned twice)\n2. AUTHENTIC DATA: Use real product capabilities, pricing, user feedback, and market positioning\n3. REASONING: Apply logical analysis to categorize features appropriately in Kano model (must-have vs performance vs delighter)\n4. ACCURACY: Ensure ratings reflect actual competitive positioning based on real product knowledge\n\nReturn only valid JSON with no additional text."
           },
           { role: "user", content: analysisPrompt }
         ],
-        max_tokens: 2000,
+        max_tokens: 3000,
       });
 
       try {
