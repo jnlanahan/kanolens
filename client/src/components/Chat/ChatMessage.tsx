@@ -13,17 +13,11 @@ interface ChatMessageProps {
 
 // Helper function to check if message contains suggestions
 function isSuggestionMessage(content: string): boolean {
-  return content.includes('**Suggested Competitive Product') || 
-         content.includes('**Relevant Features/Benefits') ||
-         content.includes('additional competitive products') || 
-         content.includes('Key features/benefits') ||
-         content.includes('**Competitive Products to Compare:**') || 
+  return content.includes('**Competitive Products to Compare:**') || 
          content.includes('**Suggested Additional') || 
          content.includes('**Key Features/Benefits') ||
-         (content.includes('Would you like me to proceed with creating') && 
-          content.includes('Kano analysis')) ||
          (content.includes('Please confirm if you would like to proceed') && 
-          (content.includes('**') || content.includes('1.')));
+          content.includes('**'));
 }
 
 // Helper function to parse suggestions from message content

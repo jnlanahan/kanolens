@@ -219,36 +219,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentStep: aiResponse.step,
         };
         
-        console.log("[Routes] AI Response data:", JSON.stringify(aiResponse.data, null, 2));
-        
         if (aiResponse.data) {
-          if (aiResponse.data.features) {
-            updateData.features = aiResponse.data.features;
-            console.log("[Routes] Updated features:", aiResponse.data.features.length);
-          }
-          if (aiResponse.data.products) {
-            updateData.products = aiResponse.data.products;
-            console.log("[Routes] Updated products:", aiResponse.data.products.length);
-          }
-          if (aiResponse.data.tableData) {
-            updateData.tableData = aiResponse.data.tableData;
-            console.log("[Routes] Updated tableData:", JSON.stringify(aiResponse.data.tableData, null, 2));
-          }
-          if (aiResponse.data.targetCustomer) {
-            updateData.targetCustomer = aiResponse.data.targetCustomer;
-            console.log("[Routes] Updated targetCustomer:", aiResponse.data.targetCustomer);
-          }
+          if (aiResponse.data.features) updateData.features = aiResponse.data.features;
+          if (aiResponse.data.products) updateData.products = aiResponse.data.products;
+          if (aiResponse.data.tableData) updateData.tableData = aiResponse.data.tableData;
+          if (aiResponse.data.targetCustomer) updateData.targetCustomer = aiResponse.data.targetCustomer;
           
           // Mark as completed if we reached table creation or analysis step
           if (aiResponse.step === 'table_creation' || aiResponse.step === 'analysis') {
             updateData.status = 'completed';
-            console.log("[Routes] Marking session as completed");
           }
         }
         
-        console.log("[Routes] Final update data:", JSON.stringify(updateData, null, 2));
         await storage.updateAnalysisSession(sessionId, updateData);
-        console.log("[Routes] Session updated successfully");
       }
 
       res.json({

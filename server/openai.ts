@@ -129,84 +129,12 @@ For approval responses, create a comprehensive Kano analysis table with actual p
     
     console.log("[OpenAI] Generated response for step", currentStep);
     
-    // Check if the response contains a Kano table in JSON format
-    let tableData = null;
-    let processedMessage = aiMessage;
-    
-    if (aiMessage.includes('```json') || (aiMessage.includes('"Kano Analysis"') && aiMessage.includes('"Features"'))) {
-      try {
-        // Extract JSON from the response - handle both formats
-        let jsonContent = '';
-        
-        // Try to extract from markdown code block first
-        const codeBlockMatch = aiMessage.match(/```json\n?([\s\S]*?)\n?```/);
-        if (codeBlockMatch) {
-          jsonContent = codeBlockMatch[1];
-        } else {
-          // Try to extract raw JSON
-          const jsonMatch = aiMessage.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            jsonContent = jsonMatch[0];
-          }
-        }
-        
-        if (jsonContent) {
-          const parsedTable = JSON.parse(jsonContent);
-          
-          // Handle the new format: { "Product Management Tools": [...], "Features": [...], "Kano Analysis": {...} }
-          if (parsedTable["Product Management Tools"] && parsedTable["Features"] && parsedTable["Kano Analysis"]) {
-            const products = parsedTable["Product Management Tools"];
-            const featureNames = parsedTable["Features"];
-            const kanoAnalysis = parsedTable["Kano Analysis"];
-            
-            const features = featureNames.map((name: string, index: number) => ({
-              id: `feature_${index + 1}`,
-              name: name,
-              description: `Analysis of ${name} for the target customer segment`,
-              category: 'performance', // Default category
-              customerBenefit: `Provides ${name} functionality for enhanced user experience`
-            }));
-            
-            const ratings: Record<string, Record<string, string>> = {};
-            const sources: Record<string, string[]> = {};
-            
-            features.forEach((feature: any, index: number) => {
-              const featureId = `feature_${index + 1}`;
-              ratings[featureId] = {};
-              sources[featureId] = ['Competitive analysis', 'User research'];
-              
-              products.forEach((product: string) => {
-                if (kanoAnalysis[product] && kanoAnalysis[product][feature.name]) {
-                  ratings[featureId][product] = kanoAnalysis[product][feature.name];
-                } else {
-                  ratings[featureId][product] = 'Indifferent';
-                }
-              });
-            });
-            
-            tableData = {
-              products,
-              features,
-              ratings,
-              sources
-            };
-            
-            processedMessage = 'Analysis complete! Your comprehensive Kano Model comparison table has been generated with detailed feature categorizations and competitive ratings.';
-            console.log("[OpenAI] Successfully parsed table data:", JSON.stringify(tableData, null, 2));
-          }
-        }
-      } catch (error) {
-        console.error("[OpenAI] Failed to parse table data from response:", error);
-        console.error("[OpenAI] Raw response content:", aiMessage.substring(0, 500));
-      }
-    }
-    
     const chatResponse: ChatResponse = {
-      step: tableData ? 'table_creation' : currentStep,
-      message: processedMessage,
-      progress: tableData ? 100 : getProgressForStep(currentStep),
-      data: tableData ? { tableData } : {},
-      nextAction: tableData ? 'Review your analysis results and insights.' : getNextActionForStep(currentStep)
+      step: currentStep,
+      message: aiMessage,
+      progress: getProgressForStep(currentStep),
+      data: {},
+      nextAction: getNextActionForStep(currentStep)
     };
 
     return chatResponse;
