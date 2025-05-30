@@ -189,10 +189,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentStep: session.currentStep
       });
       const aiResponse = await processChatMessage(
-        req.body.content,
         sessionId,
-        userId,
-        session.currentStep
+        req.body.content,
+        session.currentStep,
+        session
       );
       console.log("[Routes] OpenAI response received:", aiResponse);
 

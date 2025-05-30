@@ -1,0 +1,85 @@
+2:00:16 AM [express] GET /api/auth/user 304 in 437ms :: {"id":"41771399","email":"jnlanahan@gmail.co…
+[OpenAI] Testing connection...
+2:00:17 AM [express] GET /api/analysis/sessions 304 in 202ms :: [{"id":20,"userId":"41771399","title…
+2:00:17 AM [express] GET /api/analysis/sessions 304 in 184ms :: [{"id":20,"userId":"41771399","title…
+2:00:17 AM [express] GET /api/analysis/sessions/20/messages 200 in 445ms :: [{"id":65,"sessionId":20…
+[OpenAI] Test response: Sure, I can help with testing a connection.
+[OpenAI] Connection test result: true
+2:00:18 AM [express] GET /api/openai/test 304 in 1105ms :: {"connected":true,"message":"OpenAI conne…
+[Routes] Creating analysis session...
+[Routes] User ID: 41771399
+[Routes] Request body: {
+  title: 'Analysis 5/29/2025',
+  products: [],
+  targetCustomer: 'Product Managers'
+}
+[Routes] Parsed session data: {
+  userId: '41771399',
+  title: 'Analysis 5/29/2025',
+  products: [],
+  targetCustomer: 'Product Managers',
+  features: [],
+  chatHistory: []
+}
+[Routes] Created session: {
+  id: 21,
+  userId: '41771399',
+  title: 'Analysis 5/29/2025',
+  products: [],
+  targetCustomer: 'Product Managers',
+  features: [],
+  status: 'in_progress',
+  currentStep: 'discovery',
+  chatHistory: [],
+  tableData: null,
+  sourceDocumentation: null,
+  createdAt: 2025-05-30T02:00:24.276Z,
+  updatedAt: 2025-05-30T02:00:24.276Z
+}
+2:00:24 AM [express] POST /api/analysis/sessions 200 in 210ms :: {"id":21,"userId":"41771399","title…
+2:00:24 AM [express] GET /api/analysis/sessions 200 in 185ms :: [{"id":21,"userId":"41771399","title…
+2:00:24 AM [express] GET /api/analysis/sessions/21/messages 200 in 236ms :: []
+2:00:24 AM [express] GET /api/analysis/sessions 304 in 184ms :: [{"id":21,"userId":"41771399","title…
+2:00:25 AM [express] GET /api/analysis/sessions 304 in 185ms :: [{"id":21,"userId":"41771399","title…
+[OpenAI] Testing connection...
+[OpenAI] Test response: Sure, I’m here! How can I assist
+[OpenAI] Connection test result: true
+2:00:49 AM [express] GET /api/openai/test 304 in 1541ms :: {"connected":true,"message":"OpenAI conne…
+[OpenAI] Testing connection...
+[OpenAI] Test response: It looks like you might be checking if a connection
+[OpenAI] Connection test result: true
+2:01:21 AM [express] GET /api/openai/test 304 in 1408ms :: {"connected":true,"message":"OpenAI conne…
+[Routes] Processing chat message...
+[Routes] Session ID: 21, User ID: 41771399
+[Routes] Message content: Analysis Request: Presentation tools
+
+Products to Compare: PowerPoint, Google Slides, etc...
+
+Target Customers: Startup owners
+[Routes] Session found: Analysis 5/29/2025, step: discovery
+[Routes] User message saved
+[Routes] Calling OpenAI processChatMessage...
+[Routes] Parameters: {
+  content: 'Analysis Request: Presentation tools\n' +
+    '\n' +
+    'Products to Compare: PowerPoint, Google Slides, etc...\n' +
+    '\n' +
+    'Target Customers: Startup owners',
+  sessionId: 21,
+  userId: '41771399',
+  currentStep: 'discovery'
+}
+[OpenAI] Processing chat message for session 21, step: discovery, message: Analysis Request: Presentation tools
+
+Products to Compare: PowerPoint, Google Slides, etc...
+
+Target...
+[OpenAI] Error processing chat message: ReferenceError: sessionData is not defined
+    at processChatMessage (/home/runner/workspace/server/openai.ts:33:32)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:191:32)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+Chat message error: Error: Failed to process message: sessionData is not defined
+    at processChatMessage (/home/runner/workspace/server/openai.ts:68:11)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:191:32)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2:01:22 AM [express] POST /api/analysis/sessions/21/messages 500 in 442ms :: {"message":"Failed to p…
