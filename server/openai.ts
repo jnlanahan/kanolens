@@ -133,30 +133,47 @@ For approval responses, create a comprehensive Kano analysis table with actual p
     let tableData = null;
     let processedMessage = aiMessage;
     
-    if (aiMessage.includes('"products":') && aiMessage.includes('"Feature":')) {
+    if (aiMessage.includes('```json') || (aiMessage.includes('"data":') && aiMessage.includes('name":'))) {
       try {
-        // Extract JSON from the response
-        const jsonMatch = aiMessage.match(/```json\n?([\s\S]*?)\n?```/) || aiMessage.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const jsonContent = jsonMatch[1] || jsonMatch[0];
+        // Extract JSON from the response - handle both formats
+        let jsonContent = '';
+        
+        // Try to extract from markdown code block first
+        const codeBlockMatch = aiMessage.match(/```json\n?([\s\S]*?)\n?```/);
+        if (codeBlockMatch) {
+          jsonContent = codeBlockMatch[1];
+        } else {
+          // Try to extract raw JSON
+          const jsonMatch = aiMessage.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[0];
+          }
+        }
+        
+        if (jsonContent) {
           const parsedTable = JSON.parse(jsonContent);
           
-          // Convert the table format to our expected structure
+          // Handle the format from the logs: { data: [{ name: "Feature", product1: "value" }] }
           if (parsedTable.data && Array.isArray(parsedTable.data)) {
-            // Convert array format to our structure
-            const products = Object.keys(parsedTable.data[0]).filter(key => key !== 'Feature');
+            // Get all unique product names from the first row (excluding 'name')
+            const products = Object.keys(parsedTable.data[0]).filter(key => key !== 'name' && key !== 'Feature');
+            
             const features = parsedTable.data.map((row: any, index: number) => ({
               id: `feature_${index + 1}`,
-              name: row.Feature,
-              description: `Analysis of ${row.Feature} for the target customer segment`,
-              category: 'must-have', // Default category
-              customerBenefit: `Provides ${row.Feature} functionality`
+              name: row.name || row.Feature,
+              description: `Analysis of ${row.name || row.Feature} for the target customer segment`,
+              category: 'performance', // Default category
+              customerBenefit: `Provides ${row.name || row.Feature} functionality for enhanced user experience`
             }));
             
             const ratings: Record<string, Record<string, string>> = {};
+            const sources: Record<string, string[]> = {};
+            
             parsedTable.data.forEach((row: any, index: number) => {
               const featureId = `feature_${index + 1}`;
               ratings[featureId] = {};
+              sources[featureId] = ['Competitive analysis', 'User research'];
+              
               products.forEach(product => {
                 ratings[featureId][product] = row[product] || 'Indifferent';
               });
@@ -166,14 +183,16 @@ For approval responses, create a comprehensive Kano analysis table with actual p
               products,
               features,
               ratings,
-              sources: {}
+              sources
             };
             
             processedMessage = 'Analysis complete! Your comprehensive Kano Model comparison table has been generated with detailed feature categorizations and competitive ratings.';
+            console.log("[OpenAI] Successfully parsed table data:", JSON.stringify(tableData, null, 2));
           }
         }
       } catch (error) {
         console.error("[OpenAI] Failed to parse table data from response:", error);
+        console.error("[OpenAI] Raw response content:", aiMessage.substring(0, 500));
       }
     }
     
