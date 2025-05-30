@@ -68,36 +68,55 @@ For approval responses, create a comprehensive Kano analysis table with actual p
                       message.toLowerCase().includes('go ahead');
 
     if (isApproval && conversationHistory.length > 0) {
-      // Generate comprehensive Kano analysis with structured data
-      const analysisPrompt = `Based on the previous conversation, generate a complete Kano Model analysis table.
+      // Extract the actual products and features from the conversation
+      const conversation = conversationHistory.map(msg => msg.content).join('\n');
       
-      Return ONLY a JSON object with this exact structure:
-      {
-        "products": ["product1", "product2", ...],
-        "features": [
-          {
-            "id": "feature1",
-            "name": "Feature Name",
-            "description": "Brief description",
-            "category": "must-have|performance|delighter",
-            "customerBenefit": "How this benefits the customer"
-          }
-        ],
-        "ratings": {
-          "feature1": {
-            "product1": "High|Medium|Low|Yes|No",
-            "product2": "High|Medium|Low|Yes|No"
-          }
-        },
-        "sources": {
-          "feature1": ["source1", "source2"]
-        }
-      }`;
+      // Generate comprehensive Kano analysis with real competitive research
+      const analysisPrompt = `Based on our conversation about competitive analysis, conduct a real research-based Kano Model analysis for the specified products and features.
+
+IMPORTANT: Use your knowledge of the actual products mentioned to provide authentic competitive ratings based on real product capabilities, market positioning, and customer reviews.
+
+Conversation context:
+${conversation}
+
+Current user request: ${message}
+
+Generate a comprehensive Kano analysis with:
+1. Real product names from our discussion
+2. Authentic feature comparisons based on actual product capabilities
+3. Research-based ratings reflecting true competitive positioning
+4. Realistic source attributions
+
+Return ONLY a JSON object with this exact structure:
+{
+  "products": ["ActualProduct1", "ActualProduct2", "ActualProduct3"],
+  "features": [
+    {
+      "id": "feature1",
+      "name": "Real Feature Name",
+      "description": "Accurate description of this feature",
+      "category": "must-have|performance|delighter",
+      "customerBenefit": "Specific benefit this provides to target customers"
+    }
+  ],
+  "ratings": {
+    "feature1": {
+      "ActualProduct1": "High|Medium|Low|Yes|No",
+      "ActualProduct2": "High|Medium|Low|Yes|No"
+    }
+  },
+  "sources": {
+    "feature1": ["industry reports", "user reviews", "product documentation"]
+  }
+}`;
 
       const analysisResponse = await openai.chat.completions.create({
         model: DEFAULT_MODEL,
         messages: [
-          { role: "system", content: "You are a data analyst. Return only valid JSON with no additional text." },
+          { 
+            role: "system", 
+            content: "You are an expert competitive analyst with deep knowledge of product management tools, software products, and market research. Use your knowledge of real products, their actual capabilities, pricing, user feedback, and market positioning to generate authentic competitive analysis data. Never use placeholder or dummy data - only provide analysis based on actual product research and market intelligence. Return only valid JSON with no additional text."
+          },
           { role: "user", content: analysisPrompt }
         ],
         max_tokens: 2000,
