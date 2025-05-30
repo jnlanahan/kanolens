@@ -341,9 +341,25 @@ async function searchProductInformation(query: string): Promise<string> {
       input: query,
     });
 
-    const content = response.output_text || "";
-    console.log(`[OpenAI] Web search completed for: ${query}`);
-    return content;
+    // Extract content from the response output array
+    let content = "";
+    if (response.output && Array.isArray(response.output)) {
+      const messageOutput = response.output.find(item => item.type === 'message');
+      if (messageOutput && messageOutput.content && Array.isArray(messageOutput.content)) {
+        const textContent = messageOutput.content.find(c => c.type === 'output_text');
+        if (textContent && textContent.text) {
+          content = textContent.text;
+        }
+      }
+    }
+    
+    // Fallback to output_text if available
+    if (!content && response.output_text) {
+      content = response.output_text;
+    }
+    
+    console.log(`[OpenAI] Web search completed for: ${query}, content length: ${content.length}`);
+    return content || `Search completed for ${query} but no content returned`;
   } catch (error) {
     console.error(`[OpenAI] Web search failed for ${query}:`, error);
     return `Unable to retrieve current information for: ${query}`;
