@@ -1,10 +1,8 @@
-
 import { useEffect, useRef } from "react";
-import { Card } from "@/components/ui/card";
-import { Settings } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
+import AnalysisForm, { type AnalysisFormData } from "./AnalysisForm";
+import { Card } from "@/components/ui/card";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 
 interface ChatInterfaceProps {
@@ -38,17 +36,62 @@ export default function ChatInterface({
     scrollToBottom();
   }, [messages]);
 
-  // Filter messages to ensure we only have valid ChatMessage objects
-  const validMessages = messages.filter(msg => 
-    msg && 
-    typeof msg === 'object' && 
-    'role' in msg && 
-    'content' in msg &&
-    msg.content !== null &&
-    msg.content !== undefined
-  );
+  const handleFormSubmit = (formData: AnalysisFormData) => {
+    // Create a comprehensive message from all form fields
+    const parts = [];
 
-  console.log("Valid messages count:", validMessages.length);
+    if (formData.description.trim()) {
+      parts.push(`Analysis Request: ${formData.description.trim()}`);
+    }
+
+    if (formData.products.trim()) {
+      parts.push(`Products to Compare: ${formData.products.trim()}`);
+    }
+
+    if (formData.targetCustomers.trim()) {
+      parts.push(`Target Customers: ${formData.targetCustomers.trim()}`);
+    }
+
+    if (formData.features.trim()) {
+      parts.push(`Features/Benefits to Analyze: ${formData.features.trim()}`);
+    }
+
+    if (parts.length > 0) {
+      const message = parts.join("\n\n");
+      onSendMessage(message);
+    }
+  };
+
+  console.log("ChatInterface received messages:", messages);
+  console.log("Valid messages count:", Array.isArray(messages) ? messages.filter(msg => msg && typeof msg === 'object' && 'content' in msg).length : 0);
+
+  const validMessages = Array.isArray(messages) ? messages.filter(msg => msg && typeof msg === 'object' && 'content' in msg) : [];
+
+  if (!Array.isArray(messages)) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="p-6 text-center">
+            <div className="text-gray-500 dark:text-gray-400">
+              Loading messages...
+            </div>
+          </Card>
+        </div>
+        <ChatInput onSendMessage={onSendMessage} disabled={isLoading} />
+      </div>
+    );
+  }
+
+  // Show form if no messages exist yet
+  if (validMessages.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+          <AnalysisForm onSubmit={handleFormSubmit} disabled={isLoading} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -93,14 +136,14 @@ export default function ChatInterface({
             />
           </div>
         )}
-        
+
         {/* Render valid messages */}
         {validMessages.map((message) => (
           <div key={message.id} className="animate-slide-up">
             <ChatMessage message={message} />
           </div>
         ))}
-        
+
         {isLoading && (
           <div className="animate-slide-up">
             <ChatMessage
@@ -115,7 +158,7 @@ export default function ChatInterface({
             />
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
