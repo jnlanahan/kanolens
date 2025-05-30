@@ -69,13 +69,22 @@ export default function Home() {
       );
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ 
         queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`] 
       });
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/analysis/sessions", currentSessionId] 
+        queryKey: ["/api/analysis/sessions"] 
       });
+      
+      // Force a complete refresh if table data was created
+      if (data?.sessionUpdate?.data?.tableData) {
+        setTimeout(() => {
+          queryClient.refetchQueries({ 
+            queryKey: ["/api/analysis/sessions"] 
+          });
+        }, 100);
+      }
     },
     onError: (error) => {
       toast({
@@ -170,7 +179,9 @@ export default function Home() {
 
   // Check if we should show suggestion panel or table
   const suggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
-  const hasTableData = currentSession?.tableData && typeof currentSession.tableData === 'object';
+  const hasTableData = currentSession?.tableData && 
+    typeof currentSession.tableData === 'object' && 
+    Object.keys(currentSession.tableData).length > 0;
   const showSuggestionPanel = suggestions && !hasTableData;
 
   const handleProceedWithAnalysis = () => {

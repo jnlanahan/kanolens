@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         userMessage,
         aiMessage,
-        sessionUpdate: aiResponse.step !== session.currentStep ? {
+        sessionUpdate: aiResponse.step !== session.currentStep || aiResponse.data ? {
           currentStep: aiResponse.step,
           data: aiResponse.data
         } : null
