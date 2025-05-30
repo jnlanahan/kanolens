@@ -44,88 +44,81 @@ export default function SuggestionPanel({
       {/* Content */}
       <div className="flex-1 overflow-auto p-6">
         <div className="space-y-6">
-          {/* Original Request Section */}
+          {/* Comprehensive Analysis Overview */}
           <Card className="p-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Your Request
+              Complete Analysis Setup
             </h3>
             
-            <div className="space-y-4">
-              {/* Original Products */}
+            <div className="space-y-6">
+              {/* Target Customer Context */}
+              {originalRequest.targetCustomer && (
+                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Users className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                      Target Audience
+                    </span>
+                  </div>
+                  <span className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                    {originalRequest.targetCustomer}
+                  </span>
+                </div>
+              )}
+
+              {/* All Products to Compare */}
               <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                  Products to Compare
-                </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Package className="w-4 h-4 text-blue-600" />
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Products to Compare
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  {/* Original Products */}
                   {originalRequest.products.map((product, index) => (
-                    <Badge key={index} variant="outline" className="px-3 py-1">
-                      {product}
-                    </Badge>
+                    <div key={`original-${index}`} className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="text-sm text-blue-900 dark:text-blue-100 font-medium">
+                        {product}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* AI Suggested Products */}
+                  {suggestions.products.map((product, index) => (
+                    <div key={`suggested-${index}`} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-green-900 dark:text-green-100 font-medium">
+                          {product}
+                        </div>
+                        <Badge variant="outline" className="text-xs border-green-300 text-green-700 dark:text-green-300">
+                          AI Suggested
+                        </Badge>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              {/* Target Customer */}
-              {originalRequest.targetCustomer && (
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                    Target Customers
-                  </label>
-                  <div className="p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
-                    <span className="text-sm text-gray-900 dark:text-white">
-                      {originalRequest.targetCustomer}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* AI Suggestions Section */}
-          <Card className="p-6 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
-            <div className="flex items-center space-x-2 mb-4">
-              <Star className="w-5 h-5 text-purple-600" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                AI Suggestions
-              </h3>
-            </div>
-
-            <div className="space-y-6">
-              {/* Additional Products */}
-              {suggestions.products.length > 0 && (
-                <div>
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Package className="w-4 h-4 text-blue-600" />
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Suggested Additional Products
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
-                    {suggestions.products.map((product, index) => (
-                      <div key={index} className="p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
-                        <div className="text-sm text-gray-900 dark:text-white font-medium">
-                          {product}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Key Features */}
+              {/* All Features to Analyze */}
               {suggestions.features.length > 0 && (
                 <div>
                   <div className="flex items-center space-x-2 mb-3">
-                    <Users className="w-4 h-4 text-green-600" />
+                    <CheckCircle className="w-4 h-4 text-green-600" />
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Key Features/Benefits to Analyze
+                      Features & Benefits to Analyze
                     </label>
                   </div>
-                  <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
+                  <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
                     {suggestions.features.map((feature, index) => (
-                      <div key={index} className="p-3 bg-gray-50 dark:bg-slate-700 rounded-lg border border-gray-200 dark:border-slate-600">
-                        <div className="text-sm text-gray-900 dark:text-white">
-                          {feature}
+                      <div key={index} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-green-900 dark:text-green-100">
+                            {feature}
+                          </div>
+                          <Badge variant="outline" className="text-xs border-green-300 text-green-700 dark:text-green-300">
+                            AI Suggested
+                          </Badge>
                         </div>
                       </div>
                     ))}
