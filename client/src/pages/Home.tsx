@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -180,62 +180,74 @@ export default function Home() {
     handleSendMessage("I'd like to make some changes to the suggestions");
   };
 
-  // Determine what to show in right panel
-  const renderRightPanel = () => {
-    console.log('Current session data:', currentSession);
-    console.log('Table data exists:', !!currentSession?.tableData);
-    
+  // Memoized computation for better performance
+  const { hasTableData, suggestions, panelContent } = useMemo(() => {
     // Check for table data first
-    if (currentSession?.tableData && 
+    const hasTable = currentSession?.tableData && 
         typeof currentSession.tableData === 'object' && 
-        Object.keys(currentSession.tableData).length > 0) {
-      console.log('Rendering Kano Table');
-      return (
-        <KanoTable
-          tableData={currentSession.tableData as KanoTableData}
-          isLoading={sessionLoading}
-          sessionId={currentSessionId}
-        />
-      );
-    }
+        Object.keys(currentSession.tableData).length > 0;
 
-    // Check for suggestions
-    const suggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
-    if (suggestions && (suggestions.products.length > 0 || suggestions.features.length > 0)) {
-      console.log('Rendering Suggestion Panel');
-      return (
-        <SuggestionPanel
-          originalRequest={{
-            products: Array.isArray(messages) ? 
-              messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',').map(p => p.trim()) || [] 
-              : [],
-            targetCustomer: Array.isArray(messages) ? 
-              messages.find(m => m.role === 'user')?.content.match(/Target Customers?: ([^\n]+)/)?.[1] 
-              : undefined
-          }}
-          suggestions={suggestions}
-          onProceed={handleProceedWithAnalysis}
-          onMakeChanges={handleMakeChanges}
-          isLoading={sendMessageMutation.isPending}
-        />
-      );
-    }
+    // Extract suggestions
+    const extractedSuggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
+    const hasSuggestions = extractedSuggestions && 
+        (extractedSuggestions.products.length > 0 || extractedSuggestions.features.length > 0);
 
-    // Default empty state
-    console.log('Rendering empty state');
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-        <div className="w-16 h-16 mb-4 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 00-2 2h-2a2 2 0 00-2-2z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-medium mb-2">No Analysis Data Yet</h3>
-        <p className="text-center max-w-md">
-          Start a conversation in the chat to begin your competitive analysis. The AI will generate your Kano Model comparison table as we progress through the analysis.
-        </p>
-      </div>
-    );
+    // Determine panel content
+    let content: 'table' | 'suggestions' | 'empty' = 'empty';
+    if (hasTable) content = 'table';
+    else if (hasSuggestions) content = 'suggestions';
+
+    return {
+      hasTableData: hasTable,
+      suggestions: extractedSuggestions,
+      panelContent: content
+    };
+  }, [currentSession?.tableData, messages]);
+
+  const renderRightPanel = () => {
+    switch (panelContent) {
+      case 'table':
+        return (
+          <KanoTable
+            tableData={currentSession!.tableData as KanoTableData}
+            isLoading={sessionLoading}
+            sessionId={currentSessionId}
+          />
+        );
+
+      case 'suggestions':
+        return (
+          <SuggestionPanel
+            originalRequest={{
+              products: Array.isArray(messages) ? 
+                messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',').map(p => p.trim()) || [] 
+                : [],
+              targetCustomer: Array.isArray(messages) ? 
+                messages.find(m => m.role === 'user')?.content.match(/Target Customers?: ([^\n]+)/)?.[1] 
+                : undefined
+            }}
+            suggestions={suggestions!}
+            onProceed={handleProceedWithAnalysis}
+            onMakeChanges={handleMakeChanges}
+            isLoading={sendMessageMutation.isPending}
+          />
+        );
+
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+            <div className="w-16 h-16 mb-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 rounded-full flex items-center justify-center shadow-sm">
+              <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 00-2 2h-2a2 2 0 00-2-2z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">Ready for Analysis</h3>
+            <p className="text-center max-w-sm text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+              Start a conversation to begin your competitive analysis. Our AI will guide you through the process and generate your Kano Model comparison.
+            </p>
+          </div>
+        );
+    }
   };
 
   return (

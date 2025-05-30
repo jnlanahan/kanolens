@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,20 +53,29 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
   const [selectedFeature, setSelectedFeature] = useState<KanoFeature | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleFeatureClick = (feature: KanoFeature) => {
+  const handleFeatureClick = useCallback((feature: KanoFeature) => {
     setSelectedFeature(feature);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     // Export functionality would be implemented here
     console.log("Export table data:", tableData);
-  };
+  }, [tableData]);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     // Share functionality would be implemented here
     console.log("Share table data:", tableData);
-  };
+  }, [tableData]);
+
+  const featuresByCategory = useMemo(() => {
+    if (!tableData?.features) return {};
+    return tableData.features.reduce((acc, feature) => {
+      if (!acc[feature.category]) acc[feature.category] = [];
+      acc[feature.category].push(feature);
+      return acc;
+    }, {} as Record<string, KanoFeature[]>);
+  }, [tableData?.features]);
 
   if (isLoading) {
     return (
@@ -121,12 +130,7 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
     );
   }
 
-  // Group features by category
-  const featuresByCategory = tableData.features.reduce((acc, feature) => {
-    if (!acc[feature.category]) acc[feature.category] = [];
-    acc[feature.category].push(feature);
-    return acc;
-  }, {} as Record<string, KanoFeature[]>);
+
 
   return (
     <div className="flex flex-col h-full">
@@ -176,10 +180,10 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(featuresByCategory).map(([category, features]) => (
-                  <React.Fragment key={category}>
-                    {/* Category Header */}
-                    <tr className={`border-b-2 ${categoryColors[category as keyof typeof categoryColors]}`}>
+                {Object.entries(featuresByCategory).map(([category, features]) => {
+                  const categoryRows = [
+                    // Category Header
+                    <tr key={`header-${category}`} className={`border-b-2 ${categoryColors[category as keyof typeof categoryColors]}`}>
                       <td colSpan={tableData.products.length + 1} className="p-3">
                         <div className="flex items-center space-x-2">
                           <div className="text-lg">{categoryIcons[category as keyof typeof categoryIcons]}</div>
@@ -188,10 +192,9 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
                           </span>
                         </div>
                       </td>
-                    </tr>
-                    
-                    {/* Category Features */}
-                    {features.map((feature) => (
+                    </tr>,
+                    // Category Features
+                    ...features.map((feature) => (
                       <tr
                         key={feature.id}
                         className="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
@@ -216,9 +219,10 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
                           );
                         })}
                       </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
+                    ))
+                  ];
+                  return categoryRows;
+                })}
               </tbody>
             </table>
           </div>
