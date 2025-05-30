@@ -102,12 +102,29 @@ CATEGORIZATION EXAMPLES:
 
 CORE PRINCIPLE: Be autonomous in cleaning/validating input, but transparent about changes made.`;
 
-    // Build conversation messages for o1-mini (no system messages)
+    // Build simplified conversation messages for o1-mini
     const userPrompt = `${systemPrompt}\n\nConversation History:\n${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nCurrent Request: ${message}`;
     
-    const messages: ChatCompletionMessageParam[] = [
-      { role: "user", content: userPrompt }
-    ];
+    // Check if prompt is too long for o1-mini
+    let messages: ChatCompletionMessageParam[];
+    if (userPrompt.length > 100000) {
+      console.log("[OpenAI] Prompt too long, using simplified version");
+      const simplifiedPrompt = `You are an expert competitive analyst with advanced reasoning capabilities.
+
+CURRENT REQUEST: ${message}
+
+CONVERSATION CONTEXT: ${conversationHistory.slice(-2).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
+
+Please provide intelligent product suggestions with reasoning, or respond to user requests appropriately.`;
+      
+      messages = [
+        { role: "user", content: simplifiedPrompt }
+      ];
+    } else {
+      messages = [
+        { role: "user", content: userPrompt }
+      ];
+    }
 
     // Check if this is an approval message to generate the full analysis
     const isApproval = message.toLowerCase().includes('yes') || 
@@ -162,8 +179,8 @@ Return ONLY a JSON object with this exact structure:
       const userMessage = conversationHistory.find(msg => msg.role === 'user');
       const productsText = userMessage?.content.match(/Products to Compare: ([^\n]+)/)?.[1] || '';
       const products = productsText.split(',')
-        .map(p => p.trim())
-        .filter(p => p && !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase()));
+        .map((p: string) => p.trim())
+        .filter((p: string) => p && !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase()));
       
       const targetCustomer = userMessage?.content.match(/Target Customers?: ([^\n]+)/)?.[1] || 'users';
       
@@ -261,7 +278,7 @@ Return only valid JSON with no additional text.`;
 
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
-      messages: messages,
+      messages,
       max_completion_tokens: 1500,
     });
 
