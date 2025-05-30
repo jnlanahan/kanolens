@@ -19,10 +19,10 @@ interface ChatResponse {
 }
 
 export async function processChatMessage(
-  sessionId: number,
   message: string,
-  currentStep: string,
-  sessionData: any
+  sessionId: number,
+  userId: string,
+  currentStep: string
 ): Promise<ChatResponse> {
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
@@ -30,7 +30,8 @@ export async function processChatMessage(
     const systemPrompt = `You are an expert competitive analyst specializing in the Kano Model framework. 
 
 Current Step: ${currentStep}
-Session Data: ${JSON.stringify(sessionData, null, 2)}
+User ID: ${userId}
+Session ID: ${sessionId}
 
 You guide users through a 5-step Kano analysis process:
 1. Discovery - Define products, customers, features to analyze
