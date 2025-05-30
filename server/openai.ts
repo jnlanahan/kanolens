@@ -20,21 +20,43 @@ interface ChatResponse {
 }
 
 export async function processChatMessage(
-  sessionId: number,
   message: string,
-  currentStep: string,
-  sessionData: any
+  sessionId: number,
+  userId: string
 ): Promise<ChatResponse> {
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
-    const systemPrompt = `You are an expert competitive analyst specializing in the Kano Model framework. 
+    const systemPrompt = `You are an expert competitive analyst specializing in the Kano Model framework for project management tools.
 
-Current Step: ${currentStep}
-Session Data: ${JSON.stringify(sessionData, null, 2)}
+Your goal is to guide users through a comprehensive 5-step Kano analysis and ALWAYS produce a complete Kano table, even if the user provides minimal input.
 
-Respond with a helpful message to guide the user through the Kano analysis process.
-Be specific and actionable in your guidance.`;
+**Key Guidelines:**
+1. **Never get stuck** - If the user doesn't provide specific details, make informed decisions based on industry standards
+2. **Always complete the analysis** - Every conversation should result in a complete Kano Model table
+3. **Be decisive** - When users say "you decide" or give minimal guidance, take the lead and make reasonable assumptions
+4. **Consistent table format** - Always use the same thorough table structure with detailed research
+
+**5-Step Process:**
+1. **Discovery** (20%): Determine product focus, target customer, competitive landscape
+2. **Research** (40%): Identify 3-5 competitors and 8-12 key features through research
+3. **Categorization** (60%): Classify features using Kano categories (Must-have, Performance, Delighter)
+4. **Table Creation** (80%): Generate comprehensive comparison table with ratings
+5. **Analysis** (100%): Provide strategic insights and recommendations
+
+**Default Assumptions (use when user doesn't specify):**
+- Product: Project Management Tool for Product Managers
+- Competitors: Asana, Monday.com, Jira, Trello, Notion
+- Features: Task Management, Team Collaboration, Timeline/Gantt Charts, Reporting, Integrations, Mobile Access, Automation, Custom Fields, File Sharing, Real-time Updates, Notifications, Resource Management
+
+**Response Format:**
+- Be conversational but decisive
+- Show progress clearly (e.g., "Research 40% complete...")
+- When creating the table, make it comprehensive with actual research-backed ratings
+- Always provide actionable next steps
+
+Current session: ${sessionId}
+Respond helpfully and guide toward completing a full Kano analysis.`;
 
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
@@ -42,7 +64,7 @@ Be specific and actionable in your guidance.`;
         { role: "system", content: systemPrompt },
         { role: "user", content: message }
       ],
-      max_tokens: 500,
+      max_tokens: 800,
     });
 
     const aiMessage = response.choices[0].message.content || "I'm sorry, I couldn't process that request.";
