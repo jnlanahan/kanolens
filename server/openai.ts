@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 const DEFAULT_MODEL = "o1-mini";
-const SEARCH_MODEL = "gpt-4.1"; // Web search requires gpt-4.1
+const SEARCH_MODEL = "gpt-4o"; // Web search requires gpt-4o
 
 interface ChatResponse {
   step: string;
@@ -297,6 +297,9 @@ Return only valid JSON with no additional text.`;
       }
     }
 
+    console.log("[OpenAI] Making request with model:", DEFAULT_MODEL);
+    console.log("[OpenAI] Message count:", messages.length);
+    
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: messages,
@@ -306,6 +309,7 @@ Return only valid JSON with no additional text.`;
     const aiMessage = response.choices[0].message.content || "I'm sorry, I couldn't process that request.";
     
     console.log("[OpenAI] Generated response for step", currentStep);
+    console.log("[OpenAI] Response length:", aiMessage.length);
     
     const chatResponse: ChatResponse = {
       step: currentStep,
