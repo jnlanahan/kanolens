@@ -124,7 +124,10 @@ export default function Home() {
     const lastAssistantMessage = messages
       .slice()
       .reverse()
-      .find(msg => msg.role === 'assistant' && msg.content.includes('**Suggested Additional'));
+      .find(msg => msg.role === 'assistant' && 
+        (msg.content.includes('**Competitive Products to Compare:**') || 
+         msg.content.includes('**Suggested Additional') ||
+         msg.content.includes('**Key Features/Benefits')));
     
     if (!lastAssistantMessage) return null;
 
@@ -134,14 +137,17 @@ export default function Home() {
     let currentSection = '';
     
     for (const line of lines) {
-      if (line.includes('**Suggested Additional')) {
+      if (line.includes('**Competitive Products to Compare:**') || line.includes('**Suggested Additional')) {
         currentSection = 'products';
       } else if (line.includes('**Key Features/Benefits') || line.includes('**Relevant Features/Benefits')) {
         currentSection = 'features';
       } else if (line.match(/^\d+\.\s/) && currentSection) {
         const item = line.replace(/^\d+\.\s/, '').trim();
         if (currentSection === 'products') {
-          suggestions.products.push(item);
+          // Skip the original products that were already provided
+          if (!item.toLowerCase().includes('productboard') && !item.toLowerCase().includes('craft.io')) {
+            suggestions.products.push(item);
+          }
         } else if (currentSection === 'features') {
           suggestions.features.push(item);
         }
