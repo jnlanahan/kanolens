@@ -42,12 +42,10 @@ export default function Header({
 
   const deleteSessionMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/session/${id}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/analysis/sessions/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
       toast({
         title: "Session deleted",
         description: "The session has been successfully deleted.",
