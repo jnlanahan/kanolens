@@ -146,7 +146,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const aiResponse = await processChatMessage(
         req.body.content,
         sessionId,
-        userId
+        userId,
+        session.currentStep
       );
       console.log("[Routes] OpenAI response received:", aiResponse);
 

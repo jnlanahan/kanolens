@@ -22,11 +22,13 @@ interface ChatResponse {
 export async function processChatMessage(
   message: string,
   sessionId: number,
-  userId: string
+  userId: string,
+  currentStep: string = 'discovery'
 ): Promise<ChatResponse> {
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
+    
     const systemPrompt = `You are an expert competitive analyst specializing in the Kano Model framework for project management tools.
 
 Your goal is to guide users through a comprehensive 5-step Kano analysis and ALWAYS produce a complete Kano table, even if the user provides minimal input.
