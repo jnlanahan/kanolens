@@ -158,10 +158,17 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-      // Conduct web research for authentic data
-      const products = Array.isArray(sessionData.products) ? sessionData.products : [];
-      const targetCustomer = sessionData.targetCustomer || 'users';
+      // Extract products from conversation history
+      const userMessage = conversationHistory.find(msg => msg.role === 'user');
+      const productsText = userMessage?.content.match(/Products to Compare: ([^\n]+)/)?.[1] || '';
+      const products = productsText.split(',')
+        .map(p => p.trim())
+        .filter(p => p && !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase()));
       
+      const targetCustomer = userMessage?.content.match(/Target Customers?: ([^\n]+)/)?.[1] || 'users';
+      
+      console.log("[OpenAI] Extracted products for research:", products);
+      console.log("[OpenAI] Target customer:", targetCustomer);
       console.log("[OpenAI] Starting web research for authentic competitive data...");
       const webResearch = await conductCompetitiveResearch(products, targetCustomer);
       
