@@ -125,7 +125,9 @@ export default function Home() {
       .slice()
       .reverse()
       .find(msg => msg.role === 'assistant' && 
-        (msg.content.includes('**Competitive Products to Compare:**') || 
+        (msg.content.includes('additional competitive products') || 
+         msg.content.includes('Key features/benefits') ||
+         msg.content.includes('**Competitive Products to Compare:**') || 
          msg.content.includes('**Suggested Additional') ||
          msg.content.includes('**Key Features/Benefits')));
     
@@ -137,15 +139,28 @@ export default function Home() {
     let currentSection = '';
     
     for (const line of lines) {
-      if (line.includes('**Competitive Products to Compare:**') || line.includes('**Suggested Additional')) {
+      // Check for product sections
+      if (line.includes('additional competitive products') || 
+          line.includes('**Competitive Products to Compare:**') || 
+          line.includes('**Suggested Additional')) {
         currentSection = 'products';
-      } else if (line.includes('**Key Features/Benefits') || line.includes('**Relevant Features/Benefits')) {
+      } 
+      // Check for feature sections
+      else if (line.includes('Key features/benefits') || 
+               line.includes('**Key Features/Benefits') || 
+               line.includes('**Relevant Features/Benefits')) {
         currentSection = 'features';
-      } else if (line.match(/^\d+\.\s/) && currentSection) {
-        const item = line.replace(/^\d+\.\s/, '').trim();
+      } 
+      // Parse numbered items
+      else if (line.match(/^\d+\.\s/) && currentSection) {
+        let item = line.replace(/^\d+\.\s/, '').trim();
+        // Remove ** formatting if present
+        item = item.replace(/\*\*/g, '');
+        
         if (currentSection === 'products') {
-          // Skip the original products that were already provided
-          if (!item.toLowerCase().includes('productboard') && !item.toLowerCase().includes('craft.io')) {
+          // Skip the original products mentioned in the user's request
+          const originalProducts = ['productboard', 'craft.io', 'boa', 'usaa', 'chase'];
+          if (!originalProducts.some(orig => item.toLowerCase().includes(orig.toLowerCase()))) {
             suggestions.products.push(item);
           }
         } else if (currentSection === 'features') {
