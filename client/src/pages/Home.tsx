@@ -127,7 +127,9 @@ export default function Home() {
       .find(msg => msg.role === 'assistant' && 
         (msg.content.includes('**Competitive Products to Compare:**') || 
          msg.content.includes('**Suggested Additional') ||
-         msg.content.includes('**Key Features/Benefits')));
+         msg.content.includes('**Key Features/Benefits') ||
+         msg.content.includes('### Suggested Competitive Products') ||
+         msg.content.includes('### Relevant Features/Benefits')));
     
     if (!lastAssistantMessage) return null;
 
@@ -137,18 +139,27 @@ export default function Home() {
     let currentSection = '';
     
     for (const line of lines) {
-      if (line.includes('**Competitive Products to Compare:**') || line.includes('**Suggested Additional')) {
+      if (line.includes('**Competitive Products to Compare:**') || 
+          line.includes('**Suggested Additional') ||
+          line.includes('### Suggested Competitive Products')) {
         currentSection = 'products';
-      } else if (line.includes('**Key Features/Benefits') || line.includes('**Relevant Features/Benefits')) {
+      } else if (line.includes('**Key Features/Benefits') || 
+                 line.includes('**Relevant Features/Benefits') ||
+                 line.includes('### Relevant Features/Benefits')) {
         currentSection = 'features';
-      } else if (line.match(/^\d+\.\s/) && currentSection) {
-        const item = line.replace(/^\d+\.\s/, '').trim();
+      } else if ((line.match(/^\d+\.\s/) || line.match(/^\d+\.\s\*\*/) || line.startsWith('**')) && currentSection) {
+        let item = line.replace(/^\d+\.\s/, '').replace(/^\d+\.\s\*\*/, '').replace(/^\*\*/, '').replace(/\*\*.*$/, '').trim();
         if (currentSection === 'products') {
-          // Skip the original products that were already provided
-          if (!item.toLowerCase().includes('productboard') && !item.toLowerCase().includes('craft.io')) {
-            suggestions.products.push(item);
+          // Extract product name from various formats
+          if (item.includes(' - ')) {
+            item = item.split(' - ')[0].trim();
           }
+          suggestions.products.push(item);
         } else if (currentSection === 'features') {
+          // Extract feature name from various formats
+          if (item.includes(' - ')) {
+            item = item.split(' - ')[0].trim();
+          }
           suggestions.features.push(item);
         }
       }

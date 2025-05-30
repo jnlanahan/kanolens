@@ -16,8 +16,11 @@ function isSuggestionMessage(content: string): boolean {
   return content.includes('**Competitive Products to Compare:**') || 
          content.includes('**Suggested Additional') || 
          content.includes('**Key Features/Benefits') ||
+         content.includes('### Suggested Competitive Products') ||
+         content.includes('### Relevant Features/Benefits') ||
          (content.includes('Please confirm if you would like to proceed') && 
-          content.includes('**'));
+          content.includes('**')) ||
+         (content.includes('Would you like to proceed with this selection for a full Kano analysis?'));
 }
 
 // Helper function to parse suggestions from message content
