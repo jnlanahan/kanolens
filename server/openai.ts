@@ -234,16 +234,23 @@ ${analysisPrompt}
 
 Return only valid JSON with no additional text.`;
 
+      // Use GPT-4o for table generation to ensure proper JSON formatting
       const analysisResponse = await openai.chat.completions.create({
-        model: DEFAULT_MODEL,
+        model: "gpt-4o",
         messages: [
+          { 
+            role: "system", 
+            content: "You are an expert competitive analyst. Generate ONLY valid JSON for the Kano Model table. No additional text or explanations." 
+          },
           { role: "user", content: tablePrompt }
         ],
-        max_completion_tokens: 3000,
+        max_tokens: 3000,
+        response_format: { type: "json_object" }
       });
 
       try {
         let content = analysisResponse.choices[0].message.content || "{}";
+        console.log("[OpenAI] Raw analysis response:", content.substring(0, 1000));
         
         // Remove markdown code blocks if present
         if (content.includes('```json')) {
@@ -253,7 +260,16 @@ Return only valid JSON with no additional text.`;
           content = content.replace(/```\s*/g, '');
         }
         
+        // Extract JSON from the response if it's embedded in text
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          content = jsonMatch[0];
+        }
+        
+        console.log("[OpenAI] Cleaned content for JSON parsing:", content.substring(0, 500));
         const tableData = JSON.parse(content.trim());
+        
+        console.log("[OpenAI] Successfully parsed table data:", Object.keys(tableData));
         
         return {
           step: 'table_creation',
