@@ -10,6 +10,7 @@ const openai = new OpenAI({
 });
 
 const DEFAULT_MODEL = "o1-mini";
+const SEARCH_MODEL = "gpt-4.1"; // Web search requires gpt-4.1
 
 interface ChatResponse {
   step: string;
@@ -317,8 +318,46 @@ export async function testOpenAIConnection(): Promise<boolean> {
   }
 }
 
-export async function conductCompetitiveResearch() {
-  return { success: true, message: "Research function placeholder" };
+// Web search function for authentic competitive research
+async function searchProductInformation(query: string): Promise<string> {
+  console.log(`[OpenAI] Searching web for: ${query}`);
+  
+  try {
+    const response = await openai.responses.create({
+      model: SEARCH_MODEL,
+      tools: [{ 
+        type: "web_search_preview",
+        search_context_size: "medium"
+      }],
+      input: query,
+    });
+
+    const content = response.output_text || "";
+    console.log(`[OpenAI] Web search completed for: ${query}`);
+    return content;
+  } catch (error) {
+    console.error(`[OpenAI] Web search failed for ${query}:`, error);
+    return `Unable to retrieve current information for: ${query}`;
+  }
+}
+
+export async function conductCompetitiveResearch(products: string[], targetCustomer: string) {
+  console.log("[OpenAI] Conducting authentic competitive research with web search...");
+  
+  const searchResults: Record<string, string> = {};
+  
+  // Search for each product's current features and capabilities
+  for (const product of products) {
+    const query = `${product} features capabilities pricing plans 2024 2025 for ${targetCustomer}`;
+    searchResults[product] = await searchProductInformation(query);
+  }
+  
+  // Additional search for competitive comparisons
+  const comparisonQuery = `${products.join(' vs ')} comparison features ${targetCustomer} 2024 2025`;
+  searchResults['comparison'] = await searchProductInformation(comparisonQuery);
+  
+  console.log("[OpenAI] Competitive research completed with web data");
+  return searchResults;
 }
 
 export async function generateKanoTable() {
