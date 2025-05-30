@@ -102,29 +102,12 @@ CATEGORIZATION EXAMPLES:
 
 CORE PRINCIPLE: Be autonomous in cleaning/validating input, but transparent about changes made.`;
 
-    // Build simplified conversation messages for o1-mini
+    // Build conversation messages for o1-mini (no system messages)
     const userPrompt = `${systemPrompt}\n\nConversation History:\n${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nCurrent Request: ${message}`;
     
-    // Check if prompt is too long for o1-mini
-    let messages: ChatCompletionMessageParam[];
-    if (userPrompt.length > 100000) {
-      console.log("[OpenAI] Prompt too long, using simplified version");
-      const simplifiedPrompt = `You are an expert competitive analyst with advanced reasoning capabilities.
-
-CURRENT REQUEST: ${message}
-
-CONVERSATION CONTEXT: ${conversationHistory.slice(-2).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
-
-Please provide intelligent product suggestions with reasoning, or respond to user requests appropriately.`;
-      
-      messages = [
-        { role: "user", content: simplifiedPrompt }
-      ];
-    } else {
-      messages = [
-        { role: "user", content: userPrompt }
-      ];
-    }
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "user", content: userPrompt }
+    ];
 
     // Check if this is an approval message to generate the full analysis
     const isApproval = message.toLowerCase().includes('yes') || 
@@ -175,17 +158,10 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-      // Extract products from conversation history
-      const userMessage = conversationHistory.find(msg => msg.role === 'user');
-      const productsText = userMessage?.content.match(/Products to Compare: ([^\n]+)/)?.[1] || '';
-      const products = productsText.split(',')
-        .map((p: string) => p.trim())
-        .filter((p: string) => p && !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase()));
+      // Conduct web research for authentic data
+      const products = Array.isArray(sessionData.products) ? sessionData.products : [];
+      const targetCustomer = sessionData.targetCustomer || 'users';
       
-      const targetCustomer = userMessage?.content.match(/Target Customers?: ([^\n]+)/)?.[1] || 'users';
-      
-      console.log("[OpenAI] Extracted products for research:", products);
-      console.log("[OpenAI] Target customer:", targetCustomer);
       console.log("[OpenAI] Starting web research for authentic competitive data...");
       const webResearch = await conductCompetitiveResearch(products, targetCustomer);
       
@@ -278,7 +254,7 @@ Return only valid JSON with no additional text.`;
 
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
-      messages,
+      messages: messages,
       max_completion_tokens: 1500,
     });
 
@@ -358,25 +334,9 @@ async function searchProductInformation(query: string): Promise<string> {
       input: query,
     });
 
-    // Extract content from the response output array
-    let content = "";
-    if (response.output && Array.isArray(response.output)) {
-      const messageOutput = response.output.find(item => item.type === 'message');
-      if (messageOutput && messageOutput.content && Array.isArray(messageOutput.content)) {
-        const textContent = messageOutput.content.find(c => c.type === 'output_text');
-        if (textContent && textContent.text) {
-          content = textContent.text;
-        }
-      }
-    }
-    
-    // Fallback to output_text if available
-    if (!content && response.output_text) {
-      content = response.output_text;
-    }
-    
-    console.log(`[OpenAI] Web search completed for: ${query}, content length: ${content.length}`);
-    return content || `Search completed for ${query} but no content returned`;
+    const content = response.output_text || "";
+    console.log(`[OpenAI] Web search completed for: ${query}`);
+    return content;
   } catch (error) {
     console.error(`[OpenAI] Web search failed for ${query}:`, error);
     return `Unable to retrieve current information for: ${query}`;
