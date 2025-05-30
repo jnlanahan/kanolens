@@ -187,8 +187,26 @@ Return ONLY a JSON object with this exact structure:
             const suggestions = suggestedMatch[1]
               .split(/\d+\.\s+/)
               .slice(1)
-              .map(p => p.trim().split('\n')[0])
-              .filter(p => p && p.length > 0);
+              .map(p => {
+                // Extract product name (before colon if present)
+                let productName = p.trim().split('\n')[0];
+                
+                // Handle format like "**Product Name**: Description"
+                if (productName.includes(':')) {
+                  productName = productName.split(':')[0];
+                }
+                
+                // Remove markdown formatting (**bold**)
+                productName = productName.replace(/\*\*/g, '');
+                
+                // Remove any remaining description text in parentheses
+                productName = productName.replace(/\s*\([^)]*\)\s*$/, '');
+                
+                return productName.trim();
+              })
+              .filter(p => p && p.length > 0 && p.length < 100); // Reasonable length filter
+            
+            console.log("[OpenAI] Extracted suggested products:", suggestions);
             products.push(...suggestions);
           }
         }
