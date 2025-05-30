@@ -182,6 +182,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process with OpenAI using the 5-step Kano methodology
       console.log("[Routes] Calling OpenAI processChatMessage...");
+      console.log("[Routes] Parameters:", {
+        content: req.body.content,
+        sessionId: sessionId,
+        userId: userId,
+        currentStep: session.currentStep
+      });
       const aiResponse = await processChatMessage(
         req.body.content,
         sessionId,
