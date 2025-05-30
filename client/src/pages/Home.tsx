@@ -134,8 +134,10 @@ export default function Home() {
       .slice()
       .reverse()
       .find(msg => msg.role === 'assistant' && 
-        (msg.content.includes('**Competitive Products to Compare:**') || 
+        (msg.content.includes('**Additional Competitive Product:**') || 
+         msg.content.includes('**Competitive Products to Compare:**') || 
          msg.content.includes('**Suggested Additional') ||
+         msg.content.includes('**Relevant Features/Benefits:**') ||
          msg.content.includes('**Key Features/Benefits') ||
          msg.content.includes('### Suggested Competitive Products') ||
          msg.content.includes('### Relevant Features/Benefits')));
@@ -148,11 +150,13 @@ export default function Home() {
     let currentSection = '';
     
     for (const line of lines) {
-      if (line.includes('**Competitive Products to Compare:**') || 
+      if (line.includes('**Additional Competitive Product:**') ||
+          line.includes('**Competitive Products to Compare:**') || 
           line.includes('**Suggested Additional') ||
           line.includes('### Suggested Competitive Products')) {
         currentSection = 'products';
-      } else if (line.includes('**Key Features/Benefits') || 
+      } else if (line.includes('**Relevant Features/Benefits:**') ||
+                 line.includes('**Key Features/Benefits') || 
                  line.includes('**Relevant Features/Benefits') ||
                  line.includes('### Relevant Features/Benefits')) {
         currentSection = 'features';
