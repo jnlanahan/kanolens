@@ -168,9 +168,10 @@ export default function Home() {
     return suggestions.products.length > 0 || suggestions.features.length > 0 ? suggestions : null;
   };
 
-  // Check if we should show suggestion panel
+  // Check if we should show suggestion panel or table
   const suggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
-  const showSuggestionPanel = suggestions && !currentSession?.tableData;
+  const hasTableData = currentSession?.tableData && typeof currentSession.tableData === 'object';
+  const showSuggestionPanel = suggestions && !hasTableData;
 
   const handleProceedWithAnalysis = () => {
     handleSendMessage("Yes please proceed");
@@ -219,7 +220,7 @@ export default function Home() {
             />
           ) : (
             <KanoTable
-              tableData={currentSession?.tableData as KanoTableData}
+              tableData={hasTableData ? currentSession?.tableData as KanoTableData : undefined}
               isLoading={sessionLoading}
               sessionId={currentSessionId}
             />
