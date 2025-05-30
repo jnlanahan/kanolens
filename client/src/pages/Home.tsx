@@ -7,9 +7,11 @@ import Header from "@/components/Layout/Header";
 import ChatInterface from "@/components/Chat/ChatInterface";
 import SuggestionPanel from "@/components/Chat/SuggestionPanel";
 import KanoTable from "@/components/KanoTable/KanoTable";
+import ProgressTracker from "@/components/ProgressTracker/ProgressTracker";
 
 export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [showProgressTracker, setShowProgressTracker] = useState(false);
   const { toast } = useToast();
 
   // Fetch all sessions
@@ -108,6 +110,17 @@ export default function Home() {
 
   const handleSendMessage = (content: string, metadata?: any) => {
     if (!currentSessionId) return;
+    
+    // Check if this is an initial analysis request (contains "Analysis Request:")
+    if (content.includes("Analysis Request:")) {
+      setShowProgressTracker(true);
+    }
+    
+    // Check if this is a "proceed" message indicating user approved suggestions
+    if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
+      setShowProgressTracker(true);
+    }
+    
     sendMessageMutation.mutate({ content, metadata });
   };
 
@@ -205,6 +218,39 @@ export default function Home() {
     };
   }, [currentSession?.tableData, messages]);
 
+  // Hide progress tracker when analysis is complete
+  useEffect(() => {
+    if (hasTableData) {
+      setShowProgressTracker(false);
+    }
+  }, [hasTableData]);
+
+  // Determine current progress based on the session step and progress
+  const getCurrentProgress = () => {
+    if (!currentSession) return 20;
+    
+    const stepProgress: Record<string, number> = {
+      'discovery': 20,
+      'research': 40,
+      'categorization': 60,
+      'table_creation': 80,
+      'analysis': 100
+    };
+    
+    return stepProgress[currentSession.currentStep] || 20;
+  };
+
+  const handleProgressComplete = () => {
+    setShowProgressTracker(false);
+    // Refresh the session data to show the results
+    queryClient.invalidateQueries({ 
+      queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ["/api/analysis/sessions"] 
+    });
+  };
+
   const renderRightPanel = () => {
     switch (panelContent) {
       case 'table':
@@ -265,12 +311,23 @@ export default function Home() {
       <div className="flex-1 flex overflow-hidden">
         {/* Chat Interface Panel */}
         <div className="w-2/5 min-w-0 flex flex-col bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
-          <ChatInterface
-            messages={Array.isArray(messages) ? messages : []}
-            onSendMessage={handleSendMessage}
-            isLoading={messagesLoading || sendMessageMutation.isPending}
-            currentStep={currentSession?.currentStep || "discovery"}
-          />
+          {showProgressTracker ? (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <ProgressTracker
+                currentStep={currentSession?.currentStep || "discovery"}
+                progress={getCurrentProgress()}
+                isComplete={hasTableData}
+                onComplete={handleProgressComplete}
+              />
+            </div>
+          ) : (
+            <ChatInterface
+              messages={Array.isArray(messages) ? messages : []}
+              onSendMessage={handleSendMessage}
+              isLoading={messagesLoading || sendMessageMutation.isPending}
+              currentStep={currentSession?.currentStep || "discovery"}
+            />
+          )}
         </div>
 
         {/* Right Panel - Kano Table or Suggestions */}
