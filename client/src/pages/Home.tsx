@@ -125,7 +125,9 @@ export default function Home() {
       .slice()
       .reverse()
       .find(msg => msg.role === 'assistant' && 
-        (msg.content.includes('additional competitive products') || 
+        (msg.content.includes('**Suggested Competitive Product') || 
+         msg.content.includes('**Relevant Features/Benefits') ||
+         msg.content.includes('additional competitive products') || 
          msg.content.includes('Key features/benefits') ||
          msg.content.includes('**Competitive Products to Compare:**') || 
          msg.content.includes('**Suggested Additional') ||
@@ -140,13 +142,15 @@ export default function Home() {
     
     for (const line of lines) {
       // Check for product sections
-      if (line.includes('additional competitive products') || 
+      if (line.includes('**Suggested Competitive Product') ||
+          line.includes('additional competitive products') || 
           line.includes('**Competitive Products to Compare:**') || 
           line.includes('**Suggested Additional')) {
         currentSection = 'products';
       } 
       // Check for feature sections
-      else if (line.includes('Key features/benefits') || 
+      else if (line.includes('**Relevant Features/Benefits') ||
+               line.includes('Key features/benefits') || 
                line.includes('**Key Features/Benefits') || 
                line.includes('**Relevant Features/Benefits')) {
         currentSection = 'features';
@@ -155,16 +159,18 @@ export default function Home() {
       else if (line.match(/^\d+\.\s/) && currentSection) {
         let item = line.replace(/^\d+\.\s/, '').trim();
         // Remove ** formatting if present
-        item = item.replace(/\*\*/g, '');
+        item = item.replace(/\*\*/g, '').replace(/:/g, '');
         
         if (currentSection === 'products') {
           // Skip the original products mentioned in the user's request
-          const originalProducts = ['productboard', 'craft.io', 'boa', 'usaa', 'chase'];
+          const originalProducts = ['productboard', 'craft.io', 'jira', 'asana', 'boa', 'usaa', 'chase'];
           if (!originalProducts.some(orig => item.toLowerCase().includes(orig.toLowerCase()))) {
             suggestions.products.push(item);
           }
         } else if (currentSection === 'features') {
-          suggestions.features.push(item);
+          // Clean up feature names - remove descriptions after colons
+          const cleanFeature = item.split(':')[0].trim();
+          suggestions.features.push(cleanFeature);
         }
       }
     }
