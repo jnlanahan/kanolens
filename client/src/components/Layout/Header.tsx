@@ -121,13 +121,27 @@ export default function Header({
             </DropdownMenu>
           )}
 
-          <Button
+          <div 
             onClick={onCreateSession}
-            className="kano-gradient-mesh text-white hover:shadow-xl transition-all duration-300 transform hover:scale-105 interactive-hover"
+            className="group relative cursor-pointer"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            New Analysis
-          </Button>
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-300 animate-pulse"></div>
+            <div className="relative px-6 py-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 group-hover:border-transparent transition-all duration-300 shadow-lg group-hover:shadow-xl">
+              <div className="flex items-center space-x-3">
+                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                  <Plus className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    New Analysis
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Start fresh
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center space-x-4">
