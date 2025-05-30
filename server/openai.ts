@@ -158,7 +158,17 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-      const tablePrompt = `You are an expert competitive analyst generating authentic Kano Model data using precise categorization logic.
+      // Conduct web research for authentic data
+      const products = Array.isArray(sessionData.products) ? sessionData.products : [];
+      const targetCustomer = sessionData.targetCustomer || 'users';
+      
+      console.log("[OpenAI] Starting web research for authentic competitive data...");
+      const webResearch = await conductCompetitiveResearch(products, targetCustomer);
+      
+      const tablePrompt = `You are an expert competitive analyst generating authentic Kano Model data using real-time web research and precise categorization logic.
+
+WEB RESEARCH DATA:
+${Object.entries(webResearch).map(([key, data]) => `${key}: ${data}`).join('\n\n')}
 
 KANO MODEL DEFINITIONS (apply these exact criteria):
 
@@ -174,29 +184,21 @@ DELIGHTERS: Unexpected features exceeding expectations, creating positive emotio
 - Examples: AI assistance, advanced automation, innovative UI/UX, premium features
 - Logic: Would customers be pleasantly surprised by this? Does it differentiate from competitors? If yes = Delighter
 
-CATEGORIZATION LOGIC:
-- User-Friendly Interface = DELIGHTER (exceeds expectations, creates positive response)
-- API Access = MUST-HAVE (expected basic capability)
-- Fast Performance = PERFORMANCE (measurable, more is better)
-- Real-time Collaboration = DELIGHTER (innovative, differentiating)
-- Data Export = MUST-HAVE (basic expected function)
-- Advanced Analytics = DELIGHTER (exceeds basic expectations)
-
 RATING SYSTEM BY CATEGORY:
 
 MUST-HAVES: Use "Yes", "No", or leave blank
-- "Yes" = Feature is present and functional
+- "Yes" = Feature is present and functional (verified from web research)
 - "No" = Feature is absent or non-functional  
 - Blank = Feature doesn't apply or cannot be verified
 
 PERFORMANCE ATTRIBUTES: Use "High", "Medium", "Low", or leave blank
-- "High" = Top-tier performance in market
+- "High" = Top-tier performance in market (based on research data)
 - "Medium" = Average/competitive performance  
 - "Low" = Below-average performance
 - Blank = Performance not applicable or cannot be measured
 
 DELIGHTERS: Use "Yes", "No", or leave blank
-- "Yes" = Feature is present and innovative
+- "Yes" = Feature is present and innovative (confirmed via research)
 - "No" = Feature is absent
 - Blank = Feature doesn't apply to this product
 
@@ -206,10 +208,10 @@ FEATURE ORDERING: Always organize features in this exact order:
 3. DELIGHTERS last (unexpected innovations)
 
 CRITICAL REQUIREMENTS:
-1. DEDUPLICATION: Remove duplicates and non-product terms ("more", "others", "etc", "tools")
-2. AUTHENTIC DATA: Use real product capabilities and verified market positioning
+1. USE WEB RESEARCH DATA: Base all ratings on the authentic web research provided above
+2. DEDUPLICATION: Remove duplicates and non-product terms ("more", "others", "etc", "tools")
 3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
-4. CORRECT RATING SYSTEM: Must-Haves and Delighters = Yes/No, Performance = High/Medium/Low
+4. VERIFIED RATINGS: Only rate features you can verify from the research data
 
 ${analysisPrompt}
 
