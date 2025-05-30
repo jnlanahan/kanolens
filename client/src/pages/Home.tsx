@@ -298,7 +298,7 @@ export default function Home() {
     <div className="h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
       <Header 
         onCreateSession={handleCreateSession}
-        sessions={sessions || []}
+        sessions={Array.isArray(sessions) ? sessions : []}
         currentSessionId={currentSessionId}
         onSessionSelect={setCurrentSessionId}
       />
