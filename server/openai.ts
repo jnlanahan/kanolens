@@ -49,7 +49,7 @@ For initial requests, automatically:
 - Use your knowledge to fill gaps in their request
 - Present a clear confirmation asking if they want to proceed with your suggestions
 
-For approval responses, create a comprehensive Kano analysis table.`;
+For approval responses, create a comprehensive Kano analysis table with actual product comparison data using JSON format.`;
 
     // Build conversation messages including history
     const messages: ChatCompletionMessageParam[] = [
@@ -60,6 +60,64 @@ For approval responses, create a comprehensive Kano analysis table.`;
       })),
       { role: "user", content: message }
     ];
+
+    // Check if this is an approval message to generate the full analysis
+    const isApproval = message.toLowerCase().includes('yes') || 
+                      message.toLowerCase().includes('proceed') || 
+                      message.toLowerCase().includes('continue') ||
+                      message.toLowerCase().includes('go ahead');
+
+    if (isApproval && conversationHistory.length > 0) {
+      // Generate comprehensive Kano analysis with structured data
+      const analysisPrompt = `Based on the previous conversation, generate a complete Kano Model analysis table.
+      
+      Return ONLY a JSON object with this exact structure:
+      {
+        "products": ["product1", "product2", ...],
+        "features": [
+          {
+            "id": "feature1",
+            "name": "Feature Name",
+            "description": "Brief description",
+            "category": "must-have|performance|delighter",
+            "customerBenefit": "How this benefits the customer"
+          }
+        ],
+        "ratings": {
+          "feature1": {
+            "product1": "High|Medium|Low|Yes|No",
+            "product2": "High|Medium|Low|Yes|No"
+          }
+        },
+        "sources": {
+          "feature1": ["source1", "source2"]
+        }
+      }`;
+
+      const analysisResponse = await openai.chat.completions.create({
+        model: DEFAULT_MODEL,
+        messages: [
+          { role: "system", content: "You are a data analyst. Return only valid JSON with no additional text." },
+          { role: "user", content: analysisPrompt }
+        ],
+        max_tokens: 2000,
+      });
+
+      try {
+        const tableData = JSON.parse(analysisResponse.choices[0].message.content || "{}");
+        
+        return {
+          step: 'table_creation',
+          message: 'Analysis complete! Your comprehensive Kano Model comparison table has been generated with detailed feature categorizations and competitive ratings.',
+          progress: 100,
+          data: { tableData },
+          nextAction: 'Review your analysis results and insights.'
+        };
+      } catch (error) {
+        console.error("[OpenAI] Failed to parse table data:", error);
+        // Fall back to regular response
+      }
+    }
 
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,

@@ -225,8 +225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (aiResponse.data.tableData) updateData.tableData = aiResponse.data.tableData;
           if (aiResponse.data.targetCustomer) updateData.targetCustomer = aiResponse.data.targetCustomer;
           
-          // Mark as completed if we reached analysis step
-          if (aiResponse.step === 'analysis') {
+          // Mark as completed if we reached table creation or analysis step
+          if (aiResponse.step === 'table_creation' || aiResponse.step === 'analysis') {
             updateData.status = 'completed';
           }
         }
