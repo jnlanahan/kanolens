@@ -93,7 +93,9 @@ Your task:
 2. Suggest 9-12 features across Kano categories that would be most relevant for the target customer
 3. Provide brief, insightful reasoning for each suggestion
 
-Return ONLY a JSON object with this exact structure:
+IMPORTANT: Return ONLY a valid JSON object without any markdown formatting, code blocks, or additional text. Do not wrap the response in ```json or ``` tags.
+
+Return this exact structure:
 {
   "additionalProducts": [
     {"name": "ProductName", "reason": "Why this competitor is important to include"}
@@ -127,9 +129,18 @@ Ensure each category has 3-4 features. Be specific and insightful in your reason
   
   let aiSuggestions;
   try {
-    aiSuggestions = JSON.parse(aiResponseText);
+    // Remove markdown code block formatting if present
+    let cleanedResponse = aiResponseText.trim();
+    if (cleanedResponse.startsWith('```json')) {
+      cleanedResponse = cleanedResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
+    aiSuggestions = JSON.parse(cleanedResponse);
   } catch (error) {
     console.error("[OpenAI] Failed to parse AI suggestions:", error);
+    console.error("[OpenAI] Raw response:", aiResponseText);
     aiSuggestions = {
       additionalProducts: [],
       suggestedFeatures: {
