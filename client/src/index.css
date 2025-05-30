@@ -22,16 +22,26 @@
   --destructive: 0 84% 60%; /* #EF4444 */
   --destructive-foreground: 0 0% 98%; /* #FEFEFE */
   --ring: 221 83% 53%; /* #3B82F6 */
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   
-  /* KanoLens brand colors */
+  /* Enhanced KanoLens brand colors */
   --kano-blue: 221 83% 53%; /* #3B82F6 */
+  --kano-blue-light: 221 83% 63%; /* #60A5FA */
   --kano-blue-dark: 224 76% 48%; /* #1E40AF */
   --kano-violet: 258 90% 66%; /* #8B5CF6 */
+  --kano-violet-light: 258 90% 76%; /* #A78BFA */
   --kano-violet-dark: 262 83% 58%; /* #5B21B6 */
+  --kano-emerald: 158 64% 52%; /* #10B981 */
+  --kano-rose: 350 89% 60%; /* #F43F5E */
+  --kano-amber: 43 96% 56%; /* #F59E0B */
   --kano-gray: 215 16% 47%; /* #64748B */
   --kano-light: 220 13% 98%; /* #F8FAFC */
   --kano-surface: 214 13% 91%; /* #E2E8F0 */
+  
+  /* Glass morphism */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
 }
 
 .dark {
@@ -55,14 +65,24 @@
   --destructive-foreground: 213 31% 91%; /* #E2E8F0 */
   --ring: 224 76% 48%; /* #1E40AF */
   
-  /* Dark mode KanoLens colors */
+  /* Enhanced dark mode KanoLens colors */
   --kano-blue: 221 83% 53%; /* #3B82F6 */
+  --kano-blue-light: 221 83% 63%; /* #60A5FA */
   --kano-blue-dark: 224 76% 48%; /* #1E40AF */
   --kano-violet: 258 90% 66%; /* #8B5CF6 */
+  --kano-violet-light: 258 90% 76%; /* #A78BFA */
   --kano-violet-dark: 262 83% 58%; /* #5B21B6 */
+  --kano-emerald: 158 64% 52%; /* #10B981 */
+  --kano-rose: 350 89% 60%; /* #F43F5E */
+  --kano-amber: 43 96% 56%; /* #F59E0B */
   --kano-gray: 215 16% 57%; /* #94A3B8 */
   --kano-light: 224 71% 4%; /* #0F172A */
   --kano-surface: 223 47% 11%; /* #1E293B */
+  
+  /* Dark glass morphism */
+  --glass-bg: rgba(15, 23, 42, 0.8);
+  --glass-border: rgba(148, 163, 184, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 @layer base {
@@ -89,14 +109,25 @@
 }
 
 @layer components {
-  /* Chat message animations */
+  /* Enhanced animations */
   @keyframes slideUp {
     from {
-      transform: translateY(10px);
+      transform: translateY(20px);
       opacity: 0;
     }
     to {
       transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
       opacity: 1;
     }
   }
@@ -115,12 +146,43 @@
       opacity: 1;
     }
     50% {
-      opacity: 0.5;
+      opacity: 0.7;
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-4px);
+    }
+  }
+  
+  @keyframes glow {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
     }
   }
   
   .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
+    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .animate-fade-in {
@@ -131,43 +193,138 @@
     animation: pulseGentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   
-  /* Lens logo component */
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+  
+  /* Glass morphism components */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+  
+  .glass-button {
+    background: rgba(59, 130, 246, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .glass-button:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+  }
+  
+  /* Enhanced lens logo */
   .kano-lens-logo {
     position: relative;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
+    filter: drop-shadow(0 4px 8px rgba(59, 130, 246, 0.2));
   }
   
   .kano-lens-logo::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)));
+    background: linear-gradient(135deg, hsl(var(--kano-blue-light)), hsl(var(--kano-violet-light)));
     border-radius: 50%;
-    opacity: 0.8;
+    opacity: 0.9;
+    animation: glow 3s ease-in-out infinite;
   }
   
   .kano-lens-logo::after {
     content: '';
     position: absolute;
-    inset: 4px;
+    inset: 3px;
     background: linear-gradient(135deg, hsl(var(--kano-violet)), hsl(var(--kano-blue)));
     border-radius: 50%;
-    opacity: 0.6;
+    opacity: 0.8;
   }
   
   .kano-lens-logo .inner {
     position: absolute;
-    inset: 8px;
-    background: white;
+    inset: 7px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
     border-radius: 50%;
+    backdrop-filter: blur(10px);
   }
   
   .kano-lens-logo .core {
     position: absolute;
-    inset: 12px;
+    inset: 11px;
     background: linear-gradient(135deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)));
     border-radius: 50%;
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  /* Enhanced gradient utilities */
+  .kano-gradient-mesh {
+    background: linear-gradient(135deg, 
+      hsl(var(--kano-blue)) 0%, 
+      hsl(var(--kano-violet)) 25%, 
+      hsl(var(--kano-emerald)) 50%, 
+      hsl(var(--kano-violet)) 75%, 
+      hsl(var(--kano-blue)) 100%);
+    background-size: 400% 400%;
+    animation: shimmer 8s ease-in-out infinite;
+  }
+  
+  .feature-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    border-color: hsl(var(--kano-blue) / 0.2);
+  }
+  
+  .dark .feature-card:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Interactive elements */
+  .interactive-hover {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .interactive-hover:hover {
+    transform: scale(1.02);
+    filter: brightness(1.05);
+  }
+  
+  /* Enhanced progress indicators */
+  .progress-ring {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .progress-ring::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: conic-gradient(from 0deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)), hsl(var(--kano-blue)));
+    border-radius: 50%;
+    animation: spin 3s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
   }
 }
 

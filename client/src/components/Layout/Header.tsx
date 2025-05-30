@@ -65,20 +65,21 @@ export default function Header({
   };
 
   return (
-    <header className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 shadow-sm">
-      <div className="px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          {/* Lens-shaped logo */}
-          <div className="kano-lens-logo">
-            <div className="inner dark:bg-slate-900"></div>
-            <div className="core"></div>
+    <header className="border-b border-white/20 dark:border-slate-700/50 glass-card shadow-lg backdrop-blur-md">
+      <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3 animate-slide-in-right">
+            <div className="kano-lens-logo">
+              <div className="inner"></div>
+              <div className="core"></div>
+            </div>
+            <h1 className="text-xl font-mono-heading font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              kanolens
+            </h1>
+            <Badge variant="secondary" className="text-xs glass-button border-blue-200 text-blue-700 dark:text-blue-300 animate-pulse-gentle">
+              BETA
+            </Badge>
           </div>
-          <h1 className="text-xl font-mono-heading font-semibold text-gray-900 dark:text-white">
-            kanolens
-          </h1>
-          <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-            BETA
-          </Badge>
 
           {/* Session Selector */}
           {sessions.length > 0 && (
@@ -120,7 +121,10 @@ export default function Header({
             </DropdownMenu>
           )}
 
-          <Button onClick={onCreateSession} variant="outline" size="sm">
+          <Button
+            onClick={onCreateSession}
+            className="kano-gradient-mesh text-white hover:shadow-xl transition-all duration-300 transform hover:scale-105 interactive-hover"
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Analysis
           </Button>

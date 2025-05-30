@@ -49,7 +49,7 @@ export default function SuggestionPanel({
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
               Complete Analysis Setup
             </h3>
-            
+
             <div className="space-y-6">
               {/* Target Customer Context */}
               {originalRequest.targetCustomer && (
@@ -83,7 +83,7 @@ export default function SuggestionPanel({
                       </div>
                     </div>
                   ))}
-                  
+
                   {/* AI Suggested Products */}
                   {suggestions.products.map((product, index) => (
                     <div key={`suggested-${index}`} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
@@ -142,7 +142,7 @@ export default function SuggestionPanel({
             <CheckCircle className="w-5 h-5 mr-2" />
             {isLoading ? "Generating Analysis..." : "Proceed with Analysis"}
           </Button>
-          
+
           <Button 
             onClick={onMakeChanges}
             variant="outline"
@@ -154,7 +154,7 @@ export default function SuggestionPanel({
             Make Changes
           </Button>
         </div>
-        
+
         <div className="mt-4 p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
           <p className="text-xs text-purple-600 dark:text-purple-400 text-center">
             The AI will generate a comprehensive Kano Model analysis table with these products and features
