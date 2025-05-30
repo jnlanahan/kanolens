@@ -79,11 +79,12 @@ export default function Home() {
       
       // Force a complete refresh if table data was created
       if (data?.sessionUpdate?.data?.tableData) {
+        queryClient.removeQueries({ queryKey: ["/api/analysis/sessions"] });
         setTimeout(() => {
           queryClient.refetchQueries({ 
             queryKey: ["/api/analysis/sessions"] 
           });
-        }, 100);
+        }, 200);
       }
     },
     onError: (error) => {
