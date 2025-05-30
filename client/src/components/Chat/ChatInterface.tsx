@@ -3,6 +3,8 @@ import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import AnalysisForm, { type AnalysisFormData } from "./AnalysisForm";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 
 interface ChatInterfaceProps {
