@@ -32,6 +32,11 @@ const categoryLabels = {
 };
 
 const getRatingBadge = (rating: string, category: string) => {
+  // Handle blank/empty ratings
+  if (!rating || rating.trim() === '') {
+    return "bg-gray-50 dark:bg-gray-800/30 text-gray-400 dark:text-gray-500";
+  }
+  
   if (category === "performance") {
     const colorMap = {
       "High": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
@@ -70,11 +75,24 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
 
   const featuresByCategory = useMemo(() => {
     if (!tableData?.features) return {};
-    return tableData.features.reduce((acc, feature) => {
+    
+    const grouped = tableData.features.reduce((acc, feature) => {
       if (!acc[feature.category]) acc[feature.category] = [];
       acc[feature.category].push(feature);
       return acc;
     }, {} as Record<string, KanoFeature[]>);
+    
+    // Order categories: must-have first, then performance, then delighter
+    const orderedCategories = ['must-have', 'performance', 'delighter'];
+    const ordered: Record<string, KanoFeature[]> = {};
+    
+    orderedCategories.forEach(category => {
+      if (grouped[category]) {
+        ordered[category] = grouped[category];
+      }
+    });
+    
+    return ordered;
   }, [tableData?.features]);
 
   if (isLoading) {

@@ -183,18 +183,26 @@ CATEGORIZATION LOGIC:
 
 RATING SYSTEM BY CATEGORY:
 
-MUST-HAVES: Use "Yes" or "No" only
+MUST-HAVES: Use "Yes", "No", or leave blank
 - "Yes" = Feature is present and functional
-- "No" = Feature is absent or non-functional
+- "No" = Feature is absent or non-functional  
+- Blank = Feature doesn't apply or cannot be verified
 
-PERFORMANCE ATTRIBUTES: Use "High", "Medium", "Low"
+PERFORMANCE ATTRIBUTES: Use "High", "Medium", "Low", or leave blank
 - "High" = Top-tier performance in market
 - "Medium" = Average/competitive performance  
 - "Low" = Below-average performance
+- Blank = Performance not applicable or cannot be measured
 
-DELIGHTERS: Use "Yes" or "No" only
+DELIGHTERS: Use "Yes", "No", or leave blank
 - "Yes" = Feature is present and innovative
 - "No" = Feature is absent
+- Blank = Feature doesn't apply to this product
+
+FEATURE ORDERING: Always organize features in this exact order:
+1. MUST-HAVES first (most important baseline features)
+2. PERFORMANCE ATTRIBUTES second (measurable improvements)  
+3. DELIGHTERS last (unexpected innovations)
 
 CRITICAL REQUIREMENTS:
 1. DEDUPLICATION: Remove duplicates and non-product terms ("more", "others", "etc", "tools")
