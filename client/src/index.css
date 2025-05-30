@@ -178,31 +178,31 @@
   }
   
   .animate-slide-up {
-    animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideUp 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
   
   .animate-slide-in-right {
-    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideInRight 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
   
   .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
+    animation: fadeIn 0.6s ease-in-out;
   }
   
   .animate-pulse-gentle {
-    animation: pulseGentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: pulseGentle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
   
   .animate-shimmer {
-    animation: shimmer 2s linear infinite;
+    animation: shimmer 4s linear infinite;
   }
   
   .animate-float {
-    animation: float 3s ease-in-out infinite;
+    animation: float 6s ease-in-out infinite;
   }
   
   .animate-glow {
-    animation: glow 2s ease-in-out infinite;
+    animation: glow 4s ease-in-out infinite;
   }
   
   /* Glass morphism components */
@@ -278,7 +278,7 @@
       hsl(var(--kano-violet)) 75%, 
       hsl(var(--kano-blue)) 100%);
     background-size: 400% 400%;
-    animation: shimmer 8s ease-in-out infinite;
+    animation: shimmer 12s ease-in-out infinite;
   }
   
   .feature-card {
@@ -318,7 +318,7 @@
     inset: -2px;
     background: conic-gradient(from 0deg, hsl(var(--kano-blue)), hsl(var(--kano-violet)), hsl(var(--kano-blue)));
     border-radius: 50%;
-    animation: spin 3s linear infinite;
+    animation: spin 6s linear infinite;
   }
   
   @keyframes spin {
