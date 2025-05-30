@@ -43,6 +43,10 @@ export async function processChatMessage(
         .replace('{{SESSION_ID}}', sessionId.toString())
         .replace('{{TARGET_CUSTOMER}}', 'Product Managers'); // Could be dynamic from session
         
+      // Add autonomy reminder for discovery step
+      if (currentStep === 'discovery') {
+        systemPrompt += '\n\n**AUTONOMY REMINDER**: You have full authority to make informed assumptions about products, customers, and features. Ask for user input, but proceed with reasonable defaults if they prefer not to specify. Always ensure robust analysis with 4+ products and 9+ features minimum.';
+        
     } catch (error) {
       console.warn('[OpenAI] Could not load external prompt, using fallback');
       // Fallback to a focused prompt if file doesn't exist

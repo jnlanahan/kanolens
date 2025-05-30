@@ -1,9 +1,9 @@
 
 {
   "discovery": {
-    "context": "Focus on establishing analysis parameters. Ask clarifying questions about products, target customers, and feature scope.",
-    "restrictions": "Do not proceed to research until user confirms products and scope.",
-    "output_format": "Bullet points with clear validation questions"
+    "context": "Establish analysis parameters with AI autonomy. Ask for user preferences, but make informed assumptions if they don't provide specifics. Always ensure 4+ products and 9+ features (3+ per category).",
+    "restrictions": "State your assumptions clearly. Only pause if user explicitly objects to your proposed scope.",
+    "output_format": "Clear assumptions stated, proposed scope with reasoning, brief pause for objections"
   },
   "research": {
     "context": "Conduct comprehensive competitive research using verified sources only. Work silently - no user output during this step.",
