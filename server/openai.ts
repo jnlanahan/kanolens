@@ -70,14 +70,11 @@ WORKFLOW:
 - For approval: Generate comprehensive authentic Kano analysis table
 - Always maintain competitive analysis focus`;
 
-    // Build conversation messages including history
+    // Build conversation messages for o1-mini (no system messages)
+    const userPrompt = `${systemPrompt}\n\nConversation History:\n${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nCurrent Request: ${message}`;
+    
     const messages: ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
-      ...conversationHistory.map(msg => ({
-        role: msg.role as "user" | "assistant",
-        content: String(msg.content)
-      })),
-      { role: "user", content: message }
+      { role: "user", content: userPrompt }
     ];
 
     // Check if this is an approval message to generate the full analysis
@@ -129,16 +126,24 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
+      const tablePrompt = `You are an expert competitive analyst generating authentic Kano Model data.
+
+CRITICAL REQUIREMENTS:
+1. DEDUPLICATION: Eliminate duplicates from the original product list (e.g., 'Productboard' mentioned twice)
+2. AUTHENTIC DATA: Use real product capabilities and market positioning
+3. LOGICAL REASONING: Apply proper Kano categorization based on actual product research
+4. ACCURACY: Ensure ratings reflect true competitive positioning
+
+${analysisPrompt}
+
+Return only valid JSON with no additional text.`;
+
       const analysisResponse = await openai.chat.completions.create({
         model: DEFAULT_MODEL,
         messages: [
-          { 
-            role: "system", 
-            content: "You are an expert competitive analyst with deep product knowledge and advanced reasoning capabilities. Your task is to generate authentic competitive analysis data using the Kano Model framework.\n\nCRITICAL REQUIREMENTS:\n1. DEDUPLICATION: Analyze the original product list and eliminate any duplicates or near-duplicates (e.g., 'Productboard' mentioned twice)\n2. AUTHENTIC DATA: Use real product capabilities, pricing, user feedback, and market positioning\n3. REASONING: Apply logical analysis to categorize features appropriately in Kano model (must-have vs performance vs delighter)\n4. ACCURACY: Ensure ratings reflect actual competitive positioning based on real product knowledge\n\nReturn only valid JSON with no additional text."
-          },
-          { role: "user", content: analysisPrompt }
+          { role: "user", content: tablePrompt }
         ],
-        max_tokens: 3000,
+        max_completion_tokens: 3000,
       });
 
       try {
@@ -171,7 +176,7 @@ Return ONLY a JSON object with this exact structure:
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: messages,
-      max_tokens: 1500,
+      max_completion_tokens: 1500,
     });
 
     const aiMessage = response.choices[0].message.content || "I'm sorry, I couldn't process that request.";
@@ -222,7 +227,7 @@ export async function testOpenAIConnection(): Promise<boolean> {
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: [{ role: "user", content: "Test connection" }],
-      max_tokens: 10,
+      max_completion_tokens: 10,
     });
 
     const testMessage = response.choices[0].message.content || "OpenAI connection successful.";
