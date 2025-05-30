@@ -129,12 +129,60 @@ For approval responses, create a comprehensive Kano analysis table with actual p
     
     console.log("[OpenAI] Generated response for step", currentStep);
     
+    // Check if the response contains a Kano table in JSON format
+    let tableData = null;
+    let processedMessage = aiMessage;
+    
+    if (aiMessage.includes('"products":') && aiMessage.includes('"Feature":')) {
+      try {
+        // Extract JSON from the response
+        const jsonMatch = aiMessage.match(/```json\n?([\s\S]*?)\n?```/) || aiMessage.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const jsonContent = jsonMatch[1] || jsonMatch[0];
+          const parsedTable = JSON.parse(jsonContent);
+          
+          // Convert the table format to our expected structure
+          if (parsedTable.data && Array.isArray(parsedTable.data)) {
+            // Convert array format to our structure
+            const products = Object.keys(parsedTable.data[0]).filter(key => key !== 'Feature');
+            const features = parsedTable.data.map((row: any, index: number) => ({
+              id: `feature_${index + 1}`,
+              name: row.Feature,
+              description: `Analysis of ${row.Feature} for the target customer segment`,
+              category: 'must-have', // Default category
+              customerBenefit: `Provides ${row.Feature} functionality`
+            }));
+            
+            const ratings: Record<string, Record<string, string>> = {};
+            parsedTable.data.forEach((row: any, index: number) => {
+              const featureId = `feature_${index + 1}`;
+              ratings[featureId] = {};
+              products.forEach(product => {
+                ratings[featureId][product] = row[product] || 'Indifferent';
+              });
+            });
+            
+            tableData = {
+              products,
+              features,
+              ratings,
+              sources: {}
+            };
+            
+            processedMessage = 'Analysis complete! Your comprehensive Kano Model comparison table has been generated with detailed feature categorizations and competitive ratings.';
+          }
+        }
+      } catch (error) {
+        console.error("[OpenAI] Failed to parse table data from response:", error);
+      }
+    }
+    
     const chatResponse: ChatResponse = {
-      step: currentStep,
-      message: aiMessage,
-      progress: getProgressForStep(currentStep),
-      data: {},
-      nextAction: getNextActionForStep(currentStep)
+      step: tableData ? 'table_creation' : currentStep,
+      message: processedMessage,
+      progress: tableData ? 100 : getProgressForStep(currentStep),
+      data: tableData ? { tableData } : {},
+      nextAction: tableData ? 'Review your analysis results and insights.' : getNextActionForStep(currentStep)
     };
 
     return chatResponse;
