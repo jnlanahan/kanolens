@@ -265,7 +265,19 @@ Return only valid JSON with no additional text.`;
       } catch (error) {
         console.error("[OpenAI] Failed to parse table data:", error);
         console.error("[OpenAI] Raw content:", analysisResponse.choices[0].message.content);
-        // Fall back to regular response
+        
+        // Return error response with details for debugging
+        return {
+          step: 'table_creation',
+          message: 'Analysis encountered an issue processing the research data. The web search completed successfully but table generation failed.',
+          progress: 90,
+          data: { 
+            error: 'JSON parsing failed',
+            rawContent: analysisResponse.choices[0].message.content?.substring(0, 500) + '...',
+            webResearchSuccess: true
+          },
+          nextAction: 'Please try the analysis again or contact support.'
+        };
       }
     }
 
