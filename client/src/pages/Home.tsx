@@ -218,12 +218,14 @@ export default function Home() {
     };
   }, [currentSession?.tableData, messages]);
 
-  // Hide progress tracker when analysis is complete
+  // Don't automatically hide progress tracker when analysis is complete
+  // Let the progress tracker handle its own completion transition
   useEffect(() => {
-    if (hasTableData) {
-      setShowProgressTracker(false);
+    if (hasTableData && !showProgressTracker) {
+      // Only hide if we're not currently showing the tracker
+      // This prevents the chat from reappearing after analysis
     }
-  }, [hasTableData]);
+  }, [hasTableData, showProgressTracker]);
 
   // Determine current progress based on the session step and progress
   const getCurrentProgress = () => {
@@ -318,6 +320,7 @@ export default function Home() {
                 progress={getCurrentProgress()}
                 isComplete={hasTableData}
                 onComplete={handleProgressComplete}
+                sessionId={currentSessionId}
               />
             </div>
           ) : (

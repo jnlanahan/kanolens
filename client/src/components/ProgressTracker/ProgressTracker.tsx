@@ -16,6 +16,7 @@ interface ProgressTrackerProps {
   progress: number;
   isComplete: boolean;
   onComplete?: () => void;
+  sessionId?: number | null;
 }
 
 const ANALYSIS_STEPS: Record<string, ProgressStep> = {
@@ -61,12 +62,57 @@ export default function ProgressTracker({
 }: ProgressTrackerProps) {
   const [steps, setSteps] = useState<ProgressStep[]>(Object.values(ANALYSIS_STEPS));
   const [animationPhase, setAnimationPhase] = useState(0);
+  const [localStep, setLocalStep] = useState('discovery');
+  const [localProgress, setLocalProgress] = useState(20);
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+
+  // Simulate realistic step progression with artificial delays
+  useEffect(() => {
+    if (currentStep === 'discovery') {
+      setLocalStep('discovery');
+      setLocalProgress(20);
+      
+      // Auto-progress through steps with realistic timing
+      const timer1 = setTimeout(() => {
+        setLocalStep('research');
+        setLocalProgress(40);
+      }, 3000); // 3 seconds for discovery
+      
+      const timer2 = setTimeout(() => {
+        setLocalStep('categorization');
+        setLocalProgress(60);
+      }, 15000); // 15 seconds total for research
+      
+      const timer3 = setTimeout(() => {
+        setLocalStep('table_creation');
+        setLocalProgress(80);
+      }, 25000); // 25 seconds total for categorization
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
+    }
+  }, [currentStep]);
+
+  // Handle actual completion from backend
+  useEffect(() => {
+    if (isComplete) {
+      setLocalStep('table_creation');
+      setLocalProgress(100);
+      setShowCompletionMessage(true);
+      
+      // Don't auto-call onComplete to prevent chat from reappearing
+      // User will need to manually dismiss or we'll handle it differently
+    }
+  }, [isComplete]);
 
   useEffect(() => {
     const updatedSteps = Object.values(ANALYSIS_STEPS).map(step => {
-      if (step.id === currentStep) {
+      if (step.id === localStep) {
         return { ...step, status: 'active' as const };
-      } else if (getStepOrder(step.id) < getStepOrder(currentStep)) {
+      } else if (getStepOrder(step.id) < getStepOrder(localStep)) {
         return { ...step, status: 'completed' as const };
       } else {
         return { ...step, status: 'pending' as const };
@@ -74,16 +120,7 @@ export default function ProgressTracker({
     });
     
     setSteps(updatedSteps);
-  }, [currentStep]);
-
-  useEffect(() => {
-    if (isComplete && onComplete) {
-      const timer = setTimeout(() => {
-        onComplete();
-      }, 2000); // Show completion for 2 seconds before calling onComplete
-      return () => clearTimeout(timer);
-    }
-  }, [isComplete, onComplete]);
+  }, [localStep]);
 
   useEffect(() => {
     // Animation cycle for active step
@@ -137,12 +174,12 @@ export default function ProgressTracker({
       <div className="mb-8">
         <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
           <span>Progress</span>
-          <span>{Math.round(progress)}%</span>
+          <span>{Math.round(localProgress)}%</span>
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div 
             className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${localProgress}%` }}
           />
         </div>
       </div>
@@ -219,7 +256,7 @@ export default function ProgressTracker({
       </div>
 
       {/* Current Step Status */}
-      {currentStepData && !isComplete && (
+      {currentStepData && !showCompletionMessage && (
         <div className="text-center">
           <div className="inline-flex items-center px-4 py-2 bg-blue-100 dark:bg-blue-900/30 rounded-full">
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2" />
@@ -231,14 +268,22 @@ export default function ProgressTracker({
       )}
 
       {/* Completion Message */}
-      {isComplete && (
+      {showCompletionMessage && (
         <div className="text-center">
-          <div className="inline-flex items-center px-6 py-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-            <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-            <span className="text-sm font-medium text-green-900 dark:text-green-100">
-              Analysis Complete!
-            </span>
+          <div className="mb-4">
+            <div className="inline-flex items-center px-6 py-3 bg-green-100 dark:bg-green-900/30 rounded-full">
+              <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
+              <span className="text-sm font-medium text-green-900 dark:text-green-100">
+                Analysis Complete!
+              </span>
+            </div>
           </div>
+          <button
+            onClick={() => onComplete && onComplete()}
+            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors duration-200"
+          >
+            View Results
+          </button>
         </div>
       )}
     </div>
