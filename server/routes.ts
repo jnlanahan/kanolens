@@ -108,6 +108,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/analysis/sessions/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Check if user owns this session
+      if (session.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteAnalysisSession(sessionId);
+      res.json({ message: "Session deleted successfully" });
+    } catch (error) {
+      console.error("Delete session error:", error);
+      res.status(500).json({ message: "Failed to delete session" });
+    }
+  });
+
+  app.delete('/api/analysis/sessions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userSessions = await storage.getUserAnalysisSessions(userId);
+      
+      // Delete all sessions for this user
+      for (const session of userSessions) {
+        await storage.deleteAnalysisSession(session.id);
+      }
+      
+      res.json({ message: `Deleted ${userSessions.length} sessions successfully` });
+    } catch (error) {
+      console.error("Bulk delete sessions error:", error);
+      res.status(500).json({ message: "Failed to delete sessions" });
+    }
+  });
+
   // Chat message routes
   app.post('/api/analysis/sessions/:id/messages', isAuthenticated, async (req: any, res) => {
     try {

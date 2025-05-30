@@ -1,13 +1,15 @@
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Plus, User, LogOut } from "lucide-react";
+import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 import type { AnalysisSession } from "@shared/schema";
 
 interface HeaderProps {
@@ -34,6 +36,34 @@ export default function Header({
 
   const handleSignOut = () => {
     window.location.href = "/api/logout";
+  };
+
+  const queryClient = useQueryClient();
+
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/session/${id}`, {
+        method: "DELETE",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sessions"] });
+      toast({
+        title: "Session deleted",
+        description: "The session has been successfully deleted.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error deleting session",
+        description: "Failed to delete the session. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteSession = (id: number) => {
+    deleteSessionMutation.mutate(id);
   };
 
   return (
@@ -74,6 +104,18 @@ export default function Header({
                         {session.status} • {session.currentStep}
                       </span>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSession(session.id);
+                      }}
+                      disabled={deleteSessionMutation.isPending}
+                      className="ml-auto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -85,7 +127,7 @@ export default function Header({
             New Analysis
           </Button>
         </div>
-        
+
         <div className="flex items-center space-x-4">
           {/* OpenAI Status Indicator */}
           <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${

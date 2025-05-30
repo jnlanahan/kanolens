@@ -25,6 +25,7 @@ export interface IStorage {
   getAnalysisSession(id: number): Promise<AnalysisSession | undefined>;
   getUserAnalysisSessions(userId: string): Promise<AnalysisSession[]>;
   updateAnalysisSession(id: number, updates: Partial<AnalysisSession>): Promise<AnalysisSession>;
+  deleteAnalysisSession(id: number): Promise<void>;
   
   // Chat message operations
   addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
@@ -89,6 +90,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(analysisSessions.id, id))
       .returning();
     return session;
+  }
+
+  async deleteAnalysisSession(id: number): Promise<void> {
+    // Delete associated chat messages first (due to foreign key constraint)
+    await db.delete(chatMessages).where(eq(chatMessages.sessionId, id));
+    
+    // Delete associated documents
+    await db.delete(documents).where(eq(documents.sessionId, id));
+    
+    // Finally delete the session
+    await db.delete(analysisSessions).where(eq(analysisSessions.id, id));
   }
 
   // Chat message operations
