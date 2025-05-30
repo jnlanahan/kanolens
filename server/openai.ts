@@ -28,9 +28,11 @@ export async function processChatMessage(
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
-    // If we're in discovery step, automatically complete the full analysis
+    // Handle different steps in the flow
     if (currentStep === 'discovery') {
       return await conductFullKanoAnalysis(message, sessionId, userId);
+    } else if (currentStep === 'confirmation') {
+      return await handleConfirmationResponse(message, sessionId, userId);
     }
 
     // For other steps, handle normally (shouldn't happen with new flow)
@@ -73,49 +75,45 @@ async function conductFullKanoAnalysis(
   sessionId: number,
   userId: string
 ): Promise<ChatResponse> {
-  console.log(`[OpenAI] Starting full Kano analysis for session ${sessionId}`);
+  console.log(`[OpenAI] Starting confirmation step for session ${sessionId}`);
 
-  const systemPrompt = `You are an expert competitive analyst. Based on the user's input, you must:
+  const systemPrompt = `You are an expert competitive analyst. Based on the user's input, you need to:
 
-1. EXTRACT the analysis parameters from their request
-2. AUTONOMOUSLY complete a full Kano Model competitive analysis
-3. OUTPUT a complete, properly formatted Kano Model table
+1. ANALYZE their request and extract the key parameters
+2. SUGGEST additional products and features based on your expertise
+3. PRESENT your suggestions for CONFIRMATION before proceeding
 
-The user should see ONLY the final table - no questions, no requests for more info.
+Based on their input, provide intelligent suggestions to enhance the analysis:
 
-Follow this exact process:
-1. Parse their input to identify: products to compare, target customer, features to analyze
-2. Research 4+ products (add market leaders if user didn't specify enough)
-3. Identify 9+ features (3+ Must-Haves, 3+ Performance Benefits, 3+ Delighters)
-4. Create the standardized Kano table with ratings
-5. Provide brief strategic insights
+**Your Task:**
+1. Parse what they provided: products, target customer, features/benefits
+2. Suggest 2-3 additional market-leading products if they didn't provide enough (aim for 4-5 total)
+3. Suggest 9-12 key features across Kano categories based on the target customer
+4. Ask for confirmation before proceeding with full analysis
 
-Use this EXACT table format:
+**Response Format:**
+Based on your request, here's what I'll analyze:
 
-# Competitive Analysis: Kano Model Table
+**Products to Compare:**
+- [List their products + your suggestions with reasoning]
 
-**Analysis Date**: [Current Date]
-**Products Analyzed**: [List products]
-**Target Customer**: [Customer segment]
-**Research Sources**: AI-powered competitive analysis
+**Target Customer:** 
+- [Customer segment they specified or your suggestion]
 
-| Kano Category | Feature/Benefit | Product A | Product B | Product C | Product D |
-|--------------|-----------------|-----------|-----------|-----------|-----------|
-| **MUST-HAVES** |
-| [Feature Name] - [Customer Benefit] | Rating | Rating | Rating | Rating |
-| **PERFORMANCE BENEFITS** |
-| [Feature Name] - [Customer Benefit] | Rating | Rating | Rating | Rating |
-| **DELIGHTERS** |
-| [Feature Name] - [Customer Benefit] | Rating | Rating | Rating | Rating |
+**Key Features I'll Research:**
+**Must-Have Features** (Essential for target customer):
+- [3-4 features with brief reasoning]
 
-## Strategic Insights
-[Brief analysis of gaps and opportunities]
+**Performance Benefits** (Competitive differentiators):
+- [3-4 features with brief reasoning]
 
-Rating scales:
-- Must-Haves/Delighters: Yes/No/Limited
-- Performance: High/Medium/Low
+**Delighter Features** (Nice-to-have innovations):
+- [3-4 features with brief reasoning]
 
-Work autonomously. Do not ask questions. Complete the full analysis.`;
+**Confirm to Proceed:**
+Does this analysis scope look good, or would you like me to adjust any products or features before I conduct the full competitive research?
+
+Be helpful but concise. Show your expertise by suggesting relevant additions.`;
 
   const response = await openai.chat.completions.create({
     model: DEFAULT_MODEL,
@@ -123,27 +121,27 @@ Work autonomously. Do not ask questions. Complete the full analysis.`;
       { role: "system", content: systemPrompt },
       { role: "user", content: userInput }
     ],
-    max_tokens: 2000,
+    max_tokens: 1000,
   });
 
-  const fullAnalysis = response.choices[0].message.content || "Unable to complete analysis.";
+  const confirmationMessage = response.choices[0].message.content || "Unable to generate analysis proposal.";
   
-  console.log("[OpenAI] Generated full Kano analysis");
+  console.log("[OpenAI] Generated confirmation proposal");
   
-  // Extract structured data from the analysis for the session
-  const analysisData = extractAnalysisData(fullAnalysis, userInput);
+  // Extract proposed data for the confirmation step
+  const proposedData = extractProposedData(confirmationMessage, userInput);
   
   const chatResponse: ChatResponse = {
-    step: 'analysis',
-    message: fullAnalysis,
-    progress: 100,
+    step: 'confirmation',
+    message: confirmationMessage,
+    progress: 30,
     data: {
-      products: analysisData.products,
-      features: analysisData.features,
-      tableData: analysisData.tableData,
-      targetCustomer: analysisData.targetCustomer
+      proposedProducts: proposedData.products,
+      proposedFeatures: proposedData.features,
+      targetCustomer: proposedData.targetCustomer,
+      originalInput: userInput
     },
-    nextAction: "Analysis complete! Review the Kano Model table and strategic insights."
+    nextAction: "Waiting for user confirmation to proceed with analysis."
   };
 
   return chatResponse;
@@ -217,9 +215,146 @@ function generateMockRatings(products: string[], features: string[]) {
   return ratings;
 }
 
+async function handleConfirmationResponse(
+  message: string,
+  sessionId: number,
+  userId: string
+): Promise<ChatResponse> {
+  console.log(`[OpenAI] Handling confirmation response for session ${sessionId}`);
+  
+  const lowerMessage = message.toLowerCase();
+  const isConfirmed = lowerMessage.includes('yes') || lowerMessage.includes('looks good') || 
+                     lowerMessage.includes('proceed') || lowerMessage.includes('confirm') ||
+                     lowerMessage.includes('go ahead') || lowerMessage.includes('perfect') ||
+                     (lowerMessage.includes('no') && lowerMessage.includes('changes'));
+
+  if (isConfirmed) {
+    // User confirmed - proceed with full analysis
+    return await conductActualKanoAnalysis(sessionId, userId);
+  } else {
+    // User wants changes - handle modifications
+    return await handleAnalysisModifications(message, sessionId, userId);
+  }
+}
+
+async function handleAnalysisModifications(
+  message: string,
+  sessionId: number,
+  userId: string
+): Promise<ChatResponse> {
+  console.log(`[OpenAI] Handling analysis modifications for session ${sessionId}`);
+  
+  const systemPrompt = `The user wants to modify the analysis scope. Based on their feedback, update the analysis parameters and present the revised scope for confirmation.
+
+User's modifications: "${message}"
+
+Provide the updated analysis scope in the same format as before, incorporating their requested changes. Then ask for confirmation again.`;
+
+  const response = await openai.chat.completions.create({
+    model: DEFAULT_MODEL,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: message }
+    ],
+    max_tokens: 1000,
+  });
+
+  const updatedMessage = response.choices[0].message.content || "Unable to process modifications.";
+  
+  return {
+    step: 'confirmation',
+    message: updatedMessage,
+    progress: 30,
+    data: {},
+    nextAction: "Waiting for user confirmation to proceed with updated analysis."
+  };
+}
+
+async function conductActualKanoAnalysis(
+  sessionId: number,
+  userId: string
+): Promise<ChatResponse> {
+  console.log(`[OpenAI] Conducting actual Kano analysis for session ${sessionId}`);
+  
+  const systemPrompt = `Now conduct the full Kano Model competitive analysis. Create a comprehensive, properly formatted Kano Model table with the confirmed scope.
+
+Use this EXACT table format:
+
+# Competitive Analysis: Kano Model Table
+
+**Analysis Date**: [Current Date]
+**Products Analyzed**: [List products]
+**Target Customer**: [Customer segment]
+**Research Sources**: AI-powered competitive analysis
+
+| Kano Category | Feature/Benefit | Product A | Product B | Product C | Product D |
+|--------------|-----------------|-----------|-----------|-----------|-----------|
+| **MUST-HAVES** |
+| [Feature Name] - [Customer Benefit] | Rating | Rating | Rating | Rating |
+| **PERFORMANCE BENEFITS** |
+| [Feature Name] - [Customer Benefit] | Rating | Rating | Rating | Rating |
+| **DELIGHTERS** |
+| [Feature Name] - [Customer Benefit] | Rating | Rating | Rating | Rating |
+
+## Strategic Insights
+[Brief analysis of gaps and opportunities]
+
+Rating scales:
+- Must-Haves/Delighters: Yes/No/Limited
+- Performance: High/Medium/Low
+
+Complete the full analysis autonomously.`;
+
+  const response = await openai.chat.completions.create({
+    model: DEFAULT_MODEL,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: "Proceed with the confirmed analysis scope." }
+    ],
+    max_tokens: 2000,
+  });
+
+  const fullAnalysis = response.choices[0].message.content || "Unable to complete analysis.";
+  
+  console.log("[OpenAI] Generated full Kano analysis");
+  
+  // Extract structured data from the analysis
+  const analysisData = extractAnalysisData(fullAnalysis, "Confirmed analysis scope");
+  
+  return {
+    step: 'analysis',
+    message: fullAnalysis,
+    progress: 100,
+    data: {
+      products: analysisData.products,
+      features: analysisData.features,
+      tableData: analysisData.tableData,
+      targetCustomer: analysisData.targetCustomer
+    },
+    nextAction: "Analysis complete! Review the Kano Model table and strategic insights."
+  };
+}
+
+function extractProposedData(message: string, userInput: string) {
+  // Simple extraction for proposed products and features
+  const products = ['Product A', 'Product B', 'Product C', 'Product D']; // Default fallback
+  const features = [
+    'Feature 1', 'Feature 2', 'Feature 3', // Must-haves
+    'Feature 4', 'Feature 5', 'Feature 6', // Performance
+    'Feature 7', 'Feature 8', 'Feature 9'  // Delighters
+  ];
+  
+  return {
+    products,
+    features,
+    targetCustomer: 'Product Managers' // Default
+  };
+}
+
 function getProgressForStep(step: string): number {
   const stepProgress: Record<string, number> = {
     'discovery': 20,
+    'confirmation': 30,
     'research': 40,
     'categorization': 60,
     'table_creation': 80,
