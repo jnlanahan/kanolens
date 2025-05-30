@@ -1,0 +1,28 @@
+
+{
+  "discovery": {
+    "context": "Focus on establishing analysis parameters. Ask clarifying questions about products, target customers, and feature scope.",
+    "restrictions": "Do not proceed to research until user confirms products and scope.",
+    "output_format": "Bullet points with clear validation questions"
+  },
+  "research": {
+    "context": "Conduct comprehensive competitive research using verified sources only. Work silently - no user output during this step.",
+    "restrictions": "Mark unverifiable information as 'Cannot Verify'. Document all sources with URLs and dates.",
+    "output_format": "Progress indicator only - detailed research conducted behind scenes"
+  },
+  "categorization": {
+    "context": "Apply Kano categories using evidence from research. Every rating must have source backing.",
+    "restrictions": "No assumptions. Use standardized rating scales only.",
+    "output_format": "Brief categorization summary with source counts"
+  },
+  "table_creation": {
+    "context": "Generate the standardized Kano Model table using exact format from instructions.",
+    "restrictions": "Must include source documentation section. Follow Dan Olsen benefits-focused approach.",
+    "output_format": "Complete formatted table with sources"
+  },
+  "analysis": {
+    "context": "Provide strategic insights based only on verified table data.",
+    "restrictions": "All recommendations must reference specific table findings. No speculation.",
+    "output_format": "Structured analysis with evidence citations"
+  }
+}

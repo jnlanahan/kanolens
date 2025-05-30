@@ -28,37 +28,52 @@ export async function processChatMessage(
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
+    // Load the comprehensive prompt from file
+    const fs = require('fs');
+    const path = require('path');
     
-    const systemPrompt = `You are an expert competitive analyst specializing in the Kano Model framework for project management tools.
+    let systemPrompt;
+    try {
+      const promptPath = path.join(__dirname, 'prompts', 'kano-system-prompt.md');
+      systemPrompt = fs.readFileSync(promptPath, 'utf8');
+      
+      // Replace template variables with actual session data
+      systemPrompt = systemPrompt
+        .replace('{{CURRENT_STEP}}', currentStep)
+        .replace('{{SESSION_ID}}', sessionId.toString())
+        .replace('{{TARGET_CUSTOMER}}', 'Product Managers'); // Could be dynamic from session
+        
+    } catch (error) {
+      console.warn('[OpenAI] Could not load external prompt, using fallback');
+      // Fallback to a focused prompt if file doesn't exist
+      systemPrompt = `You are an expert competitive analyst using the Kano Model framework.
 
-Your goal is to guide users through a comprehensive 5-step Kano analysis and ALWAYS produce a complete Kano table, even if the user provides minimal input.
+Current Step: ${currentStep}
+Follow the 5-step Kano analysis process:
+1. Discovery (20%) - Define products, customers, features
+2. Research (40%) - Gather verified competitive data  
+3. Categorization (60%) - Apply Kano categories with evidence
+4. Table Creation (80%) - Generate standardized comparison table
+5. Analysis (100%) - Provide evidence-based recommendations
 
-**Key Guidelines:**
-1. **Never get stuck** - If the user doesn't provide specific details, make informed decisions based on industry standards
-2. **Always complete the analysis** - Every conversation should result in a complete Kano Model table
-3. **Be decisive** - When users say "you decide" or give minimal guidance, take the lead and make reasonable assumptions
-4. **Consistent table format** - Always use the same thorough table structure with detailed research
-
-**5-Step Process:**
-1. **Discovery** (20%): Determine product focus, target customer, competitive landscape
-2. **Research** (40%): Identify 3-5 competitors and 8-12 key features through research
-3. **Categorization** (60%): Classify features using Kano categories (Must-have, Performance, Delighter)
-4. **Table Creation** (80%): Generate comprehensive comparison table with ratings
-5. **Analysis** (100%): Provide strategic insights and recommendations
-
-**Default Assumptions (use when user doesn't specify):**
-- Product: Project Management Tool for Product Managers
-- Competitors: Asana, Monday.com, Jira, Trello, Notion
-- Features: Task Management, Team Collaboration, Timeline/Gantt Charts, Reporting, Integrations, Mobile Access, Automation, Custom Fields, File Sharing, Real-time Updates, Notifications, Resource Management
-
-**Response Format:**
-- Be conversational but decisive
-- Show progress clearly (e.g., "Research 40% complete...")
-- When creating the table, make it comprehensive with actual research-backed ratings
-- Always provide actionable next steps
-
-Current session: ${sessionId}
-Respond helpfully and guide toward completing a full Kano analysis.`;
+Be thorough, cite sources, and focus on customer benefits over features.
+Session: ${sessionId}`;
+    }
+    
+    // Add step-specific context to reduce tokens while maintaining quality
+    try {
+      const templatesPath = path.join(__dirname, 'prompts', 'step-templates.json');
+      const stepTemplates = JSON.parse(fs.readFileSync(templatesPath, 'utf8'));
+      const stepContext = stepTemplates[currentStep];
+      
+      if (stepContext) {
+        systemPrompt += `\n\n**Current Step Focus**: ${stepContext.context}
+**Restrictions**: ${stepContext.restrictions}  
+**Expected Output**: ${stepContext.output_format}`;
+      }
+    } catch (error) {
+      console.warn('[OpenAI] Could not load step templates');
+    }
 
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
