@@ -9,8 +9,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const DEFAULT_MODEL = "o1-mini";
-const SEARCH_MODEL = "gpt-4o"; // Web search requires gpt-4o
+const DEFAULT_MODEL = "gpt-4o";
+const SEARCH_MODEL = "gpt-4o";
 
 interface ChatResponse {
   step: string;
@@ -102,11 +102,14 @@ CATEGORIZATION EXAMPLES:
 
 CORE PRINCIPLE: Be autonomous in cleaning/validating input, but transparent about changes made.`;
 
-    // Build conversation messages for o1-mini (no system messages)
-    const userPrompt = `${systemPrompt}\n\nConversation History:\n${conversationHistory.map(msg => `${msg.role}: ${msg.content}`).join('\n')}\n\nCurrent Request: ${message}`;
-    
+    // Build conversation messages for GPT-4o (supports system messages)
     const messages: ChatCompletionMessageParam[] = [
-      { role: "user", content: userPrompt }
+      { role: "system", content: systemPrompt },
+      ...conversationHistory.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: msg.content
+      })),
+      { role: "user", content: message }
     ];
 
     // Check if this is an approval message to generate the full analysis
@@ -303,7 +306,7 @@ Return only valid JSON with no additional text.`;
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
       messages: messages,
-      max_completion_tokens: 1500,
+      max_tokens: 1500,
     });
 
     const aiMessage = response.choices[0].message.content || "I'm sorry, I couldn't process that request.";
@@ -322,7 +325,15 @@ Return only valid JSON with no additional text.`;
     return chatResponse;
   } catch (error) {
     console.error("[OpenAI] Error processing chat message:", error);
-    throw new Error(`Failed to process message: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error("[OpenAI] Error details:", JSON.stringify(error, null, 2));
+    
+    return {
+      step: 'discovery',
+      message: 'I encountered an issue processing your request. Please try again or contact support.',
+      progress: 20,
+      data: { error: error instanceof Error ? error.message : 'Unknown error' },
+      nextAction: 'Please try the analysis again.'
+    };
   }
 }
 
