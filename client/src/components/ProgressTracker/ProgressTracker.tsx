@@ -103,10 +103,14 @@ export default function ProgressTracker({
       setLocalProgress(100);
       setShowCompletionMessage(true);
       
-      // Don't auto-call onComplete to prevent chat from reappearing
-      // User will need to manually dismiss or we'll handle it differently
+      // Auto-call onComplete after a short delay to show table
+      setTimeout(() => {
+        if (onComplete) {
+          onComplete();
+        }
+      }, 2000);
     }
-  }, [isComplete]);
+  }, [isComplete, onComplete]);
 
   useEffect(() => {
     const updatedSteps = Object.values(ANALYSIS_STEPS).map(step => {

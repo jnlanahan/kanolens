@@ -12,7 +12,6 @@ import ProgressTracker from "@/components/ProgressTracker/ProgressTracker";
 export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [showProgressTracker, setShowProgressTracker] = useState(false);
-  const [allowTableDisplay, setAllowTableDisplay] = useState(false);
   const { toast } = useToast();
 
   // Fetch all sessions
@@ -115,7 +114,6 @@ export default function Home() {
     // Only show progress tracker when user approves suggestions (clicks "Proceed with Analysis")
     if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
       setShowProgressTracker(true);
-      setAllowTableDisplay(false); // Reset table display permission
     }
     
     sendMessageMutation.mutate({ content, metadata });
@@ -193,11 +191,10 @@ export default function Home() {
 
   // Memoized computation for better performance
   const { hasTableData, suggestions, panelContent } = useMemo(() => {
-    // Check for table data first, but only show if allowed
+    // Check for table data first
     const hasTable = currentSession?.tableData && 
         typeof currentSession.tableData === 'object' && 
-        Object.keys(currentSession.tableData).length > 0 &&
-        allowTableDisplay;
+        Object.keys(currentSession.tableData).length > 0;
 
     // Extract suggestions
     const extractedSuggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
@@ -214,16 +211,14 @@ export default function Home() {
       suggestions: extractedSuggestions,
       panelContent: content
     };
-  }, [currentSession?.tableData, messages, allowTableDisplay]);
+  }, [currentSession?.tableData, messages]);
 
-  // Don't automatically hide progress tracker when analysis is complete
-  // Let the progress tracker handle its own completion transition
+  // Hide progress tracker when analysis is complete
   useEffect(() => {
-    if (hasTableData && !showProgressTracker) {
-      // Only hide if we're not currently showing the tracker
-      // This prevents the chat from reappearing after analysis
+    if (hasTableData) {
+      setShowProgressTracker(false);
     }
-  }, [hasTableData, showProgressTracker]);
+  }, [hasTableData]);
 
   // Determine current progress based on the session step and progress
   const getCurrentProgress = () => {
@@ -242,7 +237,6 @@ export default function Home() {
 
   const handleProgressComplete = () => {
     setShowProgressTracker(false);
-    setAllowTableDisplay(true);
     // Refresh the session data to show the results
     queryClient.invalidateQueries({ 
       queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`] 
