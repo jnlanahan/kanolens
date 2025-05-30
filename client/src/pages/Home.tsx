@@ -4,12 +4,18 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalysisSession, ChatMessage, KanoTableData } from "@shared/schema";
 import Header from "@/components/Layout/Header";
-import ChatInterface from "@/components/Chat/ChatInterface";
-import SuggestionPanel from "@/components/Chat/SuggestionPanel";
+import ProgressTracker from "@/components/ProgressTracker/ProgressTracker";
+import SuggestionConfirmation from "@/components/ProgressTracker/SuggestionConfirmation";
 import KanoTable from "@/components/KanoTable/KanoTable";
+import AnalysisForm from "@/components/Chat/AnalysisForm";
+import type { AnalysisFormData } from "@/components/Chat/AnalysisForm";
 
 export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [showAnalysisForm, setShowAnalysisForm] = useState(false);
+  const [showSuggestionConfirmation, setShowSuggestionConfirmation] = useState(false);
+  const [analysisInProgress, setAnalysisInProgress] = useState(false);
+  const [pendingAnalysisData, setPendingAnalysisData] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch all sessions
