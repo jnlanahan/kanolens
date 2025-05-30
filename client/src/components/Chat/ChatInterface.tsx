@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
 import AnalysisForm, { type AnalysisFormData } from "./AnalysisForm";
+import ConfirmationPanel from "./ConfirmationPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
@@ -69,6 +70,20 @@ export default function ChatInterface({
 
   const validMessages = Array.isArray(messages) ? messages.filter(msg => msg && typeof msg === 'object' && 'content' in msg) : [];
 
+  // Check if we should show confirmation panel
+  const lastMessage = validMessages[validMessages.length - 1];
+  const showConfirmationPanel = lastMessage?.role === 'assistant' && 
+                                lastMessage?.metadata?.step === 'confirmation' &&
+                                lastMessage?.metadata?.confirmationData;
+
+  const handleConfirmAnalysis = () => {
+    onSendMessage("Yes, looks good! Proceed with the analysis.");
+  };
+
+  const handleRequestChanges = () => {
+    onSendMessage("I'd like to make some changes to the analysis scope.");
+  };
+
   if (!Array.isArray(messages)) {
     return (
       <div className="flex-1 flex flex-col">
@@ -90,6 +105,40 @@ export default function ChatInterface({
       <div className="flex-1 flex flex-col">
         <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
           <AnalysisForm onSubmit={handleFormSubmit} disabled={isLoading} />
+        </div>
+      </div>
+    );
+  }
+
+  // Show confirmation panel if in confirmation step
+  if (showConfirmationPanel) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Chat Header */}
+        <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-mono-heading text-lg font-semibold text-gray-900 dark:text-white">
+                Analysis Confirmation
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Review and confirm the analysis scope before proceeding
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Confirmation Panel */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <ConfirmationPanel
+            data={lastMessage.metadata.confirmationData}
+            onConfirm={handleConfirmAnalysis}
+            onRequestChanges={handleRequestChanges}
+            isLoading={isLoading}
+          />
         </div>
       </div>
     );

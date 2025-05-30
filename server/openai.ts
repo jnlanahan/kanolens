@@ -77,43 +77,42 @@ async function conductFullKanoAnalysis(
 ): Promise<ChatResponse> {
   console.log(`[OpenAI] Starting confirmation step for session ${sessionId}`);
 
-  const systemPrompt = `You are an expert competitive analyst. Based on the user's input, you need to:
+  // Parse user input to extract components
+  const parsedInput = parseUserInput(userInput);
 
-1. ANALYZE their request and extract the key parameters
-2. SUGGEST additional products and features based on your expertise
-3. PRESENT your suggestions for CONFIRMATION before proceeding
+  const systemPrompt = `You are an expert competitive analyst. Based on the user's input, provide intelligent suggestions to enhance their analysis.
 
-Based on their input, provide intelligent suggestions to enhance the analysis:
+User's request analysis:
+- Description: ${parsedInput.description || 'Not specified'}
+- Products mentioned: ${parsedInput.products.join(', ') || 'None specified'}
+- Target customer: ${parsedInput.targetCustomer || 'Not specified'}
+- Features mentioned: ${parsedInput.features.join(', ') || 'You decide'}
 
-**Your Task:**
-1. Parse what they provided: products, target customer, features/benefits
-2. Suggest 2-3 additional market-leading products if they didn't provide enough (aim for 4-5 total)
-3. Suggest 9-12 key features across Kano categories based on the target customer
-4. Ask for confirmation before proceeding with full analysis
+Your task:
+1. Suggest 2-3 additional market-leading competitors if needed (aim for 4-5 total products)
+2. Suggest 9-12 features across Kano categories that would be most relevant for the target customer
+3. Provide brief, insightful reasoning for each suggestion
 
-**Response Format:**
-Based on your request, here's what I'll analyze:
+Return ONLY a JSON object with this exact structure:
+{
+  "additionalProducts": [
+    {"name": "ProductName", "reason": "Why this competitor is important to include"}
+  ],
+  "suggestedFeatures": {
+    "mustHave": [
+      {"name": "Feature Name", "reason": "Why this is essential for the target customer"}
+    ],
+    "performance": [
+      {"name": "Feature Name", "reason": "Why this is a key differentiator"}
+    ],
+    "delighter": [
+      {"name": "Feature Name", "reason": "Why this would delight users"}
+    ]
+  },
+  "enhancedTargetCustomer": "More specific customer description if needed"
+}
 
-**Products to Compare:**
-- [List their products + your suggestions with reasoning]
-
-**Target Customer:** 
-- [Customer segment they specified or your suggestion]
-
-**Key Features I'll Research:**
-**Must-Have Features** (Essential for target customer):
-- [3-4 features with brief reasoning]
-
-**Performance Benefits** (Competitive differentiators):
-- [3-4 features with brief reasoning]
-
-**Delighter Features** (Nice-to-have innovations):
-- [3-4 features with brief reasoning]
-
-**Confirm to Proceed:**
-Does this analysis scope look good, or would you like me to adjust any products or features before I conduct the full competitive research?
-
-Be helpful but concise. Show your expertise by suggesting relevant additions.`;
+Ensure each category has 3-4 features. Be specific and insightful in your reasoning.`;
 
   const response = await openai.chat.completions.create({
     model: DEFAULT_MODEL,
@@ -121,24 +120,44 @@ Be helpful but concise. Show your expertise by suggesting relevant additions.`;
       { role: "system", content: systemPrompt },
       { role: "user", content: userInput }
     ],
-    max_tokens: 1000,
+    max_tokens: 1500,
   });
 
-  const confirmationMessage = response.choices[0].message.content || "Unable to generate analysis proposal.";
+  const aiResponseText = response.choices[0].message.content || "{}";
   
-  console.log("[OpenAI] Generated confirmation proposal");
+  let aiSuggestions;
+  try {
+    aiSuggestions = JSON.parse(aiResponseText);
+  } catch (error) {
+    console.error("[OpenAI] Failed to parse AI suggestions:", error);
+    aiSuggestions = {
+      additionalProducts: [],
+      suggestedFeatures: {
+        mustHave: [],
+        performance: [],
+        delighter: []
+      }
+    };
+  }
   
-  // Extract proposed data for the confirmation step
-  const proposedData = extractProposedData(confirmationMessage, userInput);
+  console.log("[OpenAI] Generated structured confirmation data");
+  
+  const confirmationData = {
+    originalRequest: {
+      description: parsedInput.description,
+      products: parsedInput.products,
+      targetCustomer: parsedInput.targetCustomer,
+      features: parsedInput.features
+    },
+    aiSuggestions
+  };
   
   const chatResponse: ChatResponse = {
     step: 'confirmation',
-    message: confirmationMessage,
+    message: "Ready for confirmation", // This won't be shown, panel will display instead
     progress: 30,
     data: {
-      proposedProducts: proposedData.products,
-      proposedFeatures: proposedData.features,
-      targetCustomer: proposedData.targetCustomer,
+      confirmationData,
       originalInput: userInput
     },
     nextAction: "Waiting for user confirmation to proceed with analysis."
@@ -332,6 +351,38 @@ Complete the full analysis autonomously.`;
       targetCustomer: analysisData.targetCustomer
     },
     nextAction: "Analysis complete! Review the Kano Model table and strategic insights."
+  };
+}
+
+function parseUserInput(userInput: string) {
+  const lines = userInput.split('\n').map(line => line.trim()).filter(line => line);
+  
+  let description = '';
+  let products: string[] = [];
+  let targetCustomer = '';
+  let features: string[] = [];
+  
+  lines.forEach(line => {
+    if (line.startsWith('Analysis Request:')) {
+      description = line.replace('Analysis Request:', '').trim();
+    } else if (line.startsWith('Products to Compare:')) {
+      const productText = line.replace('Products to Compare:', '').trim();
+      products = productText.split(',').map(p => p.trim()).filter(p => p);
+    } else if (line.startsWith('Target Customers:') || line.startsWith('Target Customer:')) {
+      targetCustomer = line.replace(/Target Customers?:/, '').trim();
+    } else if (line.startsWith('Features/Benefits to Analyze:')) {
+      const featureText = line.replace('Features/Benefits to Analyze:', '').trim();
+      if (featureText && featureText !== 'you decide') {
+        features = featureText.split(',').map(f => f.trim()).filter(f => f);
+      }
+    }
+  });
+  
+  return {
+    description,
+    products,
+    targetCustomer,
+    features
   };
 }
 
