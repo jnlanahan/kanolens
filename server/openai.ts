@@ -158,17 +158,34 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-      // Conduct web research for authentic data
-      const products = Array.isArray(sessionData.products) ? sessionData.products : [];
+      // Extract products from session data or conversation history
+      let products: string[] = [];
+      if (Array.isArray(sessionData.products) && sessionData.products.length > 0) {
+        products = sessionData.products;
+      } else {
+        // Parse products from conversation history
+        const userMessage = conversationHistory.find(msg => msg.role === 'user');
+        if (userMessage) {
+          const productMatch = userMessage.content.match(/Products to Compare: ([^\n]+)/);
+          if (productMatch) {
+            products = productMatch[1].split(',')
+              .map(p => p.trim())
+              .filter(p => !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase()));
+          }
+        }
+      }
+      
       const targetCustomer = sessionData.targetCustomer || 'users';
       
       console.log("[OpenAI] Starting web research for authentic competitive data...");
+      console.log("[OpenAI] Products to research:", products);
+      
       const webResearch = await conductCompetitiveResearch(products, targetCustomer);
       
-      const tablePrompt = `You are an expert competitive analyst generating authentic Kano Model data using real-time web research and precise categorization logic.
+      const tablePrompt = `You are an expert competitive analyst with advanced reasoning capabilities. Generate authentic Kano Model data using the real-time web research provided below.
 
-WEB RESEARCH DATA:
-${Object.entries(webResearch).map(([key, data]) => `${key}: ${data}`).join('\n\n')}
+AUTHENTIC WEB RESEARCH DATA:
+${Object.entries(webResearch).map(([key, data]) => `${key.toUpperCase()}:\n${data}`).join('\n\n')}
 
 KANO MODEL DEFINITIONS (apply these exact criteria):
 
@@ -345,21 +362,35 @@ async function searchProductInformation(query: string): Promise<string> {
 
 export async function conductCompetitiveResearch(products: string[], targetCustomer: string) {
   console.log("[OpenAI] Conducting authentic competitive research with web search...");
+  console.log("[OpenAI] Target customer:", targetCustomer);
   
   const searchResults: Record<string, string> = {};
   
-  // Search for each product's current features and capabilities
-  for (const product of products) {
-    const query = `${product} features capabilities pricing plans 2024 2025 for ${targetCustomer}`;
-    searchResults[product] = await searchProductInformation(query);
+  try {
+    // Search for each product's current features and capabilities
+    for (const product of products) {
+      const query = `${product} product features capabilities pricing plans 2024 2025 reviews for ${targetCustomer}`;
+      console.log(`[OpenAI] Searching for product: ${product}`);
+      searchResults[product] = await searchProductInformation(query);
+      
+      // Add a small delay between searches to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    // Additional search for competitive comparisons if multiple products
+    if (products.length > 1) {
+      const comparisonQuery = `${products.join(' vs ')} comparison analysis features pros cons ${targetCustomer} 2024 2025`;
+      console.log("[OpenAI] Searching for competitive comparison");
+      searchResults['competitive_comparison'] = await searchProductInformation(comparisonQuery);
+    }
+    
+    console.log("[OpenAI] Competitive research completed successfully");
+    return searchResults;
+  } catch (error) {
+    console.error("[OpenAI] Error during competitive research:", error);
+    // Return partial results if some searches succeeded
+    return searchResults;
   }
-  
-  // Additional search for competitive comparisons
-  const comparisonQuery = `${products.join(' vs ')} comparison features ${targetCustomer} 2024 2025`;
-  searchResults['comparison'] = await searchProductInformation(comparisonQuery);
-  
-  console.log("[OpenAI] Competitive research completed with web data");
-  return searchResults;
 }
 
 export async function generateKanoTable() {
