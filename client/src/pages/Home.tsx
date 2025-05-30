@@ -4,18 +4,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { AnalysisSession, ChatMessage, KanoTableData } from "@shared/schema";
 import Header from "@/components/Layout/Header";
-import ProgressTracker from "@/components/ProgressTracker/ProgressTracker";
-import SuggestionConfirmation from "@/components/ProgressTracker/SuggestionConfirmation";
+import ChatInterface from "@/components/Chat/ChatInterface";
+import SuggestionPanel from "@/components/Chat/SuggestionPanel";
 import KanoTable from "@/components/KanoTable/KanoTable";
-import AnalysisForm from "@/components/Chat/AnalysisForm";
-import type { AnalysisFormData } from "@/components/Chat/AnalysisForm";
 
 export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-  const [showAnalysisForm, setShowAnalysisForm] = useState(false);
-  const [showSuggestionConfirmation, setShowSuggestionConfirmation] = useState(false);
-  const [analysisInProgress, setAnalysisInProgress] = useState(false);
-  const [pendingAnalysisData, setPendingAnalysisData] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch all sessions
@@ -118,58 +112,11 @@ export default function Home() {
   };
 
   const handleCreateSession = () => {
-    console.log("Creating new session...");
-    setShowAnalysisForm(true);
-    setShowSuggestionConfirmation(false);
-    setAnalysisInProgress(false);
-  };
-
-  const handleAnalysisFormSubmit = (formData: AnalysisFormData) => {
     createSessionMutation.mutate({
       title: `Analysis ${new Date().toLocaleDateString()}`,
       products: [],
-      targetCustomer: formData.targetCustomers
+      targetCustomer: "Product Managers",
     });
-
-    // Create analysis request
-    const analysisRequest = `Analysis Request: ${formData.description}\n\nProducts to Compare: ${formData.products}\n\nTarget Customers: ${formData.targetCustomers}`;
-    
-    setPendingAnalysisData({
-      originalRequest: analysisRequest,
-      originalProducts: formData.products.split(',').map((p: any) => p.trim()),
-      suggestedProducts: [],
-      formData
-    });
-    
-    setShowAnalysisForm(false);
-    setShowSuggestionConfirmation(true);
-  };
-
-  const handleConfirmAnalysis = () => {
-    if (!currentSessionId || !pendingAnalysisData) return;
-    
-    setShowSuggestionConfirmation(false);
-    setAnalysisInProgress(true);
-    
-    sendMessageMutation.mutate({
-      content: pendingAnalysisData.originalRequest,
-      metadata: { sessionId: currentSessionId }
-    });
-  };
-
-  const handleModifyRequest = (newRequest: string) => {
-    if (pendingAnalysisData) {
-      setPendingAnalysisData({
-        ...pendingAnalysisData,
-        originalRequest: newRequest
-      });
-    }
-  };
-
-  const getProgressFromMessages = (messages: any) => {
-    if (!Array.isArray(messages) || messages.length === 0) return 0;
-    const latestMessage = messages[messages.length - 1];
-    return latestMessage?.metadata?.progress || 0;
   };
 
   // Helper function to extract suggestions from messages
@@ -226,12 +173,13 @@ export default function Home() {
     return suggestions.products.length > 0 || suggestions.features.length > 0 ? suggestions : null;
   };
 
-  // Update session state when analysis progresses
-  useEffect(() => {
-    if (currentSession && currentSession.currentStep !== "discovery" && !analysisInProgress) {
-      setAnalysisInProgress(true);
-    }
-  }, [currentSession, analysisInProgress]);
+  const handleProceedWithAnalysis = () => {
+    handleSendMessage("Yes please proceed");
+  };
+
+  const handleMakeChanges = () => {
+    handleSendMessage("I'd like to make some changes to the suggestions");
+  };
 
   // Memoized computation for better performance
   const { hasTableData, suggestions, panelContent } = useMemo(() => {
@@ -270,11 +218,22 @@ export default function Home() {
 
       case 'suggestions':
         return (
-          <div className="text-center py-8">
-            <p className="text-gray-600 dark:text-gray-400">
-              Analysis in progress...
-            </p>
-          </div>
+          <SuggestionPanel
+            originalRequest={{
+              products: Array.isArray(messages) ? 
+                messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',')
+                  .map(p => p.trim())
+                  .filter(p => !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase())) || [] 
+                : [],
+              targetCustomer: Array.isArray(messages) ? 
+                messages.find(m => m.role === 'user')?.content.match(/Target Customers?: ([^\n]+)/)?.[1] 
+                : undefined
+            }}
+            suggestions={suggestions!}
+            onProceed={handleProceedWithAnalysis}
+            onMakeChanges={handleMakeChanges}
+            isLoading={sendMessageMutation.isPending}
+          />
         );
 
       default:
@@ -298,58 +257,20 @@ export default function Home() {
     <div className="h-screen bg-gray-50 dark:bg-slate-900 flex flex-col">
       <Header 
         onCreateSession={handleCreateSession}
-        sessions={Array.isArray(sessions) ? sessions : []}
+        sessions={sessions || []}
         currentSessionId={currentSessionId}
         onSessionSelect={setCurrentSessionId}
       />
       
       <div className="flex-1 flex overflow-hidden">
-        {/* Progress Tracker Panel */}
+        {/* Chat Interface Panel */}
         <div className="w-2/5 min-w-0 flex flex-col bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
-          {showAnalysisForm ? (
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                New Analysis
-              </h2>
-              <AnalysisForm 
-                onSubmit={handleAnalysisFormSubmit}
-                disabled={false}
-              />
-            </div>
-          ) : showSuggestionConfirmation && pendingAnalysisData ? (
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                Confirm Analysis
-              </h2>
-              <SuggestionConfirmation
-                originalProducts={pendingAnalysisData.originalProducts}
-                suggestedProducts={pendingAnalysisData.suggestedProducts}
-                originalRequest={pendingAnalysisData.originalRequest}
-                onConfirm={handleConfirmAnalysis}
-                onModify={handleModifyRequest}
-                isLoading={sendMessageMutation.isPending}
-              />
-            </div>
-          ) : currentSession && analysisInProgress ? (
-            <ProgressTracker
-              currentStep={currentSession.currentStep || "discovery"}
-              progress={getProgressFromMessages(messages)}
-              isLoading={messagesLoading || sendMessageMutation.isPending}
-              onModifyRequest={() => setShowSuggestionConfirmation(true)}
-              showModifyButton={currentSession.currentStep === "discovery"}
-            />
-          ) : (
-            <div className="p-6 flex items-center justify-center h-full">
-              <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                  Ready to Start
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Begin a competitive analysis using the Kano Model framework
-                </p>
-              </div>
-            </div>
-          )}
+          <ChatInterface
+            messages={Array.isArray(messages) ? messages : []}
+            onSendMessage={handleSendMessage}
+            isLoading={messagesLoading || sendMessageMutation.isPending}
+            currentStep={currentSession?.currentStep || "discovery"}
+          />
         </div>
 
         {/* Right Panel - Kano Table or Suggestions */}
