@@ -12,6 +12,7 @@ import ProgressTracker from "@/components/ProgressTracker/ProgressTracker";
 export default function Home() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [showProgressTracker, setShowProgressTracker] = useState(false);
+  const [showChatInterface, setShowChatInterface] = useState(false);
   const { toast } = useToast();
 
   // Fetch all sessions
@@ -114,6 +115,7 @@ export default function Home() {
     // Only show progress tracker when user approves suggestions (clicks "Proceed with Analysis")
     if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
       setShowProgressTracker(true);
+      setShowChatInterface(false); // Hide chat during analysis
     }
     
     sendMessageMutation.mutate({ content, metadata });
@@ -124,6 +126,13 @@ export default function Home() {
       title: `Analysis ${new Date().toLocaleDateString()}`,
       products: [],
       targetCustomer: "Product Managers",
+    }, {
+      onSuccess: (newSession: AnalysisSession) => {
+        setCurrentSessionId(newSession.id);
+        setShowChatInterface(true); // Show chat for new session
+        setShowProgressTracker(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
+      }
     });
   };
 
@@ -186,7 +195,8 @@ export default function Home() {
   };
 
   const handleMakeChanges = () => {
-    handleSendMessage("I'd like to make some changes to the suggestions");
+    setShowChatInterface(true); // Show chat when user wants to make changes
+    setShowProgressTracker(false);
   };
 
   // Memoized computation for better performance
@@ -316,13 +326,32 @@ export default function Home() {
                 sessionId={currentSessionId}
               />
             </div>
-          ) : (
+          ) : showChatInterface && currentSessionId ? (
             <ChatInterface
               messages={Array.isArray(messages) ? messages : []}
               onSendMessage={handleSendMessage}
               isLoading={messagesLoading || sendMessageMutation.isPending}
               currentStep={currentSession?.currentStep || "discovery"}
             />
+          ) : (
+            <div className="flex-1 flex items-center justify-center p-8 text-center">
+              <div className="max-w-sm">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900 dark:to-blue-800 rounded-full flex items-center justify-center">
+                  <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  {hasTableData ? "Analysis Complete" : "Ready to Start"}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {hasTableData 
+                    ? "Your competitive analysis is ready. Click 'Make Changes' if you'd like to modify anything."
+                    : "Click 'New Analysis' to begin your competitive research."
+                  }
+                </p>
+              </div>
+            </div>
           )}
         </div>
 
