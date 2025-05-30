@@ -77,34 +77,9 @@ export default function ChatMessage({ message, isTyping = false }: ChatMessagePr
     );
   }
 
-  // Skip rendering suggestion messages in chat since they appear in the right panel
+  // Don't render suggestion messages in chat - they appear in the right panel only
   if (isSuggestion) {
-    return (
-      <div className="flex items-start space-x-3">
-        <div className="w-8 h-8 kano-gradient rounded-full flex items-center justify-center text-white text-sm font-bold">
-          AI
-        </div>
-        
-        <div className="flex-1 max-w-sm">
-          <Card className="p-3 rounded-2xl bg-gray-100 dark:bg-slate-700 text-gray-900 dark:text-white rounded-tl-sm">
-            <div className="text-sm">
-              I've analyzed your request and prepared suggestions for additional products and features. 
-              Please review them in the panel on the right.
-            </div>
-          </Card>
-          
-          {message.createdAt && (
-            <div className="flex items-center justify-between mt-1 ml-3 text-xs text-gray-500 dark:text-gray-400">
-              <span>discovery</span>
-              <div className="flex items-center space-x-1">
-                <Clock className="h-3 w-3" />
-                <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

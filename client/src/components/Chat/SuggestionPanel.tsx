@@ -33,11 +33,11 @@ export default function SuggestionPanel({
         <div className="flex items-center space-x-2 mb-2">
           <Star className="w-5 h-5 text-purple-600" />
           <h2 className="font-mono-heading text-lg font-semibold text-gray-900 dark:text-white">
-            Analysis Configuration
+            Kano Model Comparison
           </h2>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Review and confirm your competitive analysis setup
+          Waiting for analysis to begin
         </p>
       </div>
 
