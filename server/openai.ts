@@ -133,7 +133,7 @@ For approval responses, create a comprehensive Kano analysis table with actual p
     let tableData = null;
     let processedMessage = aiMessage;
     
-    if (aiMessage.includes('```json') || (aiMessage.includes('"data":') && aiMessage.includes('name":'))) {
+    if (aiMessage.includes('```json') || (aiMessage.includes('"Kano Analysis"') && aiMessage.includes('"Features"'))) {
       try {
         // Extract JSON from the response - handle both formats
         let jsonContent = '';
@@ -153,29 +153,34 @@ For approval responses, create a comprehensive Kano analysis table with actual p
         if (jsonContent) {
           const parsedTable = JSON.parse(jsonContent);
           
-          // Handle the format from the logs: { data: [{ name: "Feature", product1: "value" }] }
-          if (parsedTable.data && Array.isArray(parsedTable.data)) {
-            // Get all unique product names from the first row (excluding 'name')
-            const products = Object.keys(parsedTable.data[0]).filter(key => key !== 'name' && key !== 'Feature');
+          // Handle the new format: { "Product Management Tools": [...], "Features": [...], "Kano Analysis": {...} }
+          if (parsedTable["Product Management Tools"] && parsedTable["Features"] && parsedTable["Kano Analysis"]) {
+            const products = parsedTable["Product Management Tools"];
+            const featureNames = parsedTable["Features"];
+            const kanoAnalysis = parsedTable["Kano Analysis"];
             
-            const features = parsedTable.data.map((row: any, index: number) => ({
+            const features = featureNames.map((name: string, index: number) => ({
               id: `feature_${index + 1}`,
-              name: row.name || row.Feature,
-              description: `Analysis of ${row.name || row.Feature} for the target customer segment`,
+              name: name,
+              description: `Analysis of ${name} for the target customer segment`,
               category: 'performance', // Default category
-              customerBenefit: `Provides ${row.name || row.Feature} functionality for enhanced user experience`
+              customerBenefit: `Provides ${name} functionality for enhanced user experience`
             }));
             
             const ratings: Record<string, Record<string, string>> = {};
             const sources: Record<string, string[]> = {};
             
-            parsedTable.data.forEach((row: any, index: number) => {
+            features.forEach((feature: any, index: number) => {
               const featureId = `feature_${index + 1}`;
               ratings[featureId] = {};
               sources[featureId] = ['Competitive analysis', 'User research'];
               
-              products.forEach(product => {
-                ratings[featureId][product] = row[product] || 'Indifferent';
+              products.forEach((product: string) => {
+                if (kanoAnalysis[product] && kanoAnalysis[product][feature.name]) {
+                  ratings[featureId][product] = kanoAnalysis[product][feature.name];
+                } else {
+                  ratings[featureId][product] = 'Indifferent';
+                }
               });
             });
             
