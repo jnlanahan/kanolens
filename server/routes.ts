@@ -202,16 +202,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
 
-      // Update session if step changed
-      if (aiResponse.step !== session.currentStep) {
-        await storage.updateAnalysisSession(sessionId, {
+      // Update session with AI response data
+      if (aiResponse.step !== session.currentStep || aiResponse.data) {
+        const updateData: any = {
           currentStep: aiResponse.step,
-          ...(aiResponse.data && { 
-            features: aiResponse.data.features || session.features,
-            products: aiResponse.data.products || session.products,
-            tableData: aiResponse.data.tableData || session.tableData,
-          }),
-        });
+        };
+        
+        if (aiResponse.data) {
+          if (aiResponse.data.features) updateData.features = aiResponse.data.features;
+          if (aiResponse.data.products) updateData.products = aiResponse.data.products;
+          if (aiResponse.data.tableData) updateData.tableData = aiResponse.data.tableData;
+          if (aiResponse.data.targetCustomer) updateData.targetCustomer = aiResponse.data.targetCustomer;
+          
+          // Mark as completed if we reached analysis step
+          if (aiResponse.step === 'analysis') {
+            updateData.status = 'completed';
+          }
+        }
+        
+        await storage.updateAnalysisSession(sessionId, updateData);
       }
 
       res.json({
