@@ -41,7 +41,7 @@ AUTONOMOUS WORKFLOW:
 
 Your role is to DO the work, not explain how to do it. Be proactive and comprehensive.
 
-IMPORTANT: Maintain conversation context. If you previously provided suggestions and the user approves, proceed with creating the detailed Kano analysis table.
+IMPORTANT: Maintain conversation context. If you previously provided suggestions and the user says "proceed", "yes", or similar approval, immediately create the detailed Kano analysis table.
 
 For initial requests, automatically:
 - Suggest additional competitive products to compare (aim for 4-5 total)
@@ -104,7 +104,17 @@ For approval responses, create a comprehensive Kano analysis table with actual p
       });
 
       try {
-        const tableData = JSON.parse(analysisResponse.choices[0].message.content || "{}");
+        let content = analysisResponse.choices[0].message.content || "{}";
+        
+        // Remove markdown code blocks if present
+        if (content.includes('```json')) {
+          content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+        }
+        if (content.includes('```')) {
+          content = content.replace(/```\s*/g, '');
+        }
+        
+        const tableData = JSON.parse(content.trim());
         
         return {
           step: 'table_creation',
@@ -115,6 +125,7 @@ For approval responses, create a comprehensive Kano analysis table with actual p
         };
       } catch (error) {
         console.error("[OpenAI] Failed to parse table data:", error);
+        console.error("[OpenAI] Raw content:", analysisResponse.choices[0].message.content);
         // Fall back to regular response
       }
     }

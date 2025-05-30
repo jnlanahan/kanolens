@@ -11,7 +11,7 @@ interface ChatMessageProps {
   isTyping?: boolean;
 }
 
-// Helper function to check if message contains suggestions
+// Helper function to check if message contains suggestions or table data
 function isSuggestionMessage(content: string): boolean {
   return content.includes('**Competitive Products to Compare:**') || 
          content.includes('**Suggested Additional') || 
@@ -20,7 +20,12 @@ function isSuggestionMessage(content: string): boolean {
          content.includes('### Relevant Features/Benefits') ||
          (content.includes('Please confirm if you would like to proceed') && 
           content.includes('**')) ||
-         (content.includes('Would you like to proceed with this selection for a full Kano analysis?'));
+         (content.includes('Would you like to proceed with this selection for a full Kano analysis?')) ||
+         content.includes('"Kano_Analysis"') ||
+         content.includes('"Products"') ||
+         content.includes('"Features"') ||
+         (content.includes('```json') && content.includes('Kano')) ||
+         (content.includes('JSON format') && content.includes('analysis'));
 }
 
 // Helper function to parse suggestions from message content
