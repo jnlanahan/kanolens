@@ -180,19 +180,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       console.log("[Routes] User message saved");
 
+      // Get conversation history before processing
+      const conversationHistory = await storage.getSessionChatMessages(sessionId);
+      
       // Process with OpenAI using the 5-step Kano methodology
       console.log("[Routes] Calling OpenAI processChatMessage...");
       console.log("[Routes] Parameters:", {
         content: req.body.content,
         sessionId: sessionId,
         userId: userId,
-        currentStep: session.currentStep
+        currentStep: session.currentStep,
+        historyLength: conversationHistory.length
       });
       const aiResponse = await processChatMessage(
         sessionId,
         req.body.content,
         session.currentStep,
-        session
+        session,
+        conversationHistory
       );
       console.log("[Routes] OpenAI response received:", aiResponse);
 

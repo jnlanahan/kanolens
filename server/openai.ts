@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
 console.log("[OpenAI] Initializing OpenAI client...");
 console.log("[OpenAI] API Key present:", !!process.env.OPENAI_API_KEY);
@@ -22,7 +23,8 @@ export async function processChatMessage(
   sessionId: number,
   message: string,
   currentStep: string,
-  sessionData: any
+  sessionData: any,
+  conversationHistory: any[] = []
 ): Promise<ChatResponse> {
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
@@ -39,19 +41,30 @@ AUTONOMOUS WORKFLOW:
 
 Your role is to DO the work, not explain how to do it. Be proactive and comprehensive.
 
-For the current request, automatically:
+IMPORTANT: Maintain conversation context. If you previously provided suggestions and the user approves, proceed with creating the detailed Kano analysis table.
+
+For initial requests, automatically:
 - Suggest additional competitive products to compare (aim for 4-5 total)
 - Suggest 8-12 key features/benefits relevant to the target customer
 - Use your knowledge to fill gaps in their request
-- Present a clear confirmation asking if they want to proceed with your suggestions`;
+- Present a clear confirmation asking if they want to proceed with your suggestions
+
+For approval responses, create a comprehensive Kano analysis table.`;
+
+    // Build conversation messages including history
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
+      ...conversationHistory.map(msg => ({
+        role: msg.role as "user" | "assistant",
+        content: String(msg.content)
+      })),
+      { role: "user", content: message }
+    ];
 
     const response = await openai.chat.completions.create({
       model: DEFAULT_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message }
-      ],
-      max_tokens: 500,
+      messages: messages,
+      max_tokens: 1500,
     });
 
     const aiMessage = response.choices[0].message.content || "I'm sorry, I couldn't process that request.";
