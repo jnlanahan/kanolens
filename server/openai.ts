@@ -37,8 +37,9 @@ Session: Analysis for session ${sessionId}
 ADVANCED INTELLIGENCE REQUIREMENTS:
 
 1. INPUT VALIDATION & INTERPRETATION:
-   - Parse user input intelligently: "more" = request for additional products, NOT a product name
-   - Recognize non-product terms: "etc", "more", "additional", "others", "similar", "competitive"
+   - Parse user input intelligently: "more", "others", "etc" = requests for suggestions, NOT product names
+   - Recognize non-product terms: "etc", "more", "additional", "others", "similar", "competitive", "tools"
+   - Remove these terms from product lists entirely - never include them as suggested products
    - Validate product names against real market knowledge before suggesting
    - Clean up typos and variations: "V0" = "v0", "craft.io" = "Craft"
 
@@ -180,11 +181,26 @@ CATEGORIZATION LOGIC:
 - Data Export = MUST-HAVE (basic expected function)
 - Advanced Analytics = DELIGHTER (exceeds basic expectations)
 
+RATING SYSTEM BY CATEGORY:
+
+MUST-HAVES: Use "Yes" or "No" only
+- "Yes" = Feature is present and functional
+- "No" = Feature is absent or non-functional
+
+PERFORMANCE ATTRIBUTES: Use "High", "Medium", "Low"
+- "High" = Top-tier performance in market
+- "Medium" = Average/competitive performance  
+- "Low" = Below-average performance
+
+DELIGHTERS: Use "Yes" or "No" only
+- "Yes" = Feature is present and innovative
+- "No" = Feature is absent
+
 CRITICAL REQUIREMENTS:
-1. DEDUPLICATION: Remove duplicates and non-product terms ("more", "etc")
+1. DEDUPLICATION: Remove duplicates and non-product terms ("more", "others", "etc", "tools")
 2. AUTHENTIC DATA: Use real product capabilities and verified market positioning
 3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
-4. ACCURATE RATINGS: Reflect true competitive positioning based on actual features
+4. CORRECT RATING SYSTEM: Must-Haves and Delighters = Yes/No, Performance = High/Medium/Low
 
 ${analysisPrompt}
 

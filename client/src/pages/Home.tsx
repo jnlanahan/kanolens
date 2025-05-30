@@ -221,7 +221,9 @@ export default function Home() {
           <SuggestionPanel
             originalRequest={{
               products: Array.isArray(messages) ? 
-                messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',').map(p => p.trim()) || [] 
+                messages.find(m => m.role === 'user')?.content.match(/Products to Compare: ([^\n]+)/)?.[1]?.split(',')
+                  .map(p => p.trim())
+                  .filter(p => !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase())) || [] 
                 : [],
               targetCustomer: Array.isArray(messages) ? 
                 messages.find(m => m.role === 'user')?.content.match(/Target Customers?: ([^\n]+)/)?.[1] 
