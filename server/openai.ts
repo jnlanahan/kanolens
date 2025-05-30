@@ -203,6 +203,9 @@ Return ONLY a JSON object with this exact structure:
       
       const tablePrompt = `You are an expert competitive analyst with advanced reasoning capabilities. Generate authentic Kano Model data using the real-time web research provided below.
 
+PRODUCTS TO INCLUDE IN ANALYSIS: ${products.join(', ')}
+(You MUST include ALL of these products in the final table, not just the original user-specified ones)
+
 AUTHENTIC WEB RESEARCH DATA:
 ${Object.entries(webResearch).map(([key, data]) => `${key.toUpperCase()}:\n${data}`).join('\n\n')}
 
@@ -244,10 +247,11 @@ FEATURE ORDERING: Always organize features in this exact order:
 3. DELIGHTERS last (unexpected innovations)
 
 CRITICAL REQUIREMENTS:
-1. USE WEB RESEARCH DATA: Base all ratings on the authentic web research provided above
-2. DEDUPLICATION: Remove duplicates and non-product terms ("more", "others", "etc", "tools")
+1. INCLUDE ALL PRODUCTS: The "products" array must contain ALL products listed above: ${products.join(', ')}
+2. USE WEB RESEARCH DATA: Base all ratings on the authentic web research provided above
 3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
-4. VERIFIED RATINGS: Only rate features you can verify from the research data
+4. COMPLETE RATINGS: Rate each feature for ALL products in the list
+5. VERIFIED RATINGS: Only rate features you can verify from the research data
 
 ${analysisPrompt}
 
