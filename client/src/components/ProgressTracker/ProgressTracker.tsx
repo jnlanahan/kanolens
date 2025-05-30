@@ -81,12 +81,12 @@ export default function ProgressTracker({
       const timer2 = setTimeout(() => {
         setLocalStep('categorization');
         setLocalProgress(75);
-      }, 40000); // 22 seconds for research
+      }, 35000); // 17 seconds for research
       
       const timer3 = setTimeout(() => {
         setLocalStep('table_creation');
         setLocalProgress(90);
-      }, 62000); // 22 seconds for categorization
+      }, 52000); // 17 seconds for categorization
       
       return () => {
         clearTimeout(timer1);
