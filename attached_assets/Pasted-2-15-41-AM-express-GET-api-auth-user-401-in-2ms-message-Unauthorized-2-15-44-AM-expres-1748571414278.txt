@@ -1,0 +1,63 @@
+2:15:41 AM [express] GET /api/auth/user 401 in 2ms :: {"message":"Unauthorized"}
+2:15:44 AM [express] GET /api/auth/user 304 in 399ms :: {"id":"41771399","email":"jnlanahan@gmail.co…
+[OpenAI] Testing connection...
+2:15:44 AM [express] GET /api/analysis/sessions 304 in 181ms :: [{"id":25,"userId":"41771399","title…
+2:15:44 AM [express] GET /api/analysis/sessions 304 in 181ms :: [{"id":25,"userId":"41771399","title…
+[OpenAI] Test response: It looks like you're trying to test a connection to
+[OpenAI] Connection test result: true
+2:15:44 AM [express] GET /api/openai/test 304 in 539ms :: {"connected":true,"message":"OpenAI connec…
+2:15:44 AM [express] GET /api/analysis/sessions/25/messages 304 in 430ms :: [{"id":70,"sessionId":25…
+[Routes] Creating analysis session...
+[Routes] User ID: 41771399
+[Routes] Request body: {
+  title: 'Analysis 5/29/2025',
+  products: [],
+  targetCustomer: 'Product Managers'
+}
+[Routes] Parsed session data: {
+  userId: '41771399',
+  title: 'Analysis 5/29/2025',
+  products: [],
+  targetCustomer: 'Product Managers',
+  features: [],
+  chatHistory: []
+}
+[Routes] Created session: {
+  id: 26,
+  userId: '41771399',
+  title: 'Analysis 5/29/2025',
+  products: [],
+  targetCustomer: 'Product Managers',
+  features: [],
+  status: 'in_progress',
+  currentStep: 'discovery',
+  chatHistory: [],
+  tableData: null,
+  sourceDocumentation: null,
+  createdAt: 2025-05-30T02:16:03.990Z,
+  updatedAt: 2025-05-30T02:16:03.990Z
+}
+2:16:04 AM [express] POST /api/analysis/sessions 200 in 770ms :: {"id":26,"userId":"41771399","title…
+2:16:04 AM [express] GET /api/analysis/sessions 200 in 189ms :: [{"id":26,"userId":"41771399","title…
+2:16:04 AM [express] GET /api/analysis/sessions 304 in 199ms :: [{"id":26,"userId":"41771399","title…
+2:16:04 AM [express] GET /api/analysis/sessions/26/messages 200 in 604ms :: []
+2:16:04 AM [express] GET /api/analysis/sessions 304 in 185ms :: [{"id":26,"userId":"41771399","title…
+2:16:07 AM [express] DELETE /api/analysis/sessions/26 200 in 363ms :: {"message":"Session deleted su…
+2:16:07 AM [express] GET /api/analysis/sessions 200 in 214ms :: [{"id":25,"userId":"41771399","title…
+2:16:07 AM [express] GET /api/analysis/sessions 304 in 202ms :: [{"id":25,"userId":"41771399","title…
+2:16:08 AM [express] DELETE /api/analysis/sessions/25 200 in 364ms :: {"message":"Session deleted su…
+2:16:08 AM [express] GET /api/analysis/sessions 200 in 191ms :: []
+2:16:08 AM [express] GET /api/analysis/sessions 304 in 203ms :: []
+[OpenAI] Testing connection...
+[OpenAI] Test response: It looks like you're trying to test a connection.
+[OpenAI] Connection test result: true
+2:16:15 AM [express] GET /api/openai/test 304 in 783ms :: {"connected":true,"message":"OpenAI connec…
+[Routes] Processing chat message...
+[Routes] Session ID: 26, User ID: 41771399
+[Routes] Message content: Analysis Request: Product Management Tools
+
+Products to Compare: Productboard, craft.io
+
+Target Customers: product managers with no time to research
+[Routes] Session not found
+2:16:29 AM [express] POST /api/analysis/sessions/26/messages 404 in 719ms :: {"message":"Session not…
