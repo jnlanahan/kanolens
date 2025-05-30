@@ -166,14 +166,30 @@ Return ONLY a JSON object with this exact structure:
       if (Array.isArray(sessionData.products) && sessionData.products.length > 0) {
         products = sessionData.products;
       } else {
-        // Parse products from conversation history
+        // Parse products from conversation history including AI suggestions
         const userMessage = conversationHistory.find(msg => msg.role === 'user');
+        const assistantMessage = conversationHistory.find(msg => msg.role === 'assistant');
+        
+        // Get original products from user input
         if (userMessage) {
           const productMatch = userMessage.content.match(/Products to Compare: ([^\n]+)/);
           if (productMatch) {
             products = productMatch[1].split(',')
               .map(p => p.trim())
               .filter(p => !['more', 'others', 'etc', 'additional', 'similar', 'competitive', 'tools'].includes(p.toLowerCase()));
+          }
+        }
+        
+        // Add AI-suggested products from assistant response
+        if (assistantMessage) {
+          const suggestedMatch = assistantMessage.content.match(/\*\*Suggested Competitive Products:\*\*\s*(.*?)(?=\*\*|$)/s);
+          if (suggestedMatch) {
+            const suggestions = suggestedMatch[1]
+              .split(/\d+\.\s+/)
+              .slice(1)
+              .map(p => p.trim().split('\n')[0])
+              .filter(p => p && p.length > 0);
+            products.push(...suggestions);
           }
         }
       }
