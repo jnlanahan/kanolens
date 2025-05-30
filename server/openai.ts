@@ -78,6 +78,26 @@ RESPONSE FORMAT:
 
 "I've cleaned up the product list and suggested relevant competitors. Would you like me to proceed with this competitive analysis?"
 
+KANO MODEL DEFINITIONS (apply precise categorization logic):
+
+MUST-HAVES: Basic features customers expect and take for granted. If absent, customers are dissatisfied.
+- Examples: Core functionality, basic security, standard integrations
+- Logic: Would customers complain if this was missing? If yes = Must-Have
+
+PERFORMANCE ATTRIBUTES: Features that directly affect satisfaction - more = better.
+- Examples: Speed, storage capacity, number of integrations, response time  
+- Logic: Is this measurable? Do customers want more of it? If yes = Performance
+
+DELIGHTERS: Unexpected features exceeding expectations, creating positive emotional response.
+- Examples: AI assistance, advanced automation, innovative UI/UX, premium features
+- Logic: Would customers be pleasantly surprised by this? Does it differentiate? If yes = Delighter
+
+CATEGORIZATION EXAMPLES:
+- User-Friendly Interface = DELIGHTER (exceeds expectations, creates positive response)
+- API Access = MUST-HAVE (expected basic capability)
+- Fast Performance = PERFORMANCE (measurable, more is better)
+- Real-time Collaboration = DELIGHTER (innovative, differentiating)
+
 CORE PRINCIPLE: Be autonomous in cleaning/validating input, but transparent about changes made.`;
 
     // Build conversation messages for o1-mini (no system messages)
@@ -136,13 +156,35 @@ Return ONLY a JSON object with this exact structure:
   }
 }`;
 
-      const tablePrompt = `You are an expert competitive analyst generating authentic Kano Model data.
+      const tablePrompt = `You are an expert competitive analyst generating authentic Kano Model data using precise categorization logic.
+
+KANO MODEL DEFINITIONS (apply these exact criteria):
+
+MUST-HAVES: Basic features customers expect and take for granted. If absent, customers are dissatisfied.
+- Examples: Core functionality, basic security, standard integrations
+- Logic: Would customers complain if this was missing? If yes = Must-Have
+
+PERFORMANCE ATTRIBUTES: Features that directly affect satisfaction - more = better.
+- Examples: Speed, storage capacity, number of integrations, response time
+- Logic: Is this measurable? Do customers want more of it? If yes = Performance
+
+DELIGHTERS: Unexpected features exceeding expectations, creating positive emotional response.
+- Examples: AI assistance, advanced automation, innovative UI/UX, premium features
+- Logic: Would customers be pleasantly surprised by this? Does it differentiate from competitors? If yes = Delighter
+
+CATEGORIZATION LOGIC:
+- User-Friendly Interface = DELIGHTER (exceeds expectations, creates positive response)
+- API Access = MUST-HAVE (expected basic capability)
+- Fast Performance = PERFORMANCE (measurable, more is better)
+- Real-time Collaboration = DELIGHTER (innovative, differentiating)
+- Data Export = MUST-HAVE (basic expected function)
+- Advanced Analytics = DELIGHTER (exceeds basic expectations)
 
 CRITICAL REQUIREMENTS:
-1. DEDUPLICATION: Eliminate duplicates from the original product list (e.g., 'Productboard' mentioned twice)
-2. AUTHENTIC DATA: Use real product capabilities and market positioning
-3. LOGICAL REASONING: Apply proper Kano categorization based on actual product research
-4. ACCURACY: Ensure ratings reflect true competitive positioning
+1. DEDUPLICATION: Remove duplicates and non-product terms ("more", "etc")
+2. AUTHENTIC DATA: Use real product capabilities and verified market positioning
+3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
+4. ACCURATE RATINGS: Reflect true competitive positioning based on actual features
 
 ${analysisPrompt}
 
