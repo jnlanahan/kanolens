@@ -163,7 +163,7 @@ export default function Header({
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1 group">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {currentSession.title}
                       </span>
@@ -171,10 +171,10 @@ export default function Header({
                         size="sm"
                         variant="ghost"
                         onClick={handleStartEditing}
-                        className="h-7 w-7 p-0 opacity-70 hover:opacity-100 transition-opacity hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-300 dark:border-gray-600"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100 dark:hover:bg-slate-700"
                         title="Edit session title"
                       >
-                        <Edit className="h-3.5 w-3.5 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" />
+                        <Edit className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
                       </Button>
                     </div>
                   )}
@@ -191,7 +191,7 @@ export default function Header({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="ml-4">
-                  Switch Session
+                  {currentSession?.title || "Select Session"}
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -202,18 +202,9 @@ export default function Header({
                     onClick={() => onSessionSelect(session.id)}
                     className={currentSessionId === session.id ? "bg-blue-50 dark:bg-blue-900/20" : ""}
                   >
-                    <div className="flex flex-col items-start flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Session {session.id}
-                        </span>
-                        {currentSessionId === session.id && (
-                          <Badge variant="outline" className="text-xs px-1 py-0">
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">{session.title}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
                         {session.status} • {session.currentStep}
                       </span>
                     </div>
@@ -225,9 +216,9 @@ export default function Header({
                         handleDeleteSession(session.id);
                       }}
                       disabled={deleteSessionMutation.isPending}
-                      className="ml-auto h-6 w-6"
+                      className="ml-auto"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </DropdownMenuItem>
                 ))}
