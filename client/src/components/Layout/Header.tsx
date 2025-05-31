@@ -149,29 +149,33 @@ export default function Header({
                         variant="ghost"
                         onClick={handleSaveTitle}
                         disabled={updateSessionMutation.isPending}
-                        className="h-7 w-7 p-0"
+                        className="h-7 w-7 p-0 hover:bg-green-100 dark:hover:bg-green-900/20"
                       >
-                        <Check className="h-3 w-3" />
+                        <Check className="h-3 w-3 text-green-600" />
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={handleCancelEdit}
-                        className="h-7 w-7 p-0"
+                        className="h-7 w-7 p-0 hover:bg-red-100 dark:hover:bg-red-900/20"
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3 w-3 text-red-600" />
                       </Button>
                     </div>
                   ) : (
-                    <div 
-                      className="flex items-center space-x-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 rounded px-2 py-1 transition-colors"
-                      onClick={handleStartEditing}
-                      title="Click to edit session title"
-                    >
+                    <div className="flex items-center space-x-1 group">
                       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {currentSession.title}
                       </span>
-                      <Edit className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleStartEditing}
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100 dark:hover:bg-slate-700"
+                        title="Edit session title"
+                      >
+                        <Edit className="h-3 w-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                      </Button>
                     </div>
                   )}
                 </div>
