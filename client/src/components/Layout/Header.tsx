@@ -142,11 +142,11 @@ export default function Header({
                         onKeyDown={handleKeyDown}
                         className="h-7 px-2 text-sm min-w-[200px]"
                         autoFocus
-                        onBlur={handleSaveTitle}
                       />
                       <Button
                         size="sm"
                         variant="ghost"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={handleSaveTitle}
                         disabled={updateSessionMutation.isPending}
                         className="h-7 w-7 p-0 hover:bg-green-100 dark:hover:bg-green-900/20"
@@ -156,6 +156,7 @@ export default function Header({
                       <Button
                         size="sm"
                         variant="ghost"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={handleCancelEdit}
                         className="h-7 w-7 p-0 hover:bg-red-100 dark:hover:bg-red-900/20"
                       >
