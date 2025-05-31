@@ -169,31 +169,21 @@ export default function ChatInterface({
       </div>
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Show welcome message if no valid messages exist */}
-        {validMessages.length === 0 && (
-          <div className="animate-slide-up">
-            <ChatMessage
-              message={{
-                id: "welcome",
-                role: "assistant",
-                content: "Welcome to KanoLens! I'll help you create a comprehensive competitive analysis using the Kano Model framework.\n\nLet's start with **Strategic Discovery**. Do you have an existing product to compare, or are we exploring a new market opportunity?",
-                createdAt: new Date(),
-                sessionId: 0,
-                metadata: {
-                  step: "Strategic Discovery & Scoping",
-                }
-              }}
-            />
-          </div>
-        )}
-
-        {/* Render valid messages */}
-        {validMessages.map((message) => (
-          <div key={message.id} className="animate-slide-up">
-            <ChatMessage message={message} />
-          </div>
-        ))}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {validMessages.length > 0 ? (
+            validMessages.map((message) => (
+              <ChatMessage key={message.id} message={message} />
+            ))
+          ) : (
+            <div className="flex items-center justify-center min-h-full py-8">
+              <div className="w-full max-h-full overflow-y-auto">
+                <AnalysisForm onSubmit={handleFormSubmit} disabled={isLoading} />
+              </div>
+            </div>
+          )}
+        </div>
 
         {isLoading && (
           <div className="animate-slide-up">
