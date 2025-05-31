@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Share, Edit, Clock, Brain, Users, Check } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Download, Share, Edit, Clock, Brain, Users, Check, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import FeatureModal from "./FeatureModal";
 import type { KanoTableData, KanoFeature } from "@shared/schema";
@@ -59,6 +61,10 @@ const getRatingBadge = (rating: string, category: string) => {
 export default function KanoTable({ tableData, isLoading, sessionId, onEditTable }: KanoTableProps) {
   const [selectedFeature, setSelectedFeature] = useState<KanoFeature | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditChatOpen, setIsEditChatOpen] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
+  const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
   const handleFeatureClick = useCallback((feature: KanoFeature) => {
@@ -142,10 +148,75 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
   }, [tableData, toast]);
 
   const handleEditTableClick = useCallback(() => {
-    if (onEditTable) {
-      onEditTable();
+    setIsEditChatOpen(true);
+    if (chatMessages.length === 0) {
+      setChatMessages([{
+        role: 'assistant',
+        content: "Hi! I'm here to help you modify your Kano analysis table. What would you like to change? You can:\n\n• Add or remove features\n• Modify product comparisons\n• Update feature descriptions\n• Change categorizations\n• Add new products to compare\n\nWhat specific changes would you like to make?"
+      }]);
     }
-  }, [onEditTable]);
+  }, [chatMessages.length]);
+
+  const handleSendEditMessage = useCallback(async () => {
+    if (!editMessage.trim() || !sessionId) return;
+    
+    const userMessage = editMessage.trim();
+    setEditMessage("");
+    setIsProcessing(true);
+    
+    // Add user message to chat
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    
+    try {
+      // Send message to the chat API for processing
+      const response = await fetch(`/api/analysis/sessions/${sessionId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: `Table Edit Request: ${userMessage}`,
+          metadata: { editRequest: true, currentTableData: tableData }
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to process edit request');
+      }
+      
+      const result = await response.json();
+      
+      // Add AI response to chat
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: result.aiMessage.content 
+      }]);
+      
+      // If the AI provides updated table data, call onEditTable with the new data
+      if (result.sessionUpdate?.data?.tableData && onEditTable) {
+        onEditTable();
+      }
+      
+      toast({
+        title: "Edit Request Processed",
+        description: "Your table modification request has been processed.",
+      });
+      
+    } catch (error) {
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: "I apologize, but I encountered an error processing your request. Please try again or describe your changes differently." 
+      }]);
+      
+      toast({
+        title: "Edit Failed",
+        description: "There was an error processing your edit request.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [editMessage, sessionId, tableData, onEditTable, toast]);
 
   const featuresByCategory = useMemo(() => {
     if (!tableData?.features) return {};
@@ -355,6 +426,69 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
       />
+
+      {/* Edit Table Chat Modal */}
+      <Dialog open={isEditChatOpen} onOpenChange={setIsEditChatOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Edit className="h-5 w-5" />
+              <span>Edit Kano Analysis Table</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 border rounded-lg bg-gray-50 dark:bg-slate-800">
+              {chatMessages.map((message, index) => (
+                <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-3 rounded-lg ${
+                    message.role === 'user' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-white dark:bg-slate-700 border'
+                  }`}>
+                    <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                  </div>
+                </div>
+              ))}
+              {isProcessing && (
+                <div className="flex justify-start">
+                  <div className="bg-white dark:bg-slate-700 border p-3 rounded-lg">
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Processing your request...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Chat Input */}
+            <div className="mt-4 flex space-x-2">
+              <Textarea
+                value={editMessage}
+                onChange={(e) => setEditMessage(e.target.value)}
+                placeholder="Describe what you'd like to change about the table..."
+                className="flex-1 min-h-[60px] resize-none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendEditMessage();
+                  }
+                }}
+                disabled={isProcessing}
+              />
+              <Button 
+                onClick={handleSendEditMessage} 
+                disabled={!editMessage.trim() || isProcessing}
+                className="self-end"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
