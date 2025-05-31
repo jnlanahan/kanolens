@@ -142,7 +142,7 @@ export default function Home() {
   };
 
   // Helper function to extract suggestions from messages
-  const extractSuggestions = (messages: ChatMessage[]) => {
+  const extractSuggestions = useCallback((messages: ChatMessage[]) => {
     const lastAssistantMessage = messages
       .slice()
       .reverse()
@@ -193,7 +193,7 @@ export default function Home() {
     }
 
     return suggestions.products.length > 0 || suggestions.features.length > 0 ? suggestions : null;
-  };
+  }, []);
 
   const handleProceedWithAnalysis = () => {
     handleSendMessage("Yes please proceed");
