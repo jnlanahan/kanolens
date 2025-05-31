@@ -56,7 +56,10 @@ export default function Header({
       });
       setIsEditingTitle(false);
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Failed to update session:", error);
+      // Revert to original title on error
+      setEditingTitle(currentSession?.title || "");
       toast({
         title: "Error updating session",
         description: "Failed to update the session title. Please try again.",
@@ -74,29 +77,42 @@ export default function Header({
   };
 
   const handleSaveTitle = () => {
-    if (currentSession && editingTitle.trim()) {
-      if (editingTitle.trim() !== currentSession.title) {
-        updateSessionMutation.mutate({ id: currentSession.id, title: editingTitle.trim() });
-      } else {
-        // Title unchanged, just exit edit mode
-        setIsEditingTitle(false);
-      }
-    } else {
-      // Empty title, revert to original
-      setEditingTitle(currentSession?.title || "");
+    if (!currentSession) return;
+    
+    const trimmedTitle = editingTitle.trim();
+    
+    // If empty, revert to original and exit
+    if (!trimmedTitle) {
+      setEditingTitle(currentSession.title);
       setIsEditingTitle(false);
+      return;
     }
+    
+    // If unchanged, just exit edit mode
+    if (trimmedTitle === currentSession.title) {
+      setIsEditingTitle(false);
+      return;
+    }
+    
+    // Save the new title
+    updateSessionMutation.mutate({ 
+      id: currentSession.id, 
+      title: trimmedTitle 
+    });
   };
 
   const handleCancelEdit = () => {
+    // Revert to original title
+    setEditingTitle(currentSession?.title || "");
     setIsEditingTitle(false);
-    setEditingTitle("");
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       handleSaveTitle();
     } else if (e.key === "Escape") {
+      e.preventDefault();
       handleCancelEdit();
     }
   };
