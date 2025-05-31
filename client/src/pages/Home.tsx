@@ -127,17 +127,18 @@ export default function Home() {
   };
 
   const handleCreateSession = () => {
+    const timestamp = new Date().toLocaleString('en-US', { 
+      month: 'numeric', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true 
+    });
     createSessionMutation.mutate({
-      title: `Analysis ${new Date().toLocaleDateString()}`,
+      title: `New Analysis ${timestamp}`,
       products: [],
-      targetCustomer: "Product Managers",
-    }, {
-      onSuccess: (newSession: AnalysisSession) => {
-        setCurrentSessionId(newSession.id);
-        setShowChatInterface(true); // Show chat for new session
-        setShowProgressTracker(false);
-        queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
-      }
+      targetCustomer: '',
     });
   };
 
@@ -213,7 +214,7 @@ export default function Home() {
       queryClient.invalidateQueries({
         queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`]
       });
-      
+
       // Force a fresh refetch of sessions data
       setTimeout(() => {
         queryClient.refetchQueries({

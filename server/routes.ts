@@ -108,6 +108,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/analysis/sessions/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      // Check if user owns this session
+      if (session.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { title } = req.body;
+      if (!title || typeof title !== 'string') {
+        return res.status(400).json({ message: "Valid title is required" });
+      }
+
+      await storage.updateAnalysisSession(sessionId, { title: title.trim() });
+      res.json({ message: "Session updated successfully" });
+    } catch (error) {
+      console.error("Update session error:", error);
+      res.status(500).json({ message: "Failed to update session" });
+    }
+  });
+
   app.delete('/api/analysis/sessions/:id', isAuthenticated, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
@@ -225,6 +252,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (aiResponse.data.products) updateData.products = aiResponse.data.products;
           if (aiResponse.data.tableData) updateData.tableData = aiResponse.data.tableData;
           if (aiResponse.data.targetCustomer) updateData.targetCustomer = aiResponse.data.targetCustomer;
+          
+          // Auto-update title when products are identified (if still using generic title)
+          if (aiResponse.data.products && Array.isArray(aiResponse.data.products) && aiResponse.data.products.length > 0) {
+            const isGenericTitle = session.title.includes('Analysis ') || session.title.includes('New Analysis');
+            if (isGenericTitle) {
+              const productNames = aiResponse.data.products.slice(0, 3).join(' vs ');
+              updateData.title = `${productNames} Analysis`;
+            }
+          }
           
           // Mark as completed if we reached table creation or analysis step
           if (aiResponse.step === 'table_creation' || aiResponse.step === 'analysis') {

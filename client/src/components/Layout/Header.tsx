@@ -163,6 +163,7 @@ export default function Header({
                         value={editingTitle}
                         onChange={(e) => setEditingTitle(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        onBlur={handleSaveTitle}
                         className="h-7 px-2 text-sm min-w-[200px]"
                         autoFocus
                       />
