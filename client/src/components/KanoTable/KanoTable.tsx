@@ -322,7 +322,7 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
       <div className="flex flex-col h-full">
         {/* Table Actions */}
         <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-start">
             <div className="flex items-center space-x-2">
               <Button onClick={handleExport} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
