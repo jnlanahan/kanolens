@@ -318,37 +318,38 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
 
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Table Header */}
-      <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-mono-heading text-lg font-semibold text-gray-900 dark:text-white">
-              Kano Model Comparison
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Real-time competitive analysis • Last updated: just now
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button onClick={handleExport} variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            <Button onClick={handleShare} variant="outline" size="sm">
-              <Share className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-            <Button onClick={handleEditTableClick} variant="default" size="sm" className="kano-gradient text-white">
-              <Edit className="h-4 w-4 mr-2" />
-              Edit Table
-            </Button>
+    <TooltipProvider>
+      <div className="flex flex-col h-full">
+        {/* Table Header */}
+        <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-mono-heading text-lg font-semibold text-gray-900 dark:text-white">
+                Kano Model Comparison
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Real-time competitive analysis • Last updated: just now
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button onClick={handleExport} variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button onClick={handleShare} variant="outline" size="sm">
+                <Share className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+              <Button onClick={handleEditTableClick} variant="default" size="sm" className="kano-gradient text-white">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Table
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Table Content */}
-      <div className="flex-1 overflow-auto p-4">
+        {/* Table Content */}
+        <div className="flex-1 overflow-auto p-4">
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -375,16 +376,14 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
                           <span className="font-mono-heading font-semibold uppercase tracking-wide text-xs">
                             {categoryLabels[category as keyof typeof categoryLabels]}
                           </span>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
                       </td>
                     </tr>,
@@ -494,6 +493,7 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
