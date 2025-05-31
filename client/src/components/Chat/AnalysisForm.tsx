@@ -64,20 +64,25 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
   const hasContent = Object.values(formData).some(value => value.trim().length > 0);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <span className="text-2xl">🎯</span>
-          Start Your Competitive Analysis
+    <Card className="w-full max-w-2xl mx-auto ml-4 mr-8 shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm">
+      <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-600/20 dark:to-purple-600/20 border-b border-blue-200 dark:border-blue-700">
+        <CardTitle className="flex items-center gap-3 text-xl">
+          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+            <span className="text-2xl">🎯</span>
+          </div>
+          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-semibold">
+            Start Your Competitive Analysis
+          </span>
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-base text-gray-600 dark:text-gray-300 leading-relaxed">
           Fill in the details below to begin your Kano Model analysis. All fields are optional but provide better context.
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-medium">
+      <CardContent className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <div className="space-y-3 p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-blue-100 dark:border-blue-800">
+            <Label htmlFor="description" className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
               What do you want to research?
             </Label>
             <Textarea
@@ -85,13 +90,14 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
               placeholder="e.g., I want a competitive analysis of project management tools like Jira, Asana, and Monday.com..."
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
-              className="min-h-[80px]"
+              className="min-h-[80px] border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-blue-500/20"
               disabled={disabled}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="products" className="text-sm font-medium">
+          <div className="space-y-3 p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-purple-100 dark:border-purple-800">
+            <Label htmlFor="products" className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
               Products to Compare
             </Label>
             <Input
@@ -99,12 +105,14 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
               placeholder="e.g., Jira, Asana, Monday.com, Trello, Notion"
               value={formData.products}
               onChange={(e) => handleInputChange("products", e.target.value)}
+              className="border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-purple-500/20"
               disabled={disabled}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="targetCustomers" className="text-sm font-medium">
+          <div className="space-y-3 p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-green-100 dark:border-green-800">
+            <Label htmlFor="targetCustomers" className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
               Target Customers
             </Label>
             <Input
@@ -112,12 +120,14 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
               placeholder="e.g., Product Managers, Development Teams, Small Businesses"
               value={formData.targetCustomers}
               onChange={(e) => handleInputChange("targetCustomers", e.target.value)}
+              className="border-green-200 dark:border-green-700 focus:border-green-500 focus:ring-green-500/20"
               disabled={disabled}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="features" className="text-sm font-medium">
+          <div className="space-y-3 p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-orange-100 dark:border-orange-800">
+            <Label htmlFor="features" className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+              <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
               Features or Benefits to Analyze
             </Label>
             <Textarea
@@ -125,19 +135,21 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
               placeholder="e.g., Task management, collaboration tools, reporting capabilities, integrations, pricing models..."
               value={formData.features}
               onChange={(e) => handleInputChange("features", e.target.value)}
-              className="min-h-[60px]"
+              className="min-h-[60px] border-orange-200 dark:border-orange-700 focus:border-orange-500 focus:ring-orange-500/20"
               disabled={disabled}
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={!hasContent || disabled}
-            className="w-full kano-gradient text-white hover:shadow-lg transition-all duration-200"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Start Analysis
-          </Button>
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              type="submit"
+              disabled={!hasContent || disabled}
+              className="w-full kano-gradient text-white hover:shadow-xl hover:scale-[1.02] transition-all duration-300 text-lg py-6 font-semibold"
+            >
+              <Send className="h-5 w-5 mr-3" />
+              Start Analysis
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>
