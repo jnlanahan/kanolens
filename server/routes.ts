@@ -210,6 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           step: aiResponse.step,
           progress: aiResponse.progress,
           data: aiResponse.data,
+          ...(aiResponse.metadata || {}),
         },
       });
 

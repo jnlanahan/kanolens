@@ -72,7 +72,8 @@ export default function ChatInterface({
     msg && 
     typeof msg === 'object' && 
     'content' in msg &&
-    !msg.content.startsWith('Table Edit Request:') // Filter out table edit messages
+    !msg.content.startsWith('Table Edit Request:') && // Filter out table edit requests
+    !(msg.metadata?.isTableEditResponse) // Filter out table edit responses
   ) : [];
 
   // Check if we should show confirmation panel

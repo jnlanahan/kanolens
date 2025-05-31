@@ -218,7 +218,8 @@ Maintain consistent rating logic:
           message: `Perfect! I've updated your Kano analysis table based on your request. Here's what I changed:\n\n• ${editRequest}\n\nThe table has been updated with your modifications. You can see the changes reflected in the analysis view.`,
           progress: 100,
           data: { tableData: updatedTableData },
-          nextAction: 'Review your updated analysis results.'
+          nextAction: 'Review your updated analysis results.',
+          metadata: { isTableEditResponse: true }
         };
         
       } catch (error) {
