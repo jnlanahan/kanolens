@@ -1,0 +1,87 @@
+xtAction: 'Review your analysis results and insights.'
+}
+4:02:46 AM [express] POST /api/analysis/sessions/116/messages 200 in 16469ms :: {"userMessage":{"id"…
+4:02:47 AM [express] GET /api/analysis/sessions/116/messages 200 in 232ms :: [{"id":283,"sessionId":…
+4:02:47 AM [express] GET /api/analysis/sessions 200 in 580ms :: [{"id":116,"userId":"41771399","titl…
+4:02:47 AM [express] GET /api/analysis/sessions 304 in 227ms :: [{"id":116,"userId":"41771399","titl…
+[OpenAI] Testing connection...
+4:02:50 AM [express] GET /api/analysis/sessions/116/messages 304 in 230ms :: [{"id":283,"sessionId":…
+4:02:50 AM [express] GET /api/analysis/sessions 304 in 427ms :: [{"id":116,"userId":"41771399","titl…
+[OpenAI] Test response: It looks like you're trying to check if a connection
+[OpenAI] Connection test result: true
+4:02:52 AM [express] GET /api/openai/test 304 in 2273ms :: {"connected":true,"message":"OpenAI conne…
+[OpenAI] Testing connection...
+[OpenAI] Test response: Sure, I can help with that. Could you
+[OpenAI] Connection test result: true
+4:03:23 AM [express] GET /api/openai/test 304 in 1490ms :: {"connected":true,"message":"OpenAI conne…
+[OpenAI] Testing connection...
+[OpenAI] Test response: It looks like you're trying to test a connection.
+[OpenAI] Connection test result: true
+4:03:55 AM [express] GET /api/openai/test 304 in 1284ms :: {"connected":true,"message":"OpenAI conne…
+[Routes] Processing chat message...
+[Routes] Session ID: 116, User ID: 41771399
+[Routes] Message content: Table Edit Request: add french and pick another language films
+[Routes] Session found: Analysis 5/31/2025, step: table_creation
+[Routes] User message saved
+[Routes] Calling OpenAI processChatMessage...
+[Routes] Parameters: {
+  content: 'Table Edit Request: add french and pick another language films',
+  sessionId: 116,
+  userId: '41771399',
+  currentStep: 'table_creation',
+  historyLength: 5
+}
+[OpenAI] Processing chat message for session 116
+[OpenAI] Processing table edit request...
+[OpenAI] Raw edit response: {
+  "products": ["Netflix", "Amazon Prime Video", "Hulu"],
+  "features": [
+    {
+      "id": "feature1",
+      "name": "Extensive Russian Content Library",
+      "description": "A wide range of Russian films and series.",
+      "category": "performance",
+      "customerBenefit": "Cater to Russian-speaking audience."
+    },
+    {
+      "id": "feature2",
+      "name": "Subtitles and Audio Options",
+      "description": "Availability of multiple subtitle and audio tracks.",
+      "category": "must-
+[OpenAI] Successfully parsed updated table data
+[Routes] OpenAI response received: {
+  step: 'table_creation',
+  message: "Perfect! I've updated your Kano analysis table based on your request. Here's what I changed:\n" +
+    '\n' +
+    '• add french and pick another language films\n' +
+    '\n' +
+    'The table has been updated with your modifications. You can see the changes reflected in the analysis view.',
+  progress: 100,
+  data: {
+    tableData: {
+      products: [Array],
+      features: [Array],
+      ratings: [Object],
+      sources: [Object]
+    }
+  },
+  nextAction: 'Review your updated analysis results.',
+  metadata: { isTableEditResponse: true }
+}
+4:04:16 AM [express] POST /api/analysis/sessions/116/messages 200 in 18879ms :: {"userMessage":{"id"…
+[OpenAI] Testing connection...
+[OpenAI] Test response: It seems like you're trying to test a connection.
+[OpenAI] Connection test result: true
+4:04:25 AM [express] GET /api/openai/test 304 in 706ms :: {"connected":true,"message":"OpenAI connec…
+[OpenAI] Testing connection...
+[OpenAI] Test response: It looks like you're testing the connection. If you
+[OpenAI] Connection test result: true
+4:04:53 AM [express] GET /api/openai/test 304 in 1063ms :: {"connected":true,"message":"OpenAI conne…
+[OpenAI] Testing connection...
+[OpenAI] Test response: It seems like you're trying to test a connection.
+[OpenAI] Connection test result: true
+4:05:24 AM [express] GET /api/openai/test 304 in 1045ms :: {"connected":true,"message":"OpenAI conne…
+[OpenAI] Testing connection...
+[OpenAI] Test response: It looks like you want to test a connection,
+[OpenAI] Connection test result: true
+4:05:56 AM [express] GET /api/openai/test 304 in 1075ms :: {"connected":true,"message":"OpenAI conne…
