@@ -4,8 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Share, Edit, Clock, Brain, Users, Check, Send } from "lucide-react";
+import { Download, Share, Edit, Clock, Brain, Users, Check, Send, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import FeatureModal from "./FeatureModal";
 import type { KanoTableData, KanoFeature } from "@shared/schema";
@@ -33,6 +34,12 @@ const categoryLabels = {
   "must-have": "MUST-HAVE FEATURES",
   "performance": "PERFORMANCE BENEFITS",
   "delighter": "DELIGHTER FEATURES",
+};
+
+const categoryDefinitions = {
+  "must-have": "Essential features that customers expect. If missing, customers will be dissatisfied, but having them doesn't increase satisfaction beyond neutral.",
+  "performance": "Features where more is better. Customer satisfaction increases linearly with performance improvements (speed, capacity, quality, etc.).",
+  "delighter": "Unexpected features that surprise and delight customers. Their absence doesn't cause dissatisfaction, but their presence creates excitement.",
 };
 
 const getRatingBadge = (rating: string, category: string) => {
@@ -368,6 +375,16 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
                           <span className="font-mono-heading font-semibold uppercase tracking-wide text-xs">
                             {categoryLabels[category as keyof typeof categoryLabels]}
                           </span>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </td>
                     </tr>,
