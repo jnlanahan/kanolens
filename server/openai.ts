@@ -330,11 +330,24 @@ Return ONLY a JSON object with this exact structure:
             
             console.log("[OpenAI] Extracted suggested products:", suggestions);
             products.push(...suggestions);
+          } else {
+            // Try alternative pattern matching for numbered lists
+            const numberedMatch = assistantMessage.content.match(/\d+\.\s+\*\*(.*?)\*\*:/g);
+            if (numberedMatch) {
+              const suggestions = numberedMatch.map(match => {
+                return match.replace(/\d+\.\s+\*\*(.*?)\*\*:/, '$1').trim();
+              }).filter(p => p && p.length > 0 && p.length < 100);
+              
+              console.log("[OpenAI] Extracted suggested products (alternative pattern):", suggestions);
+              products.push(...suggestions);
+            }
           }
         }
       }
       
       const targetCustomer = sessionData.targetCustomer || 'users';
+      
+      console.log("[OpenAI] Using target customer:", targetCustomer);
       
       console.log("[OpenAI] Starting web research for authentic competitive data...");
       console.log("[OpenAI] Products to research:", products);
@@ -595,7 +608,7 @@ export async function conductCompetitiveResearch(products: string[], targetCusto
     // Search for each product's current features and capabilities
     for (const product of products) {
       const query = `${product} product features capabilities pricing plans 2024 2025 reviews for ${targetCustomer}`;
-      console.log(`[OpenAI] Searching for product: ${product}`);
+      console.log(`[OpenAI] Searching for product: ${product} with target customer: ${targetCustomer}`);
       const result = await searchProductInformation(query);
       searchResults[product] = result.content;
       actualSources[product] = result.sources;
