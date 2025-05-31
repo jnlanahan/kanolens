@@ -12,6 +12,7 @@ interface KanoTableProps {
   tableData?: KanoTableData;
   isLoading: boolean;
   sessionId: number | null;
+  onEditTable?: () => void;
 }
 
 const categoryColors = {
@@ -55,24 +56,96 @@ const getRatingBadge = (rating: string, category: string) => {
   }
 };
 
-export default function KanoTable({ tableData, isLoading, sessionId }: KanoTableProps) {
+export default function KanoTable({ tableData, isLoading, sessionId, onEditTable }: KanoTableProps) {
   const [selectedFeature, setSelectedFeature] = useState<KanoFeature | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleFeatureClick = useCallback((feature: KanoFeature) => {
     setSelectedFeature(feature);
     setIsModalOpen(true);
   }, []);
 
-  const handleExport = useCallback(() => {
-    // Export functionality would be implemented here
-    console.log("Export table data:", tableData);
-  }, [tableData]);
+  const handleExport = useCallback(async () => {
+    if (!tableData) return;
+    
+    try {
+      // Create CSV content
+      const csvHeaders = ['Feature', 'Category', 'Description', 'Customer Benefit', ...tableData.products];
+      const csvRows = tableData.features.map(feature => [
+        feature.name,
+        feature.category,
+        feature.description,
+        feature.customerBenefit,
+        ...tableData.products.map(product => tableData.ratings[feature.id]?.[product] || '')
+      ]);
+      
+      const csvContent = [csvHeaders, ...csvRows]
+        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+        .join('\n');
+      
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'kano-analysis.csv');
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export Successful",
+        description: "Your Kano analysis has been exported as CSV.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "There was an error exporting your analysis.",
+        variant: "destructive",
+      });
+    }
+  }, [tableData, toast]);
 
-  const handleShare = useCallback(() => {
-    // Share functionality would be implemented here
-    console.log("Share table data:", tableData);
-  }, [tableData]);
+  const handleShare = useCallback(async () => {
+    if (!tableData) return;
+    
+    try {
+      const shareData = {
+        title: 'Kano Model Analysis',
+        text: `Competitive analysis of ${tableData.products.join(', ')} with ${tableData.features.length} features analyzed.`,
+        url: window.location.href,
+      };
+      
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast({
+          title: "Shared Successfully",
+          description: "Your Kano analysis has been shared.",
+        });
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
+        toast({
+          title: "Link Copied",
+          description: "Analysis link has been copied to your clipboard.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Share Failed",
+        description: "There was an error sharing your analysis.",
+        variant: "destructive",
+      });
+    }
+  }, [tableData, toast]);
+
+  const handleEditTableClick = useCallback(() => {
+    if (onEditTable) {
+      onEditTable();
+    }
+  }, [onEditTable]);
 
   const featuresByCategory = useMemo(() => {
     if (!tableData?.features) return {};
@@ -173,7 +246,7 @@ export default function KanoTable({ tableData, isLoading, sessionId }: KanoTable
               <Share className="h-4 w-4 mr-2" />
               Share
             </Button>
-            <Button variant="default" size="sm" className="kano-gradient text-white">
+            <Button onClick={handleEditTableClick} variant="default" size="sm" className="kano-gradient text-white">
               <Edit className="h-4 w-4 mr-2" />
               Edit Table
             </Button>

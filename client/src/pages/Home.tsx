@@ -264,6 +264,7 @@ export default function Home() {
             tableData={currentSession!.tableData as KanoTableData}
             isLoading={sessionLoading}
             sessionId={currentSessionId}
+            onEditTable={handleMakeChanges}
           />
         );
 
