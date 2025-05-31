@@ -1,15 +1,17 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2, Edit, Check, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
+import { useState } from "react";
 import type { AnalysisSession } from "@shared/schema";
 
 interface HeaderProps {
@@ -33,12 +35,64 @@ export default function Header({
   });
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState("");
 
   const handleSignOut = () => {
     window.location.href = "/api/logout";
   };
 
   const queryClient = useQueryClient();
+
+  const updateSessionMutation = useMutation({
+    mutationFn: async ({ id, title }: { id: number; title: string }) => {
+      return apiRequest("PUT", `/api/analysis/sessions/${id}`, { title });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
+      toast({
+        title: "Session updated",
+        description: "The session title has been successfully updated.",
+      });
+      setIsEditingTitle(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error updating session",
+        description: "Failed to update the session title. Please try again.",
+        variant: "destructive",
+      });
+      setIsEditingTitle(false);
+    },
+  });
+
+  const handleStartEditing = () => {
+    if (currentSession) {
+      setEditingTitle(currentSession.title);
+      setIsEditingTitle(true);
+    }
+  };
+
+  const handleSaveTitle = () => {
+    if (currentSession && editingTitle.trim() && editingTitle !== currentSession.title) {
+      updateSessionMutation.mutate({ id: currentSession.id, title: editingTitle.trim() });
+    } else {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingTitle(false);
+    setEditingTitle("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSaveTitle();
+    } else if (e.key === "Escape") {
+      handleCancelEdit();
+    }
+  };
 
   const deleteSessionMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -73,9 +127,56 @@ export default function Header({
               <div className="inner"></div>
               <div className="core"></div>
             </div>
-            <h1 className="text-xl font-mono-heading font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-              kanolens
-            </h1>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-xl font-mono-heading font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                kanolens
+              </h1>
+              {currentSession && (
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-400">•</span>
+                  {isEditingTitle ? (
+                    <div className="flex items-center space-x-1">
+                      <Input
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        className="h-7 px-2 text-sm min-w-[200px]"
+                        autoFocus
+                        onBlur={handleSaveTitle}
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleSaveTitle}
+                        disabled={updateSessionMutation.isPending}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleCancelEdit}
+                        className="h-7 w-7 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="flex items-center space-x-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-slate-800 rounded px-2 py-1 transition-colors"
+                      onClick={handleStartEditing}
+                      title="Click to edit session title"
+                    >
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {currentSession.title}
+                      </span>
+                      <Edit className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <Badge variant="secondary" className="text-xs glass-button border-blue-200 text-blue-700 dark:text-blue-300 animate-pulse-gentle">
               BETA
             </Badge>
