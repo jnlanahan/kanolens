@@ -104,21 +104,45 @@ export default function Home() {
     }
   }, [sessions]);
 
-  // Auto-select first session and initialize interface state
+  // Auto-select first session
   useEffect(() => {
     if (sessions && Array.isArray(sessions) && sessions.length > 0 && !currentSessionId) {
       setCurrentSessionId(sessions[0].id);
-      // Always hide chat interface by default for existing sessions
-      setShowChatInterface(false);
-      setShowProgressTracker(false);
     }
   }, [sessions, currentSessionId]);
 
   const currentSession = sessions && Array.isArray(sessions) ? 
     sessions.find((s: AnalysisSession) => s.id === currentSessionId) : null;
 
+  const handleSendMessage = (content: string, metadata?: any) => {
+    if (!currentSessionId) return;
+
+    // Only show progress tracker when user approves suggestions (clicks "Proceed with Analysis")
+    if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
+      setShowProgressTracker(true);
+      setShowChatInterface(false); // Hide chat during analysis
+    }
+
+    sendMessageMutation.mutate({ content, metadata });
+  };
+
+  const handleCreateSession = () => {
+    createSessionMutation.mutate({
+      title: `Analysis ${new Date().toLocaleDateString()}`,
+      products: [],
+      targetCustomer: "Product Managers",
+    }, {
+      onSuccess: (newSession: AnalysisSession) => {
+        setCurrentSessionId(newSession.id);
+        setShowChatInterface(true); // Show chat for new session
+        setShowProgressTracker(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
+      }
+    });
+  };
+
   // Helper function to extract suggestions from messages
-  const extractSuggestions = useCallback((messages: ChatMessage[]) => {
+  const extractSuggestions = (messages: ChatMessage[]) => {
     const lastAssistantMessage = messages
       .slice()
       .reverse()
@@ -136,8 +160,8 @@ export default function Home() {
     const content = lastAssistantMessage.content;
     const lines = content.split('\n');
     const suggestions = { products: [] as string[], features: [] as string[] };
+    let currentSection = '';
 
-    let currentSection: 'products' | 'features' | null = null;
     for (const line of lines) {
       if (line.includes('**Suggested Competitive Products:**') ||
           line.includes('**Additional Competitive Product:**') ||
@@ -153,11 +177,13 @@ export default function Home() {
       } else if ((line.match(/^\d+\.\s/) || line.match(/^\d+\.\s\*\*/) || line.startsWith('**')) && currentSection) {
         let item = line.replace(/^\d+\.\s/, '').replace(/^\d+\.\s\*\*/, '').replace(/^\*\*/, '').replace(/\*\*.*$/, '').trim();
         if (currentSection === 'products') {
+          // Extract product name from various formats
           if (item.includes(' - ')) {
             item = item.split(' - ')[0].trim();
           }
           suggestions.products.push(item);
         } else if (currentSection === 'features') {
+          // Extract feature name from various formats
           if (item.includes(' - ')) {
             item = item.split(' - ')[0].trim();
           }
@@ -167,62 +193,7 @@ export default function Home() {
     }
 
     return suggestions.products.length > 0 || suggestions.features.length > 0 ? suggestions : null;
-  }, []);
-
-  // Memoized computation for table data
-  const { hasTableData, suggestions, panelContent } = useMemo(() => {
-    // Check for table data first
-    const hasTable = currentSession?.tableData && 
-        typeof currentSession.tableData === 'object' && 
-        Object.keys(currentSession.tableData).length > 0;
-
-    // Extract suggestions
-    const extractedSuggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
-    const hasSuggestions = extractedSuggestions && 
-        (extractedSuggestions.products.length > 0 || extractedSuggestions.features.length > 0);
-
-    // Determine panel content
-    let content: 'table' | 'suggestions' | 'empty' = 'empty';
-    if (hasTable) content = 'table';
-    else if (hasSuggestions) content = 'suggestions';
-
-    return {
-      hasTableData: hasTable,
-      suggestions: extractedSuggestions,
-      panelContent: content
-    };
-  }, [currentSession?.tableData, messages, extractSuggestions]);
-
-  const handleSendMessage = (content: string, metadata?: any) => {
-    if (!currentSessionId) return;
-
-    // Show progress tracker for analysis requests or proceeding with analysis
-    if (content.toLowerCase().includes("yes") || 
-        content.toLowerCase().includes("proceed") ||
-        content.toLowerCase().includes("analysis request")) {
-      setShowProgressTracker(true);
-      setShowChatInterface(false); // Hide chat during analysis
-    }
-
-    sendMessageMutation.mutate({ content, metadata });
   };
-
-  const handleCreateSession = () => {
-    createSessionMutation.mutate({
-      title: `Analysis ${new Date().toLocaleDateString()}`,
-      products: [],
-      targetCustomer: "Product Managers",
-    }, {
-      onSuccess: (newSession: AnalysisSession) => {
-        setCurrentSessionId(newSession.id);
-        setShowChatInterface(true); // Show chat for new session setup
-        setShowProgressTracker(false);
-        queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
-      }
-    });
-  };
-
-
 
   const handleProceedWithAnalysis = () => {
     handleSendMessage("Yes please proceed");
@@ -245,7 +216,29 @@ export default function Home() {
     }
   }, [currentSessionId]);
 
+  // Memoized computation for better performance
+  const { hasTableData, suggestions, panelContent } = useMemo(() => {
+    // Check for table data first
+    const hasTable = currentSession?.tableData && 
+        typeof currentSession.tableData === 'object' && 
+        Object.keys(currentSession.tableData).length > 0;
 
+    // Extract suggestions
+    const extractedSuggestions = extractSuggestions(Array.isArray(messages) ? messages : []);
+    const hasSuggestions = extractedSuggestions && 
+        (extractedSuggestions.products.length > 0 || extractedSuggestions.features.length > 0);
+
+    // Determine panel content
+    let content: 'table' | 'suggestions' | 'empty' = 'empty';
+    if (hasTable) content = 'table';
+    else if (hasSuggestions) content = 'suggestions';
+
+    return {
+      hasTableData: hasTable,
+      suggestions: extractedSuggestions,
+      panelContent: content
+    };
+  }, [currentSession?.tableData, messages]);
 
   // Hide progress tracker when analysis is complete
   useEffect(() => {
