@@ -158,19 +158,54 @@ export default function FeatureModal({ feature, tableData, isOpen, onClose }: Fe
             <div>
               <h4 className="font-medium text-gray-900 dark:text-white mb-2">Source Documentation</h4>
               <div className="space-y-2">
-                {featureSources.map((source, index) => (
-                  <Card key={index} className="p-3 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        Source {index + 1}: Verified through research
-                      </div>
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">
-                      {source}
-                    </div>
-                  </Card>
-                ))}
+                {featureSources.map((source, index) => {
+                  // Extract domain from URL for display
+                  const getDisplayDomain = (url: string) => {
+                    try {
+                      const domain = new URL(url).hostname;
+                      return domain.replace('www.', '');
+                    } catch {
+                      return 'Research Source';
+                    }
+                  };
+
+                  const isValidUrl = source.startsWith('http://') || source.startsWith('https://');
+
+                  return (
+                    <Card key={index} className="p-3 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                      {isValidUrl ? (
+                        <a 
+                          href={source} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="block hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Source {index + 1}: {getDisplayDomain(source)}
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-blue-500 hover:text-blue-600" />
+                          </div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 truncate hover:text-blue-700">
+                            {source}
+                          </div>
+                        </a>
+                      ) : (
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              Source {index + 1}: Research Documentation
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-gray-400" />
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            {source}
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           )}
