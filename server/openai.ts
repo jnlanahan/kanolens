@@ -386,12 +386,22 @@ FEATURE ORDERING: Always organize features in this exact order:
 2. PERFORMANCE ATTRIBUTES second (measurable improvements)  
 3. DELIGHTERS last (unexpected innovations)
 
+SOURCE DOCUMENTATION REQUIREMENTS:
+For each feature, provide realistic source URLs based on the type of information researched:
+- Official product pages: https://[company].com/features or https://[company].com/pricing
+- Review sites: https://www.g2.com/products/[product-name]/reviews
+- Comparison sites: https://www.capterra.com/[category]/compare/[products]
+- Industry reports: https://www.forrester.com/report/[relevant-report]
+- User communities: https://www.reddit.com/r/[relevant-subreddit]
+- Tech blogs: https://techcrunch.com/[year]/[month]/[day]/[relevant-article]
+
 CRITICAL REQUIREMENTS:
 1. INCLUDE ALL PRODUCTS: The "products" array must contain ALL products listed above: ${products.join(', ')}
 2. USE WEB RESEARCH DATA: Base all ratings on the authentic web research provided above
 3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
 4. COMPLETE RATINGS: Rate each feature for ALL products in the list
 5. VERIFIED RATINGS: Only rate features you can verify from the research data
+6. REALISTIC SOURCES: Provide believable source URLs that match the type of research conducted
 
 ${analysisPrompt}
 
