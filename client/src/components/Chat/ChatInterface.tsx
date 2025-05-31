@@ -68,7 +68,12 @@ export default function ChatInterface({
   console.log("ChatInterface received messages:", messages);
   console.log("Valid messages count:", Array.isArray(messages) ? messages.filter(msg => msg && typeof msg === 'object' && 'content' in msg).length : 0);
 
-  const validMessages = Array.isArray(messages) ? messages.filter(msg => msg && typeof msg === 'object' && 'content' in msg) : [];
+  const validMessages = Array.isArray(messages) ? messages.filter(msg => 
+    msg && 
+    typeof msg === 'object' && 
+    'content' in msg &&
+    !msg.content.startsWith('Table Edit Request:') // Filter out table edit messages
+  ) : [];
 
   // Check if we should show confirmation panel
   const lastMessage = validMessages[validMessages.length - 1];
