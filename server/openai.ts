@@ -339,7 +339,7 @@ Return ONLY a JSON object with this exact structure:
       console.log("[OpenAI] Starting web research for authentic competitive data...");
       console.log("[OpenAI] Products to research:", products);
       
-      const webResearch = await conductCompetitiveResearch(products, targetCustomer);
+      const { searchResults: webResearch, actualSources } = await conductCompetitiveResearch(products, targetCustomer);
       
       const tablePrompt = `You are an expert competitive analyst with advanced reasoning capabilities. Generate authentic Kano Model data using the real-time web research provided below.
 
@@ -386,14 +386,11 @@ FEATURE ORDERING: Always organize features in this exact order:
 2. PERFORMANCE ATTRIBUTES second (measurable improvements)  
 3. DELIGHTERS last (unexpected innovations)
 
-SOURCE DOCUMENTATION REQUIREMENTS:
-For each feature, provide realistic source URLs based on the type of information researched:
-- Official product pages: https://[company].com/features or https://[company].com/pricing
-- Review sites: https://www.g2.com/products/[product-name]/reviews
-- Comparison sites: https://www.capterra.com/[category]/compare/[products]
-- Industry reports: https://www.forrester.com/report/[relevant-report]
-- User communities: https://www.reddit.com/r/[relevant-subreddit]
-- Tech blogs: https://techcrunch.com/[year]/[month]/[day]/[relevant-article]
+ACTUAL SOURCE DOCUMENTATION:
+Use ONLY the actual URLs found during web research. Here are the verified sources from the research:
+${Object.entries(actualSources).map(([key, urls]) => 
+  `${key}: ${urls.join(', ')}`
+).join('\n')}
 
 CRITICAL REQUIREMENTS:
 1. INCLUDE ALL PRODUCTS: The "products" array must contain ALL products listed above: ${products.join(', ')}
@@ -401,7 +398,7 @@ CRITICAL REQUIREMENTS:
 3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
 4. COMPLETE RATINGS: Rate each feature for ALL products in the list
 5. VERIFIED RATINGS: Only rate features you can verify from the research data
-6. REALISTIC SOURCES: Provide believable source URLs that match the type of research conducted
+6. ACTUAL SOURCES ONLY: Use ONLY the real URLs listed above - no generated or placeholder sources
 
 ${analysisPrompt}
 
@@ -551,7 +548,7 @@ export async function testOpenAIConnection(): Promise<boolean> {
 }
 
 // Web search function for authentic competitive research
-async function searchProductInformation(query: string): Promise<string> {
+async function searchProductInformation(query: string): Promise<{content: string, sources: string[]}> {
   console.log(`[OpenAI] Searching web for: ${query}`);
   
   try {
@@ -565,11 +562,25 @@ async function searchProductInformation(query: string): Promise<string> {
     });
 
     const content = response.output_text || "";
-    console.log(`[OpenAI] Web search completed for: ${query}`);
-    return content;
+    
+    // Extract actual URLs from the search results
+    const urlRegex = /https?:\/\/[^\s\)]+/g;
+    const foundUrls = content.match(urlRegex) || [];
+    
+    // Clean and validate URLs
+    const sources = foundUrls
+      .filter(url => !url.includes('javascript:') && !url.includes('mailto:'))
+      .map(url => url.replace(/[.,;!?]$/, '')) // Remove trailing punctuation
+      .slice(0, 5); // Limit to 5 sources per search
+    
+    console.log(`[OpenAI] Web search completed for: ${query}, found ${sources.length} sources`);
+    return { content, sources };
   } catch (error) {
     console.error(`[OpenAI] Web search failed for ${query}:`, error);
-    return `Unable to retrieve current information for: ${query}`;
+    return { 
+      content: `Unable to retrieve current information for: ${query}`,
+      sources: []
+    };
   }
 }
 
@@ -578,13 +589,16 @@ export async function conductCompetitiveResearch(products: string[], targetCusto
   console.log("[OpenAI] Target customer:", targetCustomer);
   
   const searchResults: Record<string, string> = {};
+  const actualSources: Record<string, string[]> = {};
   
   try {
     // Search for each product's current features and capabilities
     for (const product of products) {
       const query = `${product} product features capabilities pricing plans 2024 2025 reviews for ${targetCustomer}`;
       console.log(`[OpenAI] Searching for product: ${product}`);
-      searchResults[product] = await searchProductInformation(query);
+      const result = await searchProductInformation(query);
+      searchResults[product] = result.content;
+      actualSources[product] = result.sources;
       
       // Add a small delay between searches to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -594,15 +608,19 @@ export async function conductCompetitiveResearch(products: string[], targetCusto
     if (products.length > 1) {
       const comparisonQuery = `${products.join(' vs ')} comparison analysis features pros cons ${targetCustomer} 2024 2025`;
       console.log("[OpenAI] Searching for competitive comparison");
-      searchResults['competitive_comparison'] = await searchProductInformation(comparisonQuery);
+      const result = await searchProductInformation(comparisonQuery);
+      searchResults['competitive_comparison'] = result.content;
+      actualSources['competitive_comparison'] = result.sources;
     }
     
     console.log("[OpenAI] Competitive research completed successfully");
-    return searchResults;
+    console.log("[OpenAI] Total sources found:", Object.values(actualSources).flat().length);
+    
+    return { searchResults, actualSources };
   } catch (error) {
     console.error("[OpenAI] Error during competitive research:", error);
     // Return partial results if some searches succeeded
-    return searchResults;
+    return { searchResults, actualSources };
   }
 }
 
