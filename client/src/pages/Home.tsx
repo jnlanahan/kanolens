@@ -78,6 +78,11 @@ export default function Home() {
           });
         }, 500);
       }
+
+      // Hide chat interface after table edit responses
+      if (data?.assistantMessage?.metadata?.isTableEditResponse) {
+        setShowChatInterface(false);
+      }
     },
     onError: (error) => {
       toast({

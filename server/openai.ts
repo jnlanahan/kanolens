@@ -18,6 +18,7 @@ interface ChatResponse {
   progress: number;
   data: any;
   nextAction?: string;
+  metadata?: any;
 }
 
 export async function processChatMessage(
@@ -30,6 +31,43 @@ export async function processChatMessage(
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
+    // Detect research requests
+    const isResearchRequest = /find more|research|discover|explore|additional|investigate|what about|any other|more features|competitive landscape/i.test(message);
+    const isTableEditRequest = /table edit|modify|change|update|add features|remove|edit table/i.test(message);
+    
+    if (isResearchRequest && !isTableEditRequest) {
+      console.log("[OpenAI] Processing research request...");
+      
+      // Conduct competitive research based on existing session data
+      const products = sessionData?.products || [];
+      const targetCustomer = sessionData?.targetCustomer || "users";
+      
+      const researchPrompt = `You are conducting additional competitive research based on this request: "${message}"
+
+Current products being analyzed: ${products.join(', ')}
+Target customer: ${targetCustomer}
+
+Your task is to:
+1. Conduct web research to find additional competitive products or features
+2. Analyze market trends and emerging competitors
+3. Identify differentiating features that weren't previously considered
+4. Provide insights on competitive positioning
+
+Use web search to gather current market information and respond with actionable competitive insights.`;
+
+      const searchResults = await searchProductInformation(`${message} competitive analysis ${products.join(' ')} ${targetCustomer}`);
+      
+      const chatResponse: ChatResponse = {
+        step: currentStep,
+        message: `I've conducted additional research based on your request. Here are my findings:\n\n${searchResults}\n\nWould you like me to incorporate these insights into your analysis table, or would you like me to research something more specific?`,
+        progress: getProgressForStep(currentStep),
+        data: { researchResults: searchResults },
+        nextAction: "Let me know if you'd like to update your analysis with these findings."
+      };
+
+      return chatResponse;
+    }
+
     const systemPrompt = `You are an expert competitive analyst with advanced reasoning capabilities and deep product market knowledge.
 
 Current Step: ${currentStep}
