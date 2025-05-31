@@ -74,9 +74,16 @@ export default function Header({
   };
 
   const handleSaveTitle = () => {
-    if (currentSession && editingTitle.trim() && editingTitle !== currentSession.title) {
-      updateSessionMutation.mutate({ id: currentSession.id, title: editingTitle.trim() });
+    if (currentSession && editingTitle.trim()) {
+      if (editingTitle.trim() !== currentSession.title) {
+        updateSessionMutation.mutate({ id: currentSession.id, title: editingTitle.trim() });
+      } else {
+        // Title unchanged, just exit edit mode
+        setIsEditingTitle(false);
+      }
     } else {
+      // Empty title, revert to original
+      setEditingTitle(currentSession?.title || "");
       setIsEditingTitle(false);
     }
   };
