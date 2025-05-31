@@ -112,6 +112,127 @@ CORE PRINCIPLE: Be autonomous in cleaning/validating input, but transparent abou
       { role: "user", content: message }
     ];
 
+    // Check if this is a table edit request
+    const isTableEdit = message.toLowerCase().includes('table edit request:') ||
+                       (conversationHistory.length > 0 && 
+                        conversationHistory[conversationHistory.length - 1]?.content?.includes('Table Edit Request:'));
+
+    if (isTableEdit) {
+      console.log("[OpenAI] Processing table edit request...");
+      
+      // Extract the actual edit request from the message
+      const editRequest = message.replace(/^Table Edit Request:\s*/i, '').trim();
+      
+      // Get current table data from session
+      const currentTableData = sessionData.tableData;
+      if (!currentTableData) {
+        return {
+          step: 'table_creation',
+          message: "I don't see an existing table to edit. Please complete your initial analysis first, then I can help you modify the results.",
+          progress: 80,
+          data: {},
+          nextAction: 'Complete your initial analysis to generate a table.'
+        };
+      }
+
+      // Process the edit request using OpenAI
+      const editPrompt = `You are an expert at modifying Kano Model analysis tables based on user requests.
+
+CURRENT TABLE DATA:
+Products: ${currentTableData.products.join(', ')}
+Features: ${currentTableData.features.map(f => `${f.name} (${f.category})`).join(', ')}
+
+USER EDIT REQUEST: "${editRequest}"
+
+Based on this request, generate an updated table. You can:
+1. Add new features with proper Kano categorization
+2. Remove features
+3. Add new products for comparison
+4. Remove products
+5. Modify feature descriptions or categories
+6. Update ratings based on new information
+
+IMPORTANT: Return ONLY valid JSON in this exact format:
+{
+  "products": ["Product1", "Product2", "Product3"],
+  "features": [
+    {
+      "id": "feature1",
+      "name": "Feature Name",
+      "description": "Clear description",
+      "category": "must-have|performance|delighter",
+      "customerBenefit": "Specific benefit to target customers"
+    }
+  ],
+  "ratings": {
+    "feature1": {
+      "Product1": "High|Medium|Low|Yes|No",
+      "Product2": "High|Medium|Low|Yes|No"
+    }
+  },
+  "sources": {
+    "feature1": ["research source", "documentation"]
+  }
+}
+
+Maintain consistent rating logic:
+- Must-haves: Yes/No
+- Performance: High/Medium/Low  
+- Delighters: Yes/No`;
+
+      try {
+        const editResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { 
+              role: "system", 
+              content: "You are an expert competitive analyst. Generate ONLY valid JSON for the updated Kano Model table. No additional text." 
+            },
+            { role: "user", content: editPrompt }
+          ],
+          max_tokens: 3000,
+          response_format: { type: "json_object" }
+        });
+
+        let editContent = editResponse.choices[0].message.content || "{}";
+        console.log("[OpenAI] Raw edit response:", editContent.substring(0, 500));
+        
+        // Clean up the response
+        if (editContent.includes('```json')) {
+          editContent = editContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+        }
+        if (editContent.includes('```')) {
+          editContent = editContent.replace(/```\s*/g, '');
+        }
+        
+        const jsonMatch = editContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          editContent = jsonMatch[0];
+        }
+        
+        const updatedTableData = JSON.parse(editContent.trim());
+        console.log("[OpenAI] Successfully parsed updated table data");
+        
+        return {
+          step: 'table_creation',
+          message: `Perfect! I've updated your Kano analysis table based on your request. Here's what I changed:\n\n• ${editRequest}\n\nThe table has been updated with your modifications. You can see the changes reflected in the analysis view.`,
+          progress: 100,
+          data: { tableData: updatedTableData },
+          nextAction: 'Review your updated analysis results.'
+        };
+        
+      } catch (error) {
+        console.error("[OpenAI] Failed to process table edit:", error);
+        return {
+          step: 'table_creation',
+          message: 'I encountered an issue processing your table edit request. Could you please rephrase your request or be more specific about what you\'d like to change?',
+          progress: 80,
+          data: {},
+          nextAction: 'Please try your edit request again with more specific details.'
+        };
+      }
+    }
+
     // Check if this is an approval message to generate the full analysis
     const isApproval = message.toLowerCase().includes('yes') || 
                       message.toLowerCase().includes('proceed') || 

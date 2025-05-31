@@ -68,7 +68,7 @@ export default function Home() {
       queryClient.invalidateQueries({ 
         queryKey: ["/api/analysis/sessions"] 
       });
-      
+
       // Force refresh if table data was created
       if (data?.sessionUpdate?.data?.tableData) {
         queryClient.removeQueries({ queryKey: ["/api/analysis/sessions"] });
@@ -111,13 +111,13 @@ export default function Home() {
 
   const handleSendMessage = (content: string, metadata?: any) => {
     if (!currentSessionId) return;
-    
+
     // Only show progress tracker when user approves suggestions (clicks "Proceed with Analysis")
     if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
       setShowProgressTracker(true);
       setShowChatInterface(false); // Hide chat during analysis
     }
-    
+
     sendMessageMutation.mutate({ content, metadata });
   };
 
@@ -149,14 +149,14 @@ export default function Home() {
          msg.content.includes('**Key Features/Benefits') ||
          msg.content.includes('### Suggested Competitive Products') ||
          msg.content.includes('### Relevant Features/Benefits')));
-    
+
     if (!lastAssistantMessage) return null;
 
     const content = lastAssistantMessage.content;
     const lines = content.split('\n');
     const suggestions = { products: [] as string[], features: [] as string[] };
     let currentSection = '';
-    
+
     for (const line of lines) {
       if (line.includes('**Suggested Competitive Products:**') ||
           line.includes('**Additional Competitive Product:**') ||
@@ -186,7 +186,7 @@ export default function Home() {
         }
       }
     }
-    
+
     return suggestions.products.length > 0 || suggestions.features.length > 0 ? suggestions : null;
   };
 
@@ -198,6 +198,18 @@ export default function Home() {
     setShowChatInterface(true); // Show chat when user wants to make changes
     setShowProgressTracker(false);
   };
+
+  const handleEditTable = useCallback(() => {
+    // Invalidate and refetch the current session to get updated table data
+    if (currentSessionId) {
+      queryClient.invalidateQueries({
+        queryKey: [`/api/analysis/sessions/${currentSessionId}`]
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`]
+      });
+    }
+  }, [currentSessionId]);
 
   // Memoized computation for better performance
   const { hasTableData, suggestions, panelContent } = useMemo(() => {
@@ -233,7 +245,7 @@ export default function Home() {
   // Determine current progress based on the session step and progress
   const getCurrentProgress = () => {
     if (!currentSession) return 20;
-    
+
     const stepProgress: Record<string, number> = {
       'discovery': 20,
       'research': 40,
@@ -241,7 +253,7 @@ export default function Home() {
       'table_creation': 80,
       'analysis': 100
     };
-    
+
     return stepProgress[currentSession.currentStep] || 20;
   };
 
@@ -318,7 +330,7 @@ export default function Home() {
         currentSessionId={currentSessionId}
         onSessionSelect={setCurrentSessionId}
       />
-      
+
       <div className="flex-1 flex overflow-hidden">
         {/* Chat Interface Panel */}
         <div className="w-2/5 min-w-0 flex flex-col glass-card border-r border-white/20 dark:border-slate-700/50 animate-slide-in-right">
@@ -416,7 +428,7 @@ export default function Home() {
               <p className="text-sm text-green-700 dark:text-green-300">Instant collaboration</p>
             </div>
           </div>
-          
+
           {renderRightPanel()}
         </div>
       </div>
