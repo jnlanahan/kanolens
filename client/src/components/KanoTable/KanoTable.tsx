@@ -149,13 +149,12 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
 
   const handleEditTableClick = useCallback(() => {
     setIsEditChatOpen(true);
-    if (chatMessages.length === 0) {
-      setChatMessages([{
-        role: 'assistant',
-        content: "Hi! I'm here to help you modify your Kano analysis table. What would you like to change? You can:\n\n• Add or remove features\n• Modify product comparisons\n• Update feature descriptions\n• Change categorizations\n• Add new products to compare\n\nWhat specific changes would you like to make?"
-      }]);
-    }
-  }, [chatMessages.length]);
+    // Always reset chat to provide fresh start
+    setChatMessages([{
+      role: 'assistant',
+      content: "Hi! I'm here to help you modify your Kano analysis table. What would you like to change? You can:\n\n• Add or remove features\n• Modify product comparisons\n• Update feature descriptions\n• Change categorizations\n• Add new products to compare\n\nWhat specific changes would you like to make?"
+    }]);
+  }, []);
 
   const handleSendEditMessage = useCallback(async () => {
     if (!editMessage.trim() || !sessionId) return;
@@ -194,11 +193,23 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
       
       // If the AI provides updated table data, trigger a refresh
       if (result.sessionUpdate?.data?.tableData && onEditTable) {
-        // Close the chat modal
+        // Close the chat modal immediately
         setIsEditChatOpen(false);
+        
+        // Clear chat messages for next time
+        setChatMessages([]);
         
         // Call the parent component to refresh the session data
         onEditTable();
+        
+        // Show success toast with more specific message
+        toast({
+          title: "Table Updated Successfully",
+          description: "Your changes have been applied to the analysis table.",
+          duration: 3000,
+        });
+        
+        return; // Exit early to avoid duplicate toast
       }
       
       toast({
