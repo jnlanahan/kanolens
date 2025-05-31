@@ -63,7 +63,7 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
   const hasContent = Object.values(formData).some(value => value.trim().length > 0);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm mb-4">
+    <Card className="w-full max-w-2xl mx-auto shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm mb-2">
       <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-600/20 dark:to-purple-600/20 border-b border-blue-200 dark:border-blue-700 pb-4">
         <CardTitle className="flex items-center gap-3 text-xl">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -77,8 +77,8 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
           Fill in the details below to begin your Kano Model analysis. All fields are optional but provide better context.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 pt-0 p-8">
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <CardContent className="space-y-4 pt-0 p-6">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-3 p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-blue-100 dark:border-blue-800">
             <Label htmlFor="description" className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>

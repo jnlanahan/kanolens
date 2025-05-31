@@ -121,7 +121,7 @@ export default function ChatInterface({
         </div>
 
         {/* Scrollable Form Area */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-2 pt-1">
           <div className="flex justify-center">
             <AnalysisForm onSubmit={handleFormSubmit} disabled={isLoading} />
           </div>
