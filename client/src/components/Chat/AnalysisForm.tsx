@@ -64,7 +64,7 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
   const hasContent = Object.values(formData).some(value => value.trim().length > 0);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto ml-4 mr-8 shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm">
+    <Card className="w-full max-w-2xl mx-auto ml-4 mr-8 mb-8 shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm">
       <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-600/20 dark:to-purple-600/20 border-b border-blue-200 dark:border-blue-700">
         <CardTitle className="flex items-center gap-3 text-xl">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">

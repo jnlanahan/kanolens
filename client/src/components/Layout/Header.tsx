@@ -125,7 +125,7 @@ export default function Header({
             onClick={onCreateSession}
             className="group relative cursor-pointer"
           >
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-300 animate-pulse"></div>
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-xl blur opacity-20 group-hover:opacity-60 transition duration-500"></div>
             <div className="relative px-6 py-3 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700 group-hover:border-transparent transition-all duration-300 shadow-lg group-hover:shadow-xl">
               <div className="flex items-center space-x-3">
                 <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">

@@ -103,7 +103,7 @@ export default function ChatInterface({
   if (validMessages.length === 0) {
     return (
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="flex-1 flex items-start justify-center p-4 pt-8 overflow-y-auto">
           <AnalysisForm onSubmit={handleFormSubmit} disabled={isLoading} />
         </div>
       </div>
