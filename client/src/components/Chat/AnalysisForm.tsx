@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,26 +28,26 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Create a comprehensive message from all form fields
     const parts = [];
-    
+
     if (formData.description.trim()) {
       parts.push(`Analysis Request: ${formData.description.trim()}`);
     }
-    
+
     if (formData.products.trim()) {
       parts.push(`Products to Compare: ${formData.products.trim()}`);
     }
-    
+
     if (formData.targetCustomers.trim()) {
       parts.push(`Target Customers: ${formData.targetCustomers.trim()}`);
     }
-    
+
     if (formData.features.trim()) {
       parts.push(`Features/Benefits to Analyze: ${formData.features.trim()}`);
     }
-    
+
     if (parts.length > 0) {
       onSubmit(formData);
     }
@@ -64,8 +63,8 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
   const hasContent = Object.values(formData).some(value => value.trim().length > 0);
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm">
-      <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-600/20 dark:to-purple-600/20 border-b border-blue-200 dark:border-blue-700">
+    <Card className="w-full max-w-2xl mx-auto shadow-2xl border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 backdrop-blur-sm mb-4">
+      <CardHeader className="bg-gradient-to-r from-blue-600/10 to-purple-600/10 dark:from-blue-600/20 dark:to-purple-600/20 border-b border-blue-200 dark:border-blue-700 pb-4">
         <CardTitle className="flex items-center gap-3 text-xl">
           <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
             <span className="text-2xl">🎯</span>
@@ -78,8 +77,8 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
           Fill in the details below to begin your Kano Model analysis. All fields are optional but provide better context.
         </CardDescription>
       </CardHeader>
-      <CardContent className="p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <CardContent className="space-y-4 pt-0 p-8">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-3 p-4 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-blue-100 dark:border-blue-800">
             <Label htmlFor="description" className="text-sm font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
@@ -90,7 +89,7 @@ export default function AnalysisForm({ onSubmit, disabled = false }: AnalysisFor
               placeholder="e.g., I want a competitive analysis of project management tools like Jira, Asana, and Monday.com..."
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
-              className="min-h-[80px] border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-blue-500/20"
+              className="min-h-[60px] border-blue-200 dark:border-blue-700 focus:border-blue-500 focus:ring-blue-500/20"
               disabled={disabled}
             />
           </div>
