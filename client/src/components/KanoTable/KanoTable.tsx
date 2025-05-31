@@ -199,7 +199,7 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
       }]);
       
       // If the AI response indicates table data was updated, trigger a refresh
-      if (result.aiMessage && onEditTable) {
+      if (result.aiMessage?.metadata?.isTableEditResponse && onEditTable) {
         // Close the chat modal immediately
         setIsEditChatOpen(false);
         

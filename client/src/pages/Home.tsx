@@ -205,14 +205,21 @@ export default function Home() {
   };
 
   const handleEditTable = useCallback(() => {
-    // Invalidate and refetch the current session to get updated table data
+    // Invalidate and refetch session data to get updated table data
     if (currentSessionId) {
       queryClient.invalidateQueries({
-        queryKey: [`/api/analysis/sessions/${currentSessionId}`]
+        queryKey: ["/api/analysis/sessions"]
       });
       queryClient.invalidateQueries({
         queryKey: [`/api/analysis/sessions/${currentSessionId}/messages`]
       });
+      
+      // Force a fresh refetch of sessions data
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: ["/api/analysis/sessions"]
+        });
+      }, 100);
     }
   }, [currentSessionId]);
 
@@ -281,7 +288,7 @@ export default function Home() {
             tableData={currentSession!.tableData as KanoTableData}
             isLoading={sessionLoading}
             sessionId={currentSessionId}
-            onEditTable={handleMakeChanges}
+            onEditTable={handleEditTable}
           />
         );
 
