@@ -386,8 +386,8 @@ FEATURE ORDERING: Always organize features in this exact order:
 2. PERFORMANCE ATTRIBUTES second (measurable improvements)  
 3. DELIGHTERS last (unexpected innovations)
 
-ACTUAL SOURCE DOCUMENTATION:
-Use ONLY the actual URLs found during web research. Here are the verified sources from the research:
+SOURCE DOCUMENTATION REQUIREMENTS:
+You MUST use ONLY the actual URLs discovered during web research. Here are the verified sources:
 ${Object.entries(actualSources).map(([key, urls]) => 
   `${key}: ${urls.join(', ')}`
 ).join('\n')}
@@ -398,7 +398,7 @@ CRITICAL REQUIREMENTS:
 3. PRECISE CATEGORIZATION: Apply Kano definitions with logical reasoning
 4. COMPLETE RATINGS: Rate each feature for ALL products in the list
 5. VERIFIED RATINGS: Only rate features you can verify from the research data
-6. ACTUAL SOURCES ONLY: Use ONLY the real URLs listed above - no generated or placeholder sources
+6. REAL SOURCES ONLY: In the "sources" object, use ONLY the actual URLs listed above - never generate fake URLs or placeholder text like "user reviews" or "product documentation"
 
 ${analysisPrompt}
 
