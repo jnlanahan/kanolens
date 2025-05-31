@@ -318,8 +318,7 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
 
 
   return (
-    <TooltipProvider>
-      <div className="flex flex-col h-full"></div>
+    <div className="flex flex-col h-full">
       {/* Table Header */}
       <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
         <div className="flex items-center justify-between">
@@ -376,14 +375,16 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
                           <span className="font-mono-heading font-semibold uppercase tracking-wide text-xs">
                             {categoryLabels[category as keyof typeof categoryLabels]}
                           </span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </td>
                     </tr>,
@@ -493,7 +494,6 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
           </div>
         </DialogContent>
       </Dialog>
-      </div>
-    </TooltipProvider>
+    </div>
   );
 }
