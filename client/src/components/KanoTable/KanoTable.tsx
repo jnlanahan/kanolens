@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Share, Edit, Clock, Brain, Users } from "lucide-react";
+import { Download, Share, Edit, Clock, Brain, Users, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import FeatureModal from "./FeatureModal";
 import type { KanoTableData, KanoFeature } from "@shared/schema";
 
