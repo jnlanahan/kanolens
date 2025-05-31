@@ -104,10 +104,13 @@ export default function Home() {
     }
   }, [sessions]);
 
-  // Auto-select first session
+  // Auto-select first session and initialize interface state
   useEffect(() => {
     if (sessions && Array.isArray(sessions) && sessions.length > 0 && !currentSessionId) {
       setCurrentSessionId(sessions[0].id);
+      // Hide chat interface by default for existing sessions
+      setShowChatInterface(false);
+      setShowProgressTracker(false);
     }
   }, [sessions, currentSessionId]);
 
@@ -134,7 +137,7 @@ export default function Home() {
     }, {
       onSuccess: (newSession: AnalysisSession) => {
         setCurrentSessionId(newSession.id);
-        setShowChatInterface(true); // Show chat for new session
+        setShowChatInterface(true); // Show chat for new session setup
         setShowProgressTracker(false);
         queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
       }
