@@ -320,17 +320,9 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
   return (
     <TooltipProvider>
       <div className="flex flex-col h-full">
-        {/* Table Header */}
+        {/* Table Actions */}
         <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-mono-heading text-lg font-semibold text-gray-900 dark:text-white">
-                Kano Model Comparison
-              </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Real-time competitive analysis • Last updated: just now
-              </p>
-            </div>
+          <div className="flex items-center justify-end">
             <div className="flex items-center space-x-2">
               <Button onClick={handleExport} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
