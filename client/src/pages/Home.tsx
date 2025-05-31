@@ -108,11 +108,19 @@ export default function Home() {
   useEffect(() => {
     if (sessions && Array.isArray(sessions) && sessions.length > 0 && !currentSessionId) {
       setCurrentSessionId(sessions[0].id);
-      // Hide chat interface by default for existing sessions
+      // Always hide chat interface by default for existing sessions
       setShowChatInterface(false);
       setShowProgressTracker(false);
     }
   }, [sessions, currentSessionId]);
+
+  // Hide chat interface when switching to sessions with table data
+  useEffect(() => {
+    if (hasTableData && showChatInterface) {
+      setShowChatInterface(false);
+      setShowProgressTracker(false);
+    }
+  }, [hasTableData, showChatInterface]);
 
   const currentSession = sessions && Array.isArray(sessions) ? 
     sessions.find((s: AnalysisSession) => s.id === currentSessionId) : null;
@@ -120,8 +128,10 @@ export default function Home() {
   const handleSendMessage = (content: string, metadata?: any) => {
     if (!currentSessionId) return;
 
-    // Only show progress tracker when user approves suggestions (clicks "Proceed with Analysis")
-    if (content.toLowerCase().includes("yes") || content.toLowerCase().includes("proceed")) {
+    // Show progress tracker for analysis requests or proceeding with analysis
+    if (content.toLowerCase().includes("yes") || 
+        content.toLowerCase().includes("proceed") ||
+        content.toLowerCase().includes("analysis request")) {
       setShowProgressTracker(true);
       setShowChatInterface(false); // Hide chat during analysis
     }
