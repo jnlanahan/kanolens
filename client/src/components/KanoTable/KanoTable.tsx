@@ -405,33 +405,6 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
             </table>
           </div>
         </Card>
-
-        {/* Analysis Summary Cards */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-4 kano-gradient-light border-blue-200 dark:border-blue-800">
-            <div className="flex items-center space-x-2 mb-3">
-              <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h3 className="font-mono-heading font-semibold text-gray-900 dark:text-white">Under 10 Minutes</h3>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Complete analysis time</p>
-          </Card>
-
-          <Card className="p-4 kano-gradient-light border-purple-200 dark:border-purple-800">
-            <div className="flex items-center space-x-2 mb-3">
-              <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              <h3 className="font-mono-heading font-semibold text-gray-900 dark:text-white">AI-Powered</h3>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Smart feature categorization</p>
-          </Card>
-
-          <Card className="p-4 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
-            <div className="flex items-center space-x-2 mb-3">
-              <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <h3 className="font-mono-heading font-semibold text-gray-900 dark:text-white">Shareable</h3>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Instant collaboration</p>
-          </Card>
-        </div>
       </div>
 
       {/* Feature Detail Modal */}
