@@ -191,8 +191,8 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
         content: result.aiMessage.content 
       }]);
       
-      // If the AI provides updated table data, trigger a refresh
-      if (result.sessionUpdate?.data?.tableData && onEditTable) {
+      // If the AI response indicates table data was updated, trigger a refresh
+      if (result.aiMessage && onEditTable) {
         // Close the chat modal immediately
         setIsEditChatOpen(false);
         
