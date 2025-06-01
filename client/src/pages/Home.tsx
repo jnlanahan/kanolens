@@ -121,7 +121,7 @@ export default function Home() {
       const hasTableData = currentSession.tableData && 
         typeof currentSession.tableData === 'object' && 
         Object.keys(currentSession.tableData).length > 0;
-      
+
       if (!hasMessages && !hasTableData) {
         setShowChatInterface(true);
         setShowProgressTracker(false);
