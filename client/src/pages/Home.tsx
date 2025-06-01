@@ -111,11 +111,14 @@ export default function Home() {
     }
   }, [sessions, currentSessionId]);
 
+  const currentSession = sessions && Array.isArray(sessions) ? 
+    sessions.find((s: AnalysisSession) => s.id === currentSessionId) : null;
+
   // Show chat interface for sessions without messages
   useEffect(() => {
-    if (currentSessionId && messages !== undefined) {
+    if (currentSessionId && messages !== undefined && currentSession) {
       const hasMessages = Array.isArray(messages) && messages.length > 0;
-      const hasTableData = currentSession?.tableData && 
+      const hasTableData = currentSession.tableData && 
         typeof currentSession.tableData === 'object' && 
         Object.keys(currentSession.tableData).length > 0;
       
@@ -124,10 +127,7 @@ export default function Home() {
         setShowProgressTracker(false);
       }
     }
-  }, [currentSessionId, messages, currentSession?.tableData]);
-
-  const currentSession = sessions && Array.isArray(sessions) ? 
-    sessions.find((s: AnalysisSession) => s.id === currentSessionId) : null;
+  }, [currentSessionId, messages, currentSession]);
 
   const handleSendMessage = (content: string, metadata?: any) => {
     if (!currentSessionId) return;
