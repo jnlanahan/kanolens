@@ -111,6 +111,21 @@ export default function Home() {
     }
   }, [sessions, currentSessionId]);
 
+  // Show chat interface for sessions without messages
+  useEffect(() => {
+    if (currentSessionId && messages !== undefined) {
+      const hasMessages = Array.isArray(messages) && messages.length > 0;
+      const hasTableData = currentSession?.tableData && 
+        typeof currentSession.tableData === 'object' && 
+        Object.keys(currentSession.tableData).length > 0;
+      
+      if (!hasMessages && !hasTableData) {
+        setShowChatInterface(true);
+        setShowProgressTracker(false);
+      }
+    }
+  }, [currentSessionId, messages, currentSession?.tableData]);
+
   const currentSession = sessions && Array.isArray(sessions) ? 
     sessions.find((s: AnalysisSession) => s.id === currentSessionId) : null;
 
@@ -139,6 +154,13 @@ export default function Home() {
       title: `New Analysis ${timestamp}`,
       products: [],
       targetCustomer: '',
+    }, {
+      onSuccess: (newSession: AnalysisSession) => {
+        setCurrentSessionId(newSession.id);
+        setShowChatInterface(true); // Show chat for new session
+        setShowProgressTracker(false);
+        queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
+      }
     });
   };
 
