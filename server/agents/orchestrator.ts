@@ -1,6 +1,11 @@
 import { ChatCompletionMessageParam } from "openai/resources/index.mjs";
 import { openai } from "../openai";
 import { searchProductInformation } from "../openai";
+import { researcherAgent } from "./researcher";
+import { validatorAgent } from "./validator";
+import { analystAgent } from "./analyst";
+import { evaluatorAgent } from "./evaluator";
+import { storage } from "../storage";
 
 export interface OrchestratorInput {
   mode: 'suggestions' | 'comprehensive';
@@ -91,7 +96,8 @@ SUGGESTED_FEATURES:
     products: string[],
     features: string[],
     targetCustomer: string,
-    onProgress: (update: ProgressUpdate) => void
+    onProgress: (update: ProgressUpdate) => void,
+    sessionId?: number
   ): Promise<any> {
     console.log("[Orchestrator] Starting full analysis coordination");
     
@@ -109,8 +115,22 @@ SUGGESTED_FEATURES:
       progress: 40
     });
 
-    // TODO: Call Research Agent
-    const researchData = await this.mockResearchPhase(products, features, targetCustomer);
+    const startTime = Date.now();
+    const researchRequest = {
+      mode: 'comprehensive' as const,
+      products,
+      targetCustomer,
+      marketCategory: 'Competitive Analysis Tools',
+      featuresToResearch: features
+    };
+    
+    const researchData = await researcherAgent.performResearch(researchRequest);
+    const researchTime = Date.now() - startTime;
+    
+    // Trigger evaluation for researcher agent asynchronously
+    if (sessionId) {
+      this.evaluateAgent('researcher', researchRequest, researchData, sessionId, targetCustomer, products, researchTime);
+    }
 
     // Step 2: Categorization Phase
     onProgress({
@@ -119,8 +139,20 @@ SUGGESTED_FEATURES:
       progress: 60
     });
 
-    // TODO: Call Validator Agent
-    const categorizedData = await this.mockCategorizationPhase(researchData, targetCustomer);
+    const validatorStartTime = Date.now();
+    const validatorRequest = {
+      research: researchData,
+      targetCustomer,
+      products
+    };
+    
+    const categorizedData = await validatorAgent.categorizeFeatures(validatorRequest);
+    const validatorTime = Date.now() - validatorStartTime;
+    
+    // Trigger evaluation for validator agent asynchronously
+    if (sessionId) {
+      this.evaluateAgent('validator', validatorRequest, categorizedData, sessionId, targetCustomer, products, validatorTime);
+    }
 
     // Step 3: Table Creation
     onProgress({
@@ -138,13 +170,67 @@ SUGGESTED_FEATURES:
       progress: 90
     });
 
-    // TODO: Call Analyst Agent
-    const analysis = await this.mockAnalysisPhase(kanoTable, targetCustomer);
+    const analystStartTime = Date.now();
+    const analysisRequest = {
+      kanoTable: kanoTable,
+      targetCustomer: targetCustomer
+    };
+    
+    const analysis = await analystAgent.analyzeKanoTable(analysisRequest);
+    const analystTime = Date.now() - analystStartTime;
+    
+    // Trigger evaluation for analyst agent asynchronously
+    if (sessionId) {
+      this.evaluateAgent('analyst', analysisRequest, analysis, sessionId, targetCustomer, products, analystTime);
+    }
 
     return {
       tableData: kanoTable,
       analysis: analysis
     };
+  }
+
+  // Helper method to trigger evaluations asynchronously
+  private async evaluateAgent(
+    agentName: 'orchestrator' | 'researcher' | 'validator' | 'analyst',
+    input: any,
+    output: any,
+    sessionId: number,
+    targetCustomer: string,
+    products: string[],
+    executionTime: number
+  ) {
+    try {
+      const evaluation = await evaluatorAgent.evaluateAgent({
+        agentName,
+        input,
+        output,
+        context: {
+          sessionId,
+          targetCustomer,
+          products,
+          executionTime,
+        },
+      });
+
+      // Store evaluation in database
+      await storage.createAgentEvaluation({
+        sessionId,
+        agentName,
+        inputData: input,
+        outputData: output,
+        evaluation,
+        promptVersion: '1.0',
+      });
+
+      console.log(`[Orchestrator] Evaluation completed for ${agentName}:`, {
+        score: evaluation.score,
+        strengths: evaluation.strengths.length,
+        weaknesses: evaluation.weaknesses.length,
+      });
+    } catch (error) {
+      console.error(`[Orchestrator] Failed to evaluate ${agentName}:`, error);
+    }
   }
 
   private cleanProductList(productsString: string): string[] {

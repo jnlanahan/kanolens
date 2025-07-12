@@ -7,6 +7,7 @@ import {
   index,
   serial,
   boolean,
+  integer,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -84,6 +85,66 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertDocument = typeof documents.$inferInsert;
 export type Document = typeof documents.$inferSelect;
 
+// Agent Evaluations table
+export const agentEvaluations = pgTable("agent_evaluations", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").references(() => analysisSessions.id, { onDelete: "cascade" }),
+  agentName: varchar("agent_name", { length: 50 }).notNull(), // orchestrator, researcher, validator, analyst
+  inputData: jsonb("input_data").notNull(),
+  outputData: jsonb("output_data").notNull(),
+  evaluation: jsonb("evaluation").notNull(), // {score, strengths, weaknesses, suggestions}
+  promptVersion: varchar("prompt_version", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User Feedback table
+export const userFeedback = pgTable("user_feedback", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  sessionId: integer("session_id").references(() => analysisSessions.id, { onDelete: "cascade" }),
+  messageId: integer("message_id").references(() => chatMessages.id, { onDelete: "cascade" }),
+  feedbackType: varchar("feedback_type", { enum: ["thumbs_up", "thumbs_down"] }).notNull(),
+  feedbackText: text("feedback_text"), // Optional detailed feedback
+  context: jsonb("context"), // Store full context of what was shown
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Prompt Versions table
+export const promptVersions = pgTable("prompt_versions", {
+  id: serial("id").primaryKey(),
+  agentName: varchar("agent_name", { length: 50 }).notNull(),
+  version: varchar("version", { length: 50 }).notNull(),
+  prompt: text("prompt").notNull(),
+  changeReason: text("change_reason"),
+  changedBy: varchar("changed_by"),
+  performance: jsonb("performance"), // Track performance metrics
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Admin Users table
+export const adminUsers = pgTable("admin_users", {
+  id: varchar("id").primaryKey(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash").notNull(),
+  role: varchar("role", { enum: ["admin", "super_admin"] }).default("admin"),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type InsertAgentEvaluation = typeof agentEvaluations.$inferInsert;
+export type AgentEvaluation = typeof agentEvaluations.$inferSelect;
+
+export type InsertUserFeedback = typeof userFeedback.$inferInsert;
+export type UserFeedback = typeof userFeedback.$inferSelect;
+
+export type InsertPromptVersion = typeof promptVersions.$inferInsert;
+export type PromptVersion = typeof promptVersions.$inferSelect;
+
+export type InsertAdminUser = typeof adminUsers.$inferInsert;
+export type AdminUser = typeof adminUsers.$inferSelect;
+
 // Zod schemas for validation
 export const insertAnalysisSessionSchema = createInsertSchema(analysisSessions).omit({
   id: true,
@@ -103,6 +164,27 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
 export const insertDocumentSchema = createInsertSchema(documents).omit({
   id: true,
   uploadedAt: true,
+});
+
+export const insertAgentEvaluationSchema = createInsertSchema(agentEvaluations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserFeedbackSchema = createInsertSchema(userFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPromptVersionSchema = createInsertSchema(promptVersions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 // API types for frontend

@@ -380,6 +380,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to upload document" });
     }
   });
+  
+  // User feedback routes
+  app.post('/api/feedback', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { sessionId, messageId, feedbackType, feedbackText, context } = req.body;
+      
+      // Validate feedback type
+      if (!['thumbs_up', 'thumbs_down'].includes(feedbackType)) {
+        return res.status(400).json({ message: 'Invalid feedback type' });
+      }
+      
+      // Create feedback record
+      const feedback = await storage.createUserFeedback({
+        userId,
+        sessionId: sessionId ? parseInt(sessionId) : null,
+        messageId: messageId ? parseInt(messageId) : null,
+        feedbackType,
+        feedbackText,
+        context,
+      });
+      
+      res.json({ 
+        message: 'Feedback received successfully',
+        feedbackId: feedback.id
+      });
+    } catch (error) {
+      console.error('Feedback error:', error);
+      res.status(500).json({ message: 'Failed to save feedback' });
+    }
+  });
+  
+  app.get('/api/feedback/session/:sessionId', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session || session.userId !== req.user.claims.sub) {
+        return res.status(404).json({ message: 'Session not found' });
+      }
+      
+      const feedback = await storage.getSessionFeedback(sessionId);
+      res.json(feedback);
+    } catch (error) {
+      console.error('Get feedback error:', error);
+      res.status(500).json({ message: 'Failed to fetch feedback' });
+    }
+  });
+  
+  // Admin routes (protected)
+  app.get('/api/admin/evaluations', isAuthenticated, async (req: any, res) => {
+    try {
+      // Check if user is admin (you might want to implement proper admin check)
+      const userId = req.user.claims.sub;
+      // For now, let's allow all authenticated users to see evaluations for demo purposes
+      // In production, you'd check against adminUsers table
+      
+      const { agentName, sessionId } = req.query;
+      
+      let evaluations;
+      if (sessionId) {
+        evaluations = await storage.getSessionEvaluations(parseInt(sessionId as string));
+      } else if (agentName) {
+        evaluations = await storage.getAgentEvaluations(agentName as string);
+      } else {
+        // Get recent evaluations
+        evaluations = await storage.getAgentEvaluations('orchestrator');
+      }
+      
+      res.json(evaluations);
+    } catch (error) {
+      console.error('Get evaluations error:', error);
+      res.status(500).json({ message: 'Failed to fetch evaluations' });
+    }
+  });
+  
+  app.get('/api/admin/prompt-versions/:agentName', isAuthenticated, async (req: any, res) => {
+    try {
+      const agentName = req.params.agentName;
+      const versions = await storage.getPromptVersionHistory(agentName);
+      const activeVersion = await storage.getActivePromptVersion(agentName);
+      
+      res.json({
+        versions,
+        activeVersion
+      });
+    } catch (error) {
+      console.error('Get prompt versions error:', error);
+      res.status(500).json({ message: 'Failed to fetch prompt versions' });
+    }
+  });
+  
+  app.post('/api/admin/prompt-versions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { agentName, version, prompt, changeReason } = req.body;
+      
+      // Create new prompt version
+      const newVersion = await storage.createPromptVersion({
+        agentName,
+        version,
+        prompt,
+        changeReason,
+        changedBy: userId,
+        isActive: true,
+      });
+      
+      res.json({
+        message: 'Prompt version created successfully',
+        version: newVersion
+      });
+    } catch (error) {
+      console.error('Create prompt version error:', error);
+      res.status(500).json({ message: 'Failed to create prompt version' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

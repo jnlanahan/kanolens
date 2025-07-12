@@ -3,6 +3,10 @@ import {
   analysisSessions,
   chatMessages,
   documents,
+  agentEvaluations,
+  userFeedback,
+  promptVersions,
+  adminUsers,
   type User,
   type UpsertUser,
   type AnalysisSession,
@@ -11,9 +15,17 @@ import {
   type InsertChatMessage,
   type Document,
   type InsertDocument,
+  type AgentEvaluation,
+  type InsertAgentEvaluation,
+  type UserFeedback,
+  type InsertUserFeedback,
+  type PromptVersion,
+  type InsertPromptVersion,
+  type AdminUser,
+  type InsertAdminUser,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth
@@ -34,6 +46,27 @@ export interface IStorage {
   // Document operations
   uploadDocument(document: InsertDocument): Promise<Document>;
   getSessionDocuments(sessionId: number): Promise<Document[]>;
+  
+  // Agent evaluation operations
+  createAgentEvaluation(evaluation: InsertAgentEvaluation): Promise<AgentEvaluation>;
+  getSessionEvaluations(sessionId: number): Promise<AgentEvaluation[]>;
+  getAgentEvaluations(agentName: string): Promise<AgentEvaluation[]>;
+  
+  // User feedback operations
+  createUserFeedback(feedback: InsertUserFeedback): Promise<UserFeedback>;
+  getUserFeedback(userId: string): Promise<UserFeedback[]>;
+  getSessionFeedback(sessionId: number): Promise<UserFeedback[]>;
+  
+  // Prompt version operations
+  createPromptVersion(version: InsertPromptVersion): Promise<PromptVersion>;
+  getActivePromptVersion(agentName: string): Promise<PromptVersion | undefined>;
+  getPromptVersionHistory(agentName: string): Promise<PromptVersion[]>;
+  updatePromptVersion(id: number, updates: Partial<PromptVersion>): Promise<PromptVersion>;
+  
+  // Admin operations
+  createAdminUser(admin: InsertAdminUser): Promise<AdminUser>;
+  getAdminByEmail(email: string): Promise<AdminUser | undefined>;
+  updateAdminLastLogin(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -135,6 +168,124 @@ export class DatabaseStorage implements IStorage {
       .from(documents)
       .where(eq(documents.sessionId, sessionId))
       .orderBy(documents.uploadedAt);
+  }
+  
+  // Agent evaluation operations
+  async createAgentEvaluation(evaluationData: InsertAgentEvaluation): Promise<AgentEvaluation> {
+    const [evaluation] = await db
+      .insert(agentEvaluations)
+      .values(evaluationData)
+      .returning();
+    return evaluation;
+  }
+  
+  async getSessionEvaluations(sessionId: number): Promise<AgentEvaluation[]> {
+    return await db
+      .select()
+      .from(agentEvaluations)
+      .where(eq(agentEvaluations.sessionId, sessionId))
+      .orderBy(agentEvaluations.createdAt);
+  }
+  
+  async getAgentEvaluations(agentName: string): Promise<AgentEvaluation[]> {
+    return await db
+      .select()
+      .from(agentEvaluations)
+      .where(eq(agentEvaluations.agentName, agentName))
+      .orderBy(desc(agentEvaluations.createdAt));
+  }
+  
+  // User feedback operations
+  async createUserFeedback(feedbackData: InsertUserFeedback): Promise<UserFeedback> {
+    const [feedback] = await db
+      .insert(userFeedback)
+      .values(feedbackData)
+      .returning();
+    return feedback;
+  }
+  
+  async getUserFeedback(userId: string): Promise<UserFeedback[]> {
+    return await db
+      .select()
+      .from(userFeedback)
+      .where(eq(userFeedback.userId, userId))
+      .orderBy(desc(userFeedback.createdAt));
+  }
+  
+  async getSessionFeedback(sessionId: number): Promise<UserFeedback[]> {
+    return await db
+      .select()
+      .from(userFeedback)
+      .where(eq(userFeedback.sessionId, sessionId))
+      .orderBy(userFeedback.createdAt);
+  }
+  
+  // Prompt version operations
+  async createPromptVersion(versionData: InsertPromptVersion): Promise<PromptVersion> {
+    // Deactivate all other versions for this agent
+    await db
+      .update(promptVersions)
+      .set({ isActive: false })
+      .where(eq(promptVersions.agentName, versionData.agentName));
+      
+    const [version] = await db
+      .insert(promptVersions)
+      .values(versionData)
+      .returning();
+    return version;
+  }
+  
+  async getActivePromptVersion(agentName: string): Promise<PromptVersion | undefined> {
+    const [version] = await db
+      .select()
+      .from(promptVersions)
+      .where(and(
+        eq(promptVersions.agentName, agentName),
+        eq(promptVersions.isActive, true)
+      ))
+      .limit(1);
+    return version;
+  }
+  
+  async getPromptVersionHistory(agentName: string): Promise<PromptVersion[]> {
+    return await db
+      .select()
+      .from(promptVersions)
+      .where(eq(promptVersions.agentName, agentName))
+      .orderBy(desc(promptVersions.createdAt));
+  }
+  
+  async updatePromptVersion(id: number, updates: Partial<PromptVersion>): Promise<PromptVersion> {
+    const [version] = await db
+      .update(promptVersions)
+      .set(updates)
+      .where(eq(promptVersions.id, id))
+      .returning();
+    return version;
+  }
+  
+  // Admin operations
+  async createAdminUser(adminData: InsertAdminUser): Promise<AdminUser> {
+    const [admin] = await db
+      .insert(adminUsers)
+      .values(adminData)
+      .returning();
+    return admin;
+  }
+  
+  async getAdminByEmail(email: string): Promise<AdminUser | undefined> {
+    const [admin] = await db
+      .select()
+      .from(adminUsers)
+      .where(eq(adminUsers.email, email));
+    return admin;
+  }
+  
+  async updateAdminLastLogin(id: string): Promise<void> {
+    await db
+      .update(adminUsers)
+      .set({ lastLogin: new Date() })
+      .where(eq(adminUsers.id, id));
   }
 }
 

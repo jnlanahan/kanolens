@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Users, Package, Star } from "lucide-react";
+import { FeedbackButton } from "@/components/FeedbackButton";
 import type { ChatMessage as ChatMessageType } from "@shared/schema";
 
 interface ChatMessageProps {
@@ -141,6 +142,18 @@ export default function ChatMessage({ message, isTyping = false }: ChatMessagePr
               <Clock className="h-3 w-3" />
               <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
             </div>
+          </div>
+        )}
+        
+        {/* Add feedback buttons for assistant messages */}
+        {!isUser && !isSystem && message.id !== "typing" && (
+          <div className="mt-2 ml-3">
+            <FeedbackButton
+              sessionId={message.sessionId}
+              messageId={message.id}
+              content={message.content}
+              metadata={message.metadata}
+            />
           </div>
         )}
       </div>

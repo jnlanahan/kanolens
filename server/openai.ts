@@ -4,6 +4,8 @@ import { orchestratorAgent } from "./agents/orchestrator";
 import { researcherAgent } from "./agents/researcher";
 import { validatorAgent } from "./agents/validator";
 import { analystAgent } from "./agents/analyst";
+import { evaluatorAgent } from "./agents/evaluator";
+import { storage } from "./storage";
 
 console.log("[OpenAI] Initializing OpenAI client...");
 console.log("[OpenAI] API Key present:", !!process.env.OPENAI_API_KEY);
@@ -25,6 +27,49 @@ interface ChatResponse {
   data: any;
   nextAction?: string;
   metadata?: any;
+}
+
+// Helper function to trigger agent evaluation asynchronously
+async function evaluateAgentOutput(
+  agentName: 'orchestrator' | 'researcher' | 'validator' | 'analyst',
+  input: any,
+  output: any,
+  sessionId: number,
+  targetCustomer: string,
+  products: string[],
+  executionTime?: number
+) {
+  try {
+    const evaluation = await evaluatorAgent.evaluateAgent({
+      agentName,
+      input,
+      output,
+      context: {
+        sessionId,
+        targetCustomer,
+        products,
+        executionTime,
+      },
+    });
+
+    // Store evaluation in database
+    await storage.createAgentEvaluation({
+      sessionId,
+      agentName,
+      inputData: input,
+      outputData: output,
+      evaluation,
+      promptVersion: '1.0', // You can track version numbers here
+    });
+
+    console.log(`[Evaluator] Completed evaluation for ${agentName}:`, {
+      score: evaluation.score,
+      strengths: evaluation.strengths.length,
+      weaknesses: evaluation.weaknesses.length,
+    });
+  } catch (error) {
+    console.error(`[Evaluator] Failed to evaluate ${agentName}:`, error);
+  }
 }
 
 export async function processChatMessage(
@@ -124,7 +169,8 @@ export async function processChatMessage(
         (update) => {
           // Progress updates could be sent via WebSocket in the future
           console.log(`[Multi-Agent Progress] ${update.step}: ${update.message} (${update.progress}%)`);
-        }
+        },
+        sessionId
       );
       
       return {
@@ -692,7 +738,7 @@ export async function testOpenAIConnection(): Promise<boolean> {
 }
 
 // Web search function for authentic competitive research
-async function searchProductInformation(query: string): Promise<{content: string, sources: string[]}> {
+export async function searchProductInformation(query: string): Promise<{content: string, sources: string[]}> {
   console.log(`[OpenAI] Searching web for: ${query}`);
   
   try {
