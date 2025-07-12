@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Home from "@/pages/Home";
+import AgentArchitecture from "@/pages/AgentArchitecture";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,6 +20,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/analysis/:id" component={Home} />
+          <Route path="/agent-architecture" component={AgentArchitecture} />
         </>
       )}
       <Route component={NotFound} />

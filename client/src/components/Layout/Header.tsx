@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2, Edit, Check, X } from "lucide-react";
+import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2, Edit, Check, X, Network } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
@@ -275,6 +275,14 @@ export default function Header({
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* Agent Architecture Button */}
+          <a href="/agent-architecture" className="inline-block">
+            <Button variant="outline" size="sm" className="flex items-center space-x-2">
+              <Network className="h-4 w-4" />
+              <span className="text-sm font-medium">Agent Architecture</span>
+            </Button>
+          </a>
+
           {/* OpenAI Status Indicator */}
           <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
             openaiStatus?.connected 
