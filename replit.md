@@ -4,16 +4,27 @@
 KanoLens is an AI-powered competitive analysis platform that transforms complex product research into actionable insights using advanced machine learning and semantic search technologies. The platform helps users analyze competitors using the Kano Model framework to categorize features as Must-have, Performance, or Delighter features.
 
 ## Recent Changes
+- **January 2025**: Simplified UX/UI with Step-by-Step Workflow
+  - Completely redesigned user experience with focused, single-purpose screens
+  - Step 1: Clean initial form (only thing on screen when filling out)
+  - Step 2: AI suggestions acceptance screen (only suggestions visible)
+  - Step 3: Real-time agent progress tracking (shows actual agent work with time estimates)
+  - Step 4: Final Kano Model table results (table-only view)
+  - Added floating Orchestrator chat bubble available on all screens
+  - Orchestrator agent can modify analysis at any point and navigate between steps
+  - Progress tracker shows actual agent status: waiting, working, completed
+  - Each screen has contextual quick actions for the Orchestrator
+  - Maintained all backend multi-agent functionality while simplifying frontend
+
 - **January 2025**: Multi-agent architecture implementation complete
-  - Successfully implemented 4-agent architecture with specialized roles:
+  - Successfully implemented 5-agent architecture with specialized roles:
     - Agent 1: Orchestrator (OpenAI GPT-4o) - Form processing, coordination, progress tracking
     - Agent 2: Researcher (Perplexity AI) - Market research for products and features
     - Agent 3: Validator (Claude/Anthropic) - Kano categorization and feature rating
     - Agent 4: Analyst (OpenAI o1) - Strategic analysis and recommendations
-  - Created comprehensive test suite for all agents with proper test coverage
-  - Integrated multi-agent system into existing openai.ts without frontend changes
-  - Maintained exact same UI/UX while backend now uses multi-agent coordination
-  - Added progress tracking through multi-agent workflow
+    - Agent 5: Evaluator (OpenAI GPT-4o) - Quality assessment and improvement suggestions
+  - Created comprehensive evaluation system and admin dashboard
+  - Integrated multi-agent system with real-time progress tracking
   - All agents work together seamlessly to produce comprehensive Kano analysis
 
 ## Project Architecture

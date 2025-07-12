@@ -549,6 +549,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint for generating suggestions (simplified workflow)
+  app.post('/api/chat/suggestions', isAuthenticated, async (req: any, res) => {
+    try {
+      const { orchestratorAgent } = await import('./agents/orchestrator');
+      
+      const input = {
+        mode: 'suggestions' as const,
+        formData: req.body,
+        sessionId: 0 // Temporary session ID for suggestions
+      };
+      
+      const suggestions = await orchestratorAgent.processSuggestions(input);
+      
+      res.json({
+        products: suggestions.suggestedProducts.map(p => p.name),
+        features: suggestions.suggestedFeatures,
+        targetCustomer: req.body.targetCustomers,
+        interpretation: suggestions.productInterpretation
+      });
+    } catch (error) {
+      console.error('Suggestions error:', error);
+      res.status(500).json({ message: 'Failed to generate suggestions' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
