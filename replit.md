@@ -70,6 +70,12 @@ The application now uses a sophisticated multi-agent system with the following a
    - Competitive recommendations
    - Feature prioritization
 
+5. **Evaluator Agent (OpenAI GPT-4o)**
+   - Evaluates agent performance asynchronously
+   - Provides quality metrics and scoring
+   - Identifies improvement opportunities
+   - Suggests prompt optimizations
+
 ## User Preferences
 - Simple, non-technical language in user interactions
 - Visual representations for complex concepts

@@ -7,7 +7,7 @@ export default function AgentArchitectureDiagram() {
         KanoLens Multi-Agent Architecture
       </h2>
       
-      <svg viewBox="0 0 1200 800" className="w-full h-auto">
+      <svg viewBox="0 0 1200 900" className="w-full h-auto">
         {/* Background grid */}
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
@@ -30,7 +30,7 @@ export default function AgentArchitectureDiagram() {
           </marker>
         </defs>
         
-        <rect width="1200" height="800" fill="url(#grid)" />
+        <rect width="1200" height="900" fill="url(#grid)" />
         
         {/* User Box */}
         <g transform="translate(500, 20)">
@@ -123,8 +123,28 @@ export default function AgentArchitectureDiagram() {
           </text>
         </g>
         
+        {/* Agent 5 - Evaluator */}
+        <g transform="translate(250, 520)">
+          <rect x="0" y="0" width="350" height="120" rx="8" fill="#be185d" stroke="#9d174d" strokeWidth="2" />
+          <text x="175" y="25" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold">
+            Agent 5: Evaluator
+          </text>
+          <text x="175" y="50" textAnchor="middle" fill="white" fontSize="14">
+            OpenAI GPT-4o
+          </text>
+          <text x="175" y="70" textAnchor="middle" fill="white" fontSize="12">
+            • Evaluates agent performance
+          </text>
+          <text x="175" y="88" textAnchor="middle" fill="white" fontSize="12">
+            • Identifies improvement areas
+          </text>
+          <text x="175" y="106" textAnchor="middle" fill="white" fontSize="12">
+            • Suggests prompt optimizations
+          </text>
+        </g>
+        
         {/* Kano Model Output */}
-        <g transform="translate(450, 600)">
+        <g transform="translate(450, 700)">
           <rect x="0" y="0" width="300" height="100" rx="8" fill="#06b6d4" stroke="#0891b2" strokeWidth="2" />
           <text x="150" y="30" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold">
             Kano Model Analysis
@@ -157,15 +177,23 @@ export default function AgentArchitectureDiagram() {
         <path d="M 1000 350 Q 1000 250 800 210" fill="none" stroke="#6366f1" strokeWidth="2" strokeDasharray="5,5" markerEnd="url(#arrowhead)" />
         
         {/* Orchestrator to Output */}
-        <line x1="600" y1="270" x2="600" y2="600" stroke="#6366f1" strokeWidth="2" markerEnd="url(#arrowhead)" />
+        <line x1="600" y1="270" x2="600" y2="700" stroke="#6366f1" strokeWidth="2" markerEnd="url(#arrowhead)" />
+        
+        {/* All agents to Evaluator (async evaluation) */}
+        <path d="M 600 270 Q 300 400 425 520" fill="none" stroke="#be185d" strokeWidth="2" strokeDasharray="8,3" markerEnd="url(#arrowhead)" />
+        <path d="M 275 470 Q 275 520 350 520" fill="none" stroke="#be185d" strokeWidth="2" strokeDasharray="8,3" markerEnd="url(#arrowhead)" />
+        <path d="M 650 470 Q 650 520 500 520" fill="none" stroke="#be185d" strokeWidth="2" strokeDasharray="8,3" markerEnd="url(#arrowhead)" />
+        <path d="M 1000 470 Q 1000 520 600 520" fill="none" stroke="#be185d" strokeWidth="2" strokeDasharray="8,3" markerEnd="url(#arrowhead)" />
         
         {/* Legend */}
-        <g transform="translate(50, 700)">
+        <g transform="translate(50, 820)">
           <text x="0" y="0" fontSize="14" fontWeight="bold" fill="#374151">Legend:</text>
           <line x1="80" y1="-5" x2="120" y2="-5" stroke="#6366f1" strokeWidth="2" markerEnd="url(#arrowhead)" />
           <text x="130" y="0" fontSize="12" fill="#374151">Data flow</text>
           <line x1="250" y1="-5" x2="290" y2="-5" stroke="#6366f1" strokeWidth="2" strokeDasharray="5,5" markerEnd="url(#arrowhead)" />
           <text x="300" y="0" fontSize="12" fill="#374151">Feedback/Validation</text>
+          <line x1="450" y1="-5" x2="490" y2="-5" stroke="#be185d" strokeWidth="2" strokeDasharray="8,3" markerEnd="url(#arrowhead)" />
+          <text x="500" y="0" fontSize="12" fill="#374151">Async Evaluation</text>
         </g>
       </svg>
       
@@ -288,6 +316,36 @@ export default function AgentArchitectureDiagram() {
             </ul>
           </div>
         </div>
+
+        {/* Agent 5 */}
+        <div className="bg-pink-50 dark:bg-pink-900/20 p-6 rounded-lg border border-pink-200 dark:border-pink-800">
+          <h4 className="font-bold text-pink-800 dark:text-pink-200 mb-3">Agent 5: Evaluator (OpenAI GPT-4o)</h4>
+          <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+            <p><strong>System Prompt:</strong></p>
+            <p className="pl-4 italic">
+              "You are the Evaluator agent for KanoLens. Your role is to assess the performance of other agents and identify areas for improvement:
+              
+              1. Performance Assessment: Evaluate agent outputs for accuracy, completeness, and relevance
+              2. Quality Metrics: Calculate scores for accuracy, completeness, relevance, and clarity
+              3. Improvement Identification: Identify weaknesses and suggest enhancements
+              4. Prompt Optimization: Recommend prompt modifications for better performance
+              
+              Provide constructive feedback with specific suggestions for improvement. Focus on:
+              - Content quality and accuracy
+              - Adherence to instructions
+              - User experience impact
+              - Systematic improvement opportunities"
+            </p>
+            <p className="mt-2"><strong>Evaluation Criteria:</strong></p>
+            <ul className="list-disc list-inside pl-4">
+              <li>Agent output accuracy (0-100 scale)</li>
+              <li>Task completion thoroughness</li>
+              <li>Response relevance to user needs</li>
+              <li>Clarity and actionability of insights</li>
+              <li>Prompt optimization suggestions</li>
+            </ul>
+          </div>
+        </div>
       </div>
       
       {/* Workflow Overview */}
@@ -300,6 +358,7 @@ export default function AgentArchitectureDiagram() {
           <li><strong>Validation:</strong> Agent 3 reviews research for accuracy and completeness</li>
           <li><strong>Analysis:</strong> Agent 4 performs strategic analysis and generates recommendations</li>
           <li><strong>Synthesis:</strong> Agent 1 combines all outputs into final Kano Model analysis</li>
+          <li><strong>Evaluation:</strong> Agent 5 asynchronously evaluates all agent performances and identifies improvements</li>
           <li><strong>Delivery:</strong> User receives comprehensive competitive analysis with actionable insights</li>
         </ol>
       </div>
