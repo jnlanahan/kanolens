@@ -341,79 +341,81 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
         </div>
 
         {/* Table Content */}
-        <div className="flex-1 overflow-auto p-4">
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
-                  <th className="text-left p-4 font-semibold text-gray-900 dark:text-white min-w-64">
-                    Feature/Benefit
-                  </th>
-                  {tableData.products.map((product) => (
-                    <th key={product} className="text-center p-4 font-semibold text-gray-900 dark:text-white min-w-32">
-                      {product}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(featuresByCategory).map(([category, features]) => {
-                  const categoryRows = [
-                    // Category Header
-                    <tr key={`header-${category}`} className={`border-b-2 ${categoryColors[category as keyof typeof categoryColors]}`}>
-                      <td colSpan={tableData.products.length + 1} className="p-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="text-lg">{categoryIcons[category as keyof typeof categoryIcons]}</div>
-                          <span className="font-mono-heading font-semibold uppercase tracking-wide text-xs">
-                            {categoryLabels[category as keyof typeof categoryLabels]}
-                          </span>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs">
-                              <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </td>
-                    </tr>,
-                    // Category Features
-                    ...features.map((feature) => (
-                      <tr
-                        key={feature.id}
-                        className="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-                        onClick={() => handleFeatureClick(feature)}
-                      >
-                        <td className="p-4">
-                          <div className="font-medium text-gray-900 dark:text-white">{feature.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {feature.customerBenefit}
-                          </div>
-                        </td>
-                        {tableData.products.map((product) => {
-                          const rating = tableData.ratings[feature.id]?.[product] || "N/A";
-                          return (
-                            <td key={product} className="p-4 text-center">
-                              <Badge className={getRatingBadge(rating, category)}>
-                                {rating === "Yes" && "✓ Yes"}
-                                {rating === "No" && "✗ No"}
-                                {rating !== "Yes" && rating !== "No" && rating}
-                              </Badge>
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 h-full">
+            <Card className="overflow-hidden h-full">
+              <div className="overflow-auto h-full">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
+                      <th className="text-left p-4 font-semibold text-gray-900 dark:text-white min-w-64">
+                        Feature/Benefit
+                      </th>
+                      {tableData.products.map((product) => (
+                        <th key={product} className="text-center p-4 font-semibold text-gray-900 dark:text-white min-w-32">
+                          {product}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(featuresByCategory).map(([category, features]) => {
+                      const categoryRows = [
+                        // Category Header
+                        <tr key={`header-${category}`} className={`border-b-2 ${categoryColors[category as keyof typeof categoryColors]}`}>
+                          <td colSpan={tableData.products.length + 1} className="p-3">
+                            <div className="flex items-center space-x-2">
+                              <div className="text-lg">{categoryIcons[category as keyof typeof categoryIcons]}</div>
+                              <span className="font-mono-heading font-semibold uppercase tracking-wide text-xs">
+                                {categoryLabels[category as keyof typeof categoryLabels]}
+                              </span>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <p className="text-sm">{categoryDefinitions[category as keyof typeof categoryDefinitions]}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </td>
+                        </tr>,
+                        // Category Features
+                        ...features.map((feature) => (
+                          <tr
+                            key={feature.id}
+                            className="border-b border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                            onClick={() => handleFeatureClick(feature)}
+                          >
+                            <td className="p-4">
+                              <div className="font-medium text-gray-900 dark:text-white">{feature.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {feature.customerBenefit}
+                              </div>
                             </td>
-                          );
-                        })}
-                      </tr>
-                    ))
-                  ];
-                  return categoryRows;
-                })}
-              </tbody>
-            </table>
+                            {tableData.products.map((product) => {
+                              const rating = tableData.ratings[feature.id]?.[product] || "N/A";
+                              return (
+                                <td key={product} className="p-4 text-center">
+                                  <Badge className={getRatingBadge(rating, category)}>
+                                    {rating === "Yes" && "✓ Yes"}
+                                    {rating === "No" && "✗ No"}
+                                    {rating !== "Yes" && rating !== "No" && rating}
+                                  </Badge>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))
+                      ];
+                      return categoryRows;
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </div>
-        </Card>
-      </div>
+        </div>
 
       {/* Feature Detail Modal */}
       <FeatureModal
