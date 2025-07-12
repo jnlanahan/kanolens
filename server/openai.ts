@@ -1,5 +1,9 @@
 import OpenAI from "openai";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { orchestratorAgent } from "./agents/orchestrator";
+import { researcherAgent } from "./agents/researcher";
+import { validatorAgent } from "./agents/validator";
+import { analystAgent } from "./agents/analyst";
 
 console.log("[OpenAI] Initializing OpenAI client...");
 console.log("[OpenAI] API Key present:", !!process.env.OPENAI_API_KEY);
@@ -8,6 +12,8 @@ console.log("[OpenAI] API Key prefix:", process.env.OPENAI_API_KEY?.substring(0,
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+export { openai };
 
 const DEFAULT_MODEL = "gpt-4o";
 const SEARCH_MODEL = "gpt-4o";
@@ -31,6 +37,106 @@ export async function processChatMessage(
   console.log(`[OpenAI] Processing chat message for session ${sessionId}`);
   
   try {
+    // Check if this is a form submission (initial analysis request)
+    const isFormSubmission = message.includes('Analysis Request:') && 
+                           message.includes('Products to Compare:') && 
+                           message.includes('Target Customers:');
+    
+    if (isFormSubmission && currentStep === 'discovery') {
+      console.log("[OpenAI] Processing form submission with multi-agent architecture");
+      
+      // Parse form data from message
+      const formData = {
+        description: message.match(/Analysis Request: ([^\n]+)/)?.[1]?.trim() || '',
+        products: message.match(/Products to Compare: ([^\n]+)/)?.[1]?.trim() || '',
+        targetCustomers: message.match(/Target Customers: ([^\n]+)/)?.[1]?.trim() || '',
+        features: message.match(/Features\/Benefits to Analyze: ([^\n]+)/)?.[1]?.trim() || ''
+      };
+      
+      // Use Orchestrator Agent to process suggestions
+      const orchestratorInput = {
+        mode: 'suggestions' as const,
+        formData,
+        sessionId
+      };
+      
+      const suggestions = await orchestratorAgent.processSuggestions(orchestratorInput);
+      
+      // Format response for UI
+      let responseMessage = '';
+      
+      if (suggestions.productInterpretation) {
+        responseMessage += `**Product Interpretation:**\n${suggestions.productInterpretation}\n\n`;
+      }
+      
+      responseMessage += '**Suggested Competitive Products:**\n';
+      suggestions.suggestedProducts.forEach((product, index) => {
+        responseMessage += `${index + 1}. **${product.name}**: ${product.reason}\n`;
+      });
+      
+      responseMessage += '\n**Key Features/Benefits to Analyze:**\n';
+      suggestions.suggestedFeatures.forEach((feature, index) => {
+        responseMessage += `${index + 1}. ${feature}\n`;
+      });
+      
+      responseMessage += '\n"I\'ve enhanced your analysis setup with additional competitors and key features. Would you like to proceed with this competitive analysis?"';
+      
+      // Store enhanced data in session
+      const cleanedProducts = formData.products.split(',')
+        .map(p => p.trim())
+        .filter(p => p && !['etc', 'more', 'others'].includes(p.toLowerCase()));
+      
+      const allProducts = [...cleanedProducts, ...suggestions.suggestedProducts.map(p => p.name)];
+      
+      return {
+        step: 'suggestions',
+        message: responseMessage,
+        progress: 20,
+        data: {
+          products: allProducts,
+          features: suggestions.suggestedFeatures,
+          targetCustomer: formData.targetCustomers,
+          originalRequest: formData
+        },
+        nextAction: 'Review suggestions and proceed',
+        metadata: { useMultiAgent: true }
+      };
+    }
+    
+    // Check if this is an approval to proceed with full analysis using multi-agent
+    const isMultiAgentApproval = (message.toLowerCase().includes('yes') || 
+                                 message.toLowerCase().includes('proceed') || 
+                                 message.toLowerCase().includes('continue')) &&
+                                 sessionData?.metadata?.useMultiAgent;
+    
+    if (isMultiAgentApproval && currentStep === 'suggestions') {
+      console.log("[OpenAI] Starting multi-agent analysis coordination");
+      
+      const products = sessionData.products || [];
+      const features = sessionData.features || [];
+      const targetCustomer = sessionData.targetCustomer || '';
+      
+      // Coordinate full analysis through multiple agents
+      const analysisResult = await orchestratorAgent.coordinateFullAnalysis(
+        products,
+        features,
+        targetCustomer,
+        (update) => {
+          // Progress updates could be sent via WebSocket in the future
+          console.log(`[Multi-Agent Progress] ${update.step}: ${update.message} (${update.progress}%)`);
+        }
+      );
+      
+      return {
+        step: 'table_creation',
+        message: 'I\'ve completed the comprehensive competitive analysis using our multi-agent system. The Kano Model table has been generated with strategic insights.',
+        progress: 100,
+        data: analysisResult,
+        nextAction: 'Review the analysis results',
+        metadata: { isMultiAgentResult: true }
+      };
+    }
+    
     // Detect research requests
     const isResearchRequest = /find more|research|discover|explore|additional|investigate|what about|any other|more features|competitive landscape/i.test(message);
     const isTableEditRequest = /table edit|modify|change|update|add features|remove|edit table/i.test(message);
