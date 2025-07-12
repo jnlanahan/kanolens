@@ -342,9 +342,9 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
 
         {/* Table Content */}
         <div className="flex-1 overflow-auto">
-          <div className="p-4 h-full">
-            <Card className="overflow-hidden h-full">
-              <div className="overflow-auto h-full">
+          <div className="p-4">
+            <Card className="overflow-hidden">
+              <div className="overflow-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
