@@ -116,6 +116,30 @@ export default function Admin() {
     },
   });
 
+  // Test evaluation mutation
+  const testEvaluationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/test-evaluation', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Test evaluation created",
+        description: "A test evaluation has been generated to verify the system works.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/evaluations'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Test evaluation failed",
+        description: "Please check the console for details.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const calculateSummary = (evals: AgentEvaluation[]): EvaluationSummary => {
     if (!evals || evals.length === 0) {
       return {
@@ -266,6 +290,37 @@ export default function Admin() {
                         </Badge>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {summary.totalEvaluations === 0 && (
+                  <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      <h4 className="text-sm font-medium">No evaluations yet</h4>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Evaluations are generated automatically when the multi-agent system processes an analysis. 
+                      You can create a test evaluation to verify the system works.
+                    </p>
+                    <Button 
+                      onClick={() => testEvaluationMutation.mutate()} 
+                      disabled={testEvaluationMutation.isPending}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {testEvaluationMutation.isPending ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Creating Test...
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Create Test Evaluation
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </CardContent>

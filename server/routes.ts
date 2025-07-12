@@ -497,6 +497,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint to manually trigger an evaluation (for development/testing)
+  app.post('/api/admin/test-evaluation', isAuthenticated, async (req: any, res) => {
+    try {
+      const { evaluatorAgent } = await import('./agents/evaluator');
+      
+      // Create a test evaluation
+      const mockInput = {
+        mode: 'comprehensive',
+        products: ['HeadshotPro', 'Dreamwave', 'Aragon.ai'],
+        targetCustomer: 'young professionals'
+      };
+      
+      const mockOutput = {
+        research: { 
+          features: ['AI Enhancement', 'Background Removal', 'Batch Processing'],
+          sources: ['https://example.com/source1', 'https://example.com/source2']
+        },
+        analysis: 'Strategic analysis of AI photo enhancement tools for young professionals'
+      };
+      
+      const evaluation = await evaluatorAgent.evaluateAgent({
+        agentName: 'researcher',
+        input: mockInput,
+        output: mockOutput,
+        context: {
+          sessionId: 999,
+          targetCustomer: 'young professionals',
+          products: ['HeadshotPro', 'Dreamwave', 'Aragon.ai'],
+          executionTime: 5000
+        }
+      });
+      
+      // Store evaluation in database
+      await storage.createAgentEvaluation({
+        sessionId: 999,
+        agentName: 'researcher',
+        inputData: mockInput,
+        outputData: mockOutput,
+        evaluation: evaluation,
+        promptVersion: '1.0'
+      });
+      
+      res.json({
+        message: 'Test evaluation created successfully',
+        evaluation: evaluation
+      });
+    } catch (error) {
+      console.error('Test evaluation error:', error);
+      res.status(500).json({ message: 'Failed to create test evaluation' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
