@@ -55,6 +55,47 @@ export class ValidatorAgent {
     }
   };
 
+  private readonly realProductKnowledge = {
+    // Product management tools
+    'Trello': {
+      strengths: ['Simple kanban boards', 'Easy collaboration', 'Power-ups ecosystem'],
+      weaknesses: ['Limited reporting', 'No time tracking', 'Basic project management']
+    },
+    'Asana': {
+      strengths: ['Task management', 'Team collaboration', 'Project templates', 'Timeline view'],
+      weaknesses: ['Complex for simple tasks', 'Limited customization']
+    },
+    'Monday.com': {
+      strengths: ['Visual project tracking', 'Automation', 'Customizable workflows', 'Integrations'],
+      weaknesses: ['Pricing complexity', 'Learning curve']
+    },
+    'Jira': {
+      strengths: ['Issue tracking', 'Agile workflows', 'Developer tools', 'Reporting'],
+      weaknesses: ['Complex setup', 'Steep learning curve']
+    },
+    'Notion': {
+      strengths: ['All-in-one workspace', 'Flexible databases', 'Documentation', 'Templates'],
+      weaknesses: ['Performance issues', 'Complexity for simple tasks']
+    },
+    // Design tools
+    'Figma': {
+      strengths: ['Real-time collaboration', 'Vector editing', 'Prototyping', 'Developer handoff'],
+      weaknesses: ['Internet dependency', 'Performance with large files']
+    },
+    'Canva': {
+      strengths: ['Easy design', 'Templates', 'Brand kit', 'Stock assets'],
+      weaknesses: ['Limited advanced features', 'Subscription costs']
+    },
+    'Adobe XD': {
+      strengths: ['Prototyping', 'Design systems', 'Adobe integration'],
+      weaknesses: ['Discontinued', 'Limited compared to Figma']
+    },
+    'Sketch': {
+      strengths: ['Vector design', 'Symbols', 'Plugins'],
+      weaknesses: ['Mac only', 'No real-time collaboration']
+    }
+  };
+
   async categorizeFeatures(request: ValidationRequest): Promise<ValidationResult> {
     console.log('[Validator] Starting feature categorization for', request.targetCustomer);
     console.log('[Validator] Research data:', !!request.researchData);
@@ -162,24 +203,34 @@ export class ValidatorAgent {
     const totalProducts = researchData.products.length;
     const featureFrequency = featureData.productCount / totalProducts;
     
-    // Determine category based on frequency and feature characteristics
+    // Determine category based on real product knowledge + Kano Model principles
     let category: 'must-have' | 'performance' | 'delighter';
     let categoryRationale: string;
     
     console.log(`[Validator] Categorizing ${featureName}: ${featureData.productCount}/${totalProducts} products (${Math.round(featureFrequency * 100)}%)`);
     
-    if (featureFrequency >= 0.75) {
+    // Use authentic Kano Model categorization based on feature type
+    if (this.isBasicExpectation(featureName, targetCustomer)) {
       category = 'must-have';
-      categoryRationale = `Present in ${featureData.productCount}/${totalProducts} products (${Math.round(featureFrequency * 100)}%). This indicates it's a basic expectation.`;
+      categoryRationale = `Basic expectation for ${targetCustomer} - customers expect this feature as standard`;
     } else if (this.isPerformanceFeature(featureName)) {
       category = 'performance';
-      categoryRationale = `Measurable feature where more/better performance directly impacts user satisfaction.`;
-    } else if (featureFrequency <= 0.4) {
+      categoryRationale = `Measurable feature where quality/quantity directly impacts ${targetCustomer} satisfaction`;
+    } else if (this.isDelighterFeature(featureName, targetCustomer)) {
       category = 'delighter';
-      categoryRationale = `Unique feature in ${featureData.productCount}/${totalProducts} products. Creates competitive differentiation.`;
+      categoryRationale = `Innovative feature that can exceed ${targetCustomer} expectations and create competitive advantage`;
     } else {
-      category = 'performance';
-      categoryRationale = `Moderate adoption (${Math.round(featureFrequency * 100)}%) with variable implementation quality.`;
+      // Use frequency as fallback
+      if (featureFrequency >= 0.75) {
+        category = 'must-have';
+        categoryRationale = `Present in ${featureData.productCount}/${totalProducts} products (${Math.round(featureFrequency * 100)}%) - indicates market standard`;
+      } else if (featureFrequency <= 0.4) {
+        category = 'delighter';
+        categoryRationale = `Unique feature in ${featureData.productCount}/${totalProducts} products - creates differentiation`;
+      } else {
+        category = 'performance';
+        categoryRationale = `Variable implementation quality across ${Math.round(featureFrequency * 100)}% of products`;
+      }
     }
     
     // Generate product ratings
@@ -221,23 +272,85 @@ export class ValidatorAgent {
     };
   }
   
+  private isBasicExpectation(featureName: string, targetCustomer: string): boolean {
+    const basicFeatures = [
+      'basic security', 'user authentication', 'data backup', 'mobile access',
+      'email notifications', 'user management', 'basic reporting', 'file storage',
+      'basic collaboration', 'task management', 'basic templates'
+    ];
+    
+    return basicFeatures.some(basic => 
+      featureName.toLowerCase().includes(basic.toLowerCase()) ||
+      basic.toLowerCase().includes(featureName.toLowerCase())
+    );
+  }
+
   private isPerformanceFeature(featureName: string): boolean {
     const performanceKeywords = [
       'speed', 'performance', 'capacity', 'storage', 'bandwidth', 'response time',
       'load time', 'throughput', 'scalability', 'efficiency', 'optimization',
-      'analytics', 'reporting', 'dashboard', 'metrics', 'tracking'
+      'analytics', 'reporting', 'dashboard', 'metrics', 'tracking', 'integration'
     ];
     
     return performanceKeywords.some(keyword => 
       featureName.toLowerCase().includes(keyword)
     );
   }
+
+  private isDelighterFeature(featureName: string, targetCustomer: string): boolean {
+    const delighterKeywords = [
+      'AI', 'artificial intelligence', 'machine learning', 'automation',
+      'smart', 'intelligent', 'advanced', 'innovative', 'breakthrough',
+      'revolutionary', 'unique', 'cutting-edge', 'predictive', 'personalized'
+    ];
+    
+    return delighterKeywords.some(keyword => 
+      featureName.toLowerCase().includes(keyword.toLowerCase())
+    );
+  }
   
   private assessFeatureQuality(featureName: string, product: any, featureData: any): {rating: 'High' | 'Medium' | 'Low'; justification: string} {
-    const implementation = featureData.implementations.get(product.name) || '';
-    const benefit = featureData.benefits.get(product.name) || '';
+    const productName = product.name;
+    const productKnowledge = this.realProductKnowledge[productName];
     
-    // Simple quality assessment logic
+    // Use real product knowledge for authentic ratings
+    if (productKnowledge) {
+      const featureNameLower = featureName.toLowerCase();
+      
+      // Check if feature aligns with product strengths
+      const isStrength = productKnowledge.strengths.some(strength => 
+        featureNameLower.includes(strength.toLowerCase().split(' ')[0]) ||
+        strength.toLowerCase().includes(featureNameLower.split(' ')[0])
+      );
+      
+      // Check if feature aligns with product weaknesses
+      const isWeakness = productKnowledge.weaknesses.some(weakness => 
+        featureNameLower.includes(weakness.toLowerCase().split(' ')[0]) ||
+        weakness.toLowerCase().includes(featureNameLower.split(' ')[0])
+      );
+      
+      if (isStrength) {
+        return {
+          rating: 'High',
+          justification: `${productName} is known for strong ${featureName.toLowerCase()} capabilities`
+        };
+      } else if (isWeakness) {
+        return {
+          rating: 'Low',
+          justification: `${productName} has limitations in ${featureName.toLowerCase()}`
+        };
+      } else {
+        return {
+          rating: 'Medium',
+          justification: `${productName} provides standard ${featureName.toLowerCase()} functionality`
+        };
+      }
+    }
+    
+    // Fallback to generic assessment
+    const implementation = featureData.implementations.get(productName) || '';
+    const benefit = featureData.benefits.get(productName) || '';
+    
     if (implementation.includes('advanced') || implementation.includes('comprehensive') || 
         benefit.includes('significantly') || benefit.includes('exceptional')) {
       return {

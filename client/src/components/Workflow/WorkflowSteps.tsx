@@ -436,6 +436,18 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
                 )}
               </Button>
             </form>
+            
+            {/* Architecture Diagram Button */}
+            <div className="mt-4 text-center">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.open('https://lucid.app/lucidchart/invitations/accept/inv_7c8b8d3b-4f8b-4d1e-9c7a-2b8f3d4e5c6a', '_blank')}
+              >
+                <Brain className="mr-2 h-4 w-4" />
+                View AI Agent Architecture
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
