@@ -148,6 +148,12 @@ export async function processChatMessage(
       };
     }
     
+    // Log exactly what we're checking
+    console.log("[OpenAI] Multi-agent check - message:", message);
+    console.log("[OpenAI] Multi-agent check - currentStep:", currentStep);
+    console.log("[OpenAI] Multi-agent check - sessionData.features:", sessionData.features);
+    console.log("[OpenAI] Multi-agent check - conversationHistory length:", conversationHistory.length);
+    
     // Check if this is a direct request to start multi-agent analysis
     const isDirectMultiAgentRequest = message.toLowerCase().includes('yes proceed with the full competitive analysis');
     
@@ -162,9 +168,18 @@ export async function processChatMessage(
                                    message.toLowerCase().includes('continue')) &&
                                   hasMultiAgentFlag));
     
+    console.log("[OpenAI] Multi-agent check results:");
+    console.log("  - isDirectMultiAgentRequest:", isDirectMultiAgentRequest);
+    console.log("  - hasMultiAgentFlag:", hasMultiAgentFlag);
+    console.log("  - isMultiAgentApproval:", isMultiAgentApproval);
+    console.log("  - currentStep === 'suggestions':", currentStep === 'suggestions');
+    
     if (isMultiAgentApproval && currentStep === 'suggestions') {
-      console.log("[OpenAI] Starting multi-agent analysis coordination");
+      console.log("[OpenAI] MULTI-AGENT TRIGGER DETECTED!");
       console.log("[OpenAI] Direct request:", isDirectMultiAgentRequest);
+      console.log("[OpenAI] Has multi-agent flag:", hasMultiAgentFlag);
+      console.log("[OpenAI] Current step:", currentStep);
+      console.log("[OpenAI] Message:", message);
       console.log("[OpenAI] Products:", sessionData.products);
       console.log("[OpenAI] Features:", sessionData.features);
       console.log("[OpenAI] Target Customer:", sessionData.targetCustomer);
