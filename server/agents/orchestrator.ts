@@ -370,21 +370,22 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
     const sources: Record<string, string[]> = {};
 
     features.forEach((feature: any) => {
-      ratings[feature.featureName] = {};
-      sources[feature.featureName] = ['Market research', 'Product documentation'];
+      const featureId = feature.featureName.toLowerCase().replace(/\s+/g, '-');
+      ratings[featureId] = {};
+      sources[featureId] = ['Market research', 'Product documentation'];
       
-      console.log(`[Orchestrator] Processing feature: ${feature.featureName}`);
+      console.log(`[Orchestrator] Processing feature: ${feature.featureName} (ID: ${featureId})`);
       console.log(`[Orchestrator] Product ratings available:`, Object.keys(feature.productRatings || {}));
       
       products.forEach(product => {
         const productRating = feature.productRatings?.[product];
         if (productRating) {
-          ratings[feature.featureName][product] = productRating.rating;
-          console.log(`[Orchestrator] Set ${feature.featureName} -> ${product} = ${productRating.rating}`);
+          ratings[featureId][product] = productRating.rating;
+          console.log(`[Orchestrator] Set ${featureId} -> ${product} = ${productRating.rating}`);
         } else {
           // Set default value instead of leaving undefined
-          ratings[feature.featureName][product] = 'N/A';
-          console.log(`[Orchestrator] No rating found for ${feature.featureName} -> ${product}, setting N/A`);
+          ratings[featureId][product] = 'N/A';
+          console.log(`[Orchestrator] No rating found for ${featureId} -> ${product}, setting N/A`);
         }
       });
     });
