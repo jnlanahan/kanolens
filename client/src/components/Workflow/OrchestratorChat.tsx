@@ -9,7 +9,7 @@ interface OrchestratorChatProps {
   isVisible: boolean;
   onToggle: () => void;
   onMessage: (message: string) => void;
-  context: 'form' | 'suggestions' | 'progress' | 'results';
+  context: 'form' | 'suggestions' | 'validation' | 'progress' | 'results';
 }
 
 interface ChatMessage {
@@ -38,6 +38,11 @@ export default function OrchestratorChat({
       "Add more competitors",
       "Remove some products",
       "Modify the feature list"
+    ],
+    validation: [
+      "Validate this product name",
+      "Check if this is a real competitor",
+      "Suggest similar products"
     ],
     progress: [
       "How long will this take?",

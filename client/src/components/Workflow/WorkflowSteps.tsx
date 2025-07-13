@@ -40,7 +40,7 @@ interface WorkflowStepsProps {
 }
 
 export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps) {
-  const [currentStep, setCurrentStep] = useState<'form' | 'suggestions' | 'progress' | 'results'>('form');
+  const [currentStep, setCurrentStep] = useState<'form' | 'suggestions' | 'validation' | 'progress' | 'results'>('form');
   const [formData, setFormData] = useState<FormData>({
     description: '',
     products: '',
@@ -48,6 +48,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     features: ''
   });
   const [suggestions, setSuggestions] = useState<SuggestionData | null>(null);
+  const [manualEdits, setManualEdits] = useState<SuggestionData | null>(null);
   const [finalData, setFinalData] = useState<SuggestionData | null>(null);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
@@ -116,7 +117,14 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
 
   const handleAcceptSuggestions = () => {
     if (suggestions) {
-      setFinalData(suggestions);
+      setManualEdits(suggestions);
+      setCurrentStep('validation');
+    }
+  };
+
+  const handleValidationComplete = () => {
+    if (manualEdits) {
+      setFinalData(manualEdits);
       setCurrentStep('progress');
       startAnalysis();
     }
@@ -236,6 +244,31 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     // Handle orchestrator chat messages
     console.log('Orchestrator chat:', message);
     // This would integrate with the actual chat system
+  };
+
+  const validateManualInputs = async (customProduct: string, customBenefit: string) => {
+    try {
+      const response = await fetch('/api/chat/validate-inputs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: customProduct,
+          benefit: customBenefit,
+          existingData: manualEdits
+        })
+      });
+      
+      const validationResult = await response.json();
+      return validationResult;
+    } catch (error) {
+      console.error('Validation error:', error);
+      toast({
+        title: "Validation Error",
+        description: "Failed to validate inputs. Please try again.",
+        variant: "destructive"
+      });
+      return null;
+    }
   };
 
   // Step 1: Initial Form
@@ -389,6 +422,206 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
         />
       </div>
     );
+  }
+
+  // Step 3: Manual Input Validation
+  if (currentStep === 'validation' && manualEdits) {
+    const ManualInputValidation = () => {
+      const [customProduct, setCustomProduct] = useState('');
+      const [customBenefit, setCustomBenefit] = useState('');
+      const [isValidating, setIsValidating] = useState(false);
+      const [validationResults, setValidationResults] = useState<any>(null);
+      
+      const handleAddProduct = async () => {
+        if (!customProduct.trim()) return;
+        
+        setIsValidating(true);
+        const result = await validateManualInputs(customProduct, customBenefit);
+        
+        if (result) {
+          setValidationResults(result);
+          if (result.isValid) {
+            setManualEdits(prev => prev ? {
+              ...prev,
+              products: [...prev.products, result.validatedProduct]
+            } : null);
+            setCustomProduct('');
+            setCustomBenefit('');
+          }
+        }
+        setIsValidating(false);
+      };
+
+      const handleRemoveProduct = (index: number) => {
+        setManualEdits(prev => prev ? {
+          ...prev,
+          products: prev.products.filter((_, i) => i !== index)
+        } : null);
+      };
+
+      const handleRemoveFeature = (index: number) => {
+        setManualEdits(prev => prev ? {
+          ...prev,
+          features: prev.features.filter((_, i) => i !== index)
+        } : null);
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+          <Card className="w-full max-w-5xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold">Manual Input Validation</CardTitle>
+              <CardDescription>
+                Add custom products or refine the analysis setup. The Orchestrator will validate your inputs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Products */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Products to Analyze</h3>
+                <div className="flex flex-wrap gap-2">
+                  {manualEdits.products.map((product, index) => (
+                    <Badge key={index} variant="secondary" className="relative group">
+                      {product}
+                      <button
+                        onClick={() => handleRemoveProduct(index)}
+                        className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add Custom Product */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 space-y-4">
+                <h4 className="font-semibold">Add Custom Product</h4>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customProduct">Product Name</Label>
+                    <Input
+                      id="customProduct"
+                      placeholder="e.g., Notion, Asana"
+                      value={customProduct}
+                      onChange={(e) => setCustomProduct(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customBenefit">Key Benefit (Optional)</Label>
+                    <Input
+                      id="customBenefit"
+                      placeholder="e.g., All-in-one workspace"
+                      value={customBenefit}
+                      onChange={(e) => setCustomBenefit(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleAddProduct}
+                  disabled={!customProduct.trim() || isValidating}
+                  className="w-full"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Validating with Orchestrator...
+                    </>
+                  ) : (
+                    "Add & Validate Product"
+                  )}
+                </Button>
+              </div>
+
+              {/* Validation Results */}
+              {validationResults && (
+                <Card className={`border-2 ${validationResults.isValid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                  <CardContent className="pt-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        {validationResults.isValid ? (
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Target className="h-5 w-5 text-red-600" />
+                        )}
+                        <span className="font-semibold">
+                          {validationResults.isValid ? 'Validated Successfully' : 'Validation Issues'}
+                        </span>
+                      </div>
+                      <p className="text-sm">{validationResults.message}</p>
+                      {validationResults.suggestions && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium">Suggestions:</p>
+                          <ul className="text-sm text-gray-600 ml-4">
+                            {validationResults.suggestions.map((suggestion: string, i: number) => (
+                              <li key={i}>• {suggestion}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Current Features */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Key Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {manualEdits.features.map((feature, index) => (
+                    <Badge key={index} variant="outline" className="relative group">
+                      {feature}
+                      <button
+                        onClick={() => handleRemoveFeature(index)}
+                        className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Target Customer */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Target Customer</h3>
+                <Badge variant="default" className="text-sm">
+                  {manualEdits.targetCustomer}
+                </Badge>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-4">
+                <Button 
+                  onClick={handleValidationComplete}
+                  className="flex-1"
+                  size="lg"
+                >
+                  Confirm & Start Analysis
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCurrentStep('suggestions')}
+                  size="lg"
+                >
+                  Back to Suggestions
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Orchestrator Chat Bubble */}
+          <OrchestratorChat
+            isVisible={showChat}
+            onToggle={() => setShowChat(!showChat)}
+            onMessage={handleChatMessage}
+            context="validation"
+          />
+        </div>
+      );
+    };
+
+    return <ManualInputValidation />;
   }
 
   // Step 3: Progress Tracking

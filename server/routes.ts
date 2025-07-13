@@ -574,6 +574,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint for validating manual inputs (simplified workflow)
+  app.post('/api/chat/validate-inputs', isAuthenticated, async (req: any, res) => {
+    try {
+      const { orchestratorAgent } = await import('./agents/orchestrator');
+      
+      const input = {
+        mode: 'validation' as const,
+        product: req.body.product,
+        benefit: req.body.benefit,
+        existingData: req.body.existingData,
+        sessionId: 0 // Temporary session ID for validation
+      };
+      
+      const validation = await orchestratorAgent.validateManualInput(input);
+      
+      res.json({
+        isValid: validation.isValid,
+        validatedProduct: validation.correctedProduct || req.body.product,
+        message: validation.message,
+        suggestions: validation.suggestions
+      });
+    } catch (error) {
+      console.error('Validation error:', error);
+      res.status(500).json({ message: 'Failed to validate inputs' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

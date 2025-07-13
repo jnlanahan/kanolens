@@ -8,13 +8,16 @@ import { evaluatorAgent } from "./evaluator";
 import { storage } from "../storage";
 
 export interface OrchestratorInput {
-  mode: 'suggestions' | 'comprehensive';
-  formData: {
+  mode: 'suggestions' | 'comprehensive' | 'validation';
+  formData?: {
     description?: string;
     products: string;
     targetCustomers: string;
     features?: string;
   };
+  product?: string;
+  benefit?: string;
+  existingData?: any;
   sessionId: number;
 }
 
@@ -25,6 +28,13 @@ export interface SuggestionResponse {
     reason: string;
   }>;
   suggestedFeatures: string[];
+}
+
+export interface ValidationResponse {
+  isValid: boolean;
+  correctedProduct?: string;
+  message: string;
+  suggestions?: string[];
 }
 
 export interface ProgressUpdate {
@@ -53,14 +63,14 @@ When suggesting products, ensure they are:
     console.log("[Orchestrator] Processing suggestions for form data");
     
     // Clean product names
-    const cleanedProducts = this.cleanProductList(input.formData.products);
+    const cleanedProducts = this.cleanProductList(input.formData!.products);
     
     // Build the prompt for suggestions
     const prompt = `User submitted a competitive analysis request:
-Description: ${input.formData.description || 'Not provided'}
+Description: ${input.formData!.description || 'Not provided'}
 Products: ${cleanedProducts.join(', ')}
-Target Customers: ${input.formData.targetCustomers}
-Initial Features: ${input.formData.features || 'Not provided'}
+Target Customers: ${input.formData!.targetCustomers}
+Initial Features: ${input.formData!.features || 'Not provided'}
 
 Your task:
 1. Identify any product name corrections needed (typos, variations)
@@ -90,6 +100,43 @@ SUGGESTED_FEATURES:
 
     const content = response.choices[0].message.content || "";
     return this.parseSuggestionResponse(content);
+  }
+
+  async validateManualInput(input: OrchestratorInput): Promise<ValidationResponse> {
+    console.log("[Orchestrator] Validating manual input:", input.product);
+    
+    const prompt = `A user is manually adding a product to their competitive analysis:
+Product Name: "${input.product}"
+Key Benefit: "${input.benefit || 'Not provided'}"
+Existing Products: ${input.existingData?.products?.join(', ') || 'None'}
+Target Customer: ${input.existingData?.targetCustomer || 'Not specified'}
+
+Your task:
+1. Validate if this is a real, existing product
+2. Check spelling and suggest corrections if needed
+3. Verify it's a relevant competitor for the analysis
+4. Provide suggestions for improvement if needed
+
+Return in this exact format:
+VALIDATION: [VALID/INVALID]
+CORRECTED_PRODUCT: [Corrected name if needed, or original if valid]
+MESSAGE: [Brief explanation of validation result]
+SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
+
+    const messages: ChatCompletionMessageParam[] = [
+      { role: "system", content: this.systemPrompt },
+      { role: "user", content: prompt }
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages,
+      temperature: 0.3,
+      max_tokens: 500
+    });
+
+    const content = response.choices[0].message.content || "";
+    return this.parseValidationResponse(content);
   }
 
   async coordinateFullAnalysis(
@@ -268,6 +315,39 @@ SUGGESTED_FEATURES:
           response.suggestedProducts.push({ name, reason: reason || '' });
         } else if (section === 'features' && name) {
           response.suggestedFeatures.push(name);
+        }
+      }
+    }
+
+    return response;
+  }
+
+  private parseValidationResponse(content: string): ValidationResponse {
+    const response: ValidationResponse = {
+      isValid: false,
+      message: 'Validation failed',
+      suggestions: []
+    };
+
+    const lines = content.split('\n');
+    let currentSection = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      
+      if (trimmed.startsWith('VALIDATION:')) {
+        const status = trimmed.replace('VALIDATION:', '').trim();
+        response.isValid = status === 'VALID';
+      } else if (trimmed.startsWith('CORRECTED_PRODUCT:')) {
+        response.correctedProduct = trimmed.replace('CORRECTED_PRODUCT:', '').trim();
+      } else if (trimmed.startsWith('MESSAGE:')) {
+        response.message = trimmed.replace('MESSAGE:', '').trim();
+      } else if (trimmed.startsWith('SUGGESTIONS:')) {
+        currentSection = 'suggestions';
+      } else if (trimmed.startsWith('-') && currentSection === 'suggestions') {
+        const suggestion = trimmed.substring(1).trim();
+        if (suggestion) {
+          response.suggestions!.push(suggestion);
         }
       }
     }
