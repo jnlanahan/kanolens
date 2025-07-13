@@ -21,6 +21,13 @@ interface FormData {
 }
 
 interface SuggestionData {
+  originalProducts: string[];
+  suggestedProducts: string[];
+  features: string[];
+  targetCustomer: string;
+}
+
+interface ManualEditsData {
   products: string[];
   features: string[];
   targetCustomer: string;
@@ -48,8 +55,8 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     features: ''
   });
   const [suggestions, setSuggestions] = useState<SuggestionData | null>(null);
-  const [manualEdits, setManualEdits] = useState<SuggestionData | null>(null);
-  const [finalData, setFinalData] = useState<SuggestionData | null>(null);
+  const [manualEdits, setManualEdits] = useState<ManualEditsData | null>(null);
+  const [finalData, setFinalData] = useState<ManualEditsData | null>(null);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,7 +109,14 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       });
       
       const data = await response.json();
-      setSuggestions(data);
+      // Parse original products from form data
+      const originalProducts = formData.products.split(',').map(p => p.trim()).filter(p => p);
+      setSuggestions({
+        originalProducts,
+        suggestedProducts: data.products || [],
+        features: data.features || [],
+        targetCustomer: data.targetCustomer || formData.targetCustomers
+      });
       setCurrentStep('suggestions');
     } catch (error) {
       toast({
@@ -115,12 +129,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     }
   };
 
-  const handleAcceptSuggestions = () => {
-    if (suggestions) {
-      setManualEdits(suggestions);
-      setCurrentStep('validation');
-    }
-  };
+
 
   const handleValidationComplete = () => {
     if (manualEdits) {
@@ -355,73 +364,157 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
 
   // Step 2: AI Suggestions
   if (currentStep === 'suggestions' && suggestions) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-4xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">AI-Enhanced Analysis Setup</CardTitle>
-            <CardDescription>
-              I've enhanced your analysis with additional products and key features
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Products to Analyze</h3>
-                <div className="flex flex-wrap gap-2">
-                  {suggestions.products.map((product, index) => (
-                    <Badge key={index} variant="secondary">{product}</Badge>
-                  ))}
+    const SuggestionsScreen = () => {
+      const [manualProduct, setManualProduct] = useState('');
+      const [localSuggestions, setLocalSuggestions] = useState(suggestions);
+
+      const handleAddManualProduct = () => {
+        if (manualProduct.trim()) {
+          setLocalSuggestions(prev => ({
+            ...prev,
+            suggestedProducts: [...prev.suggestedProducts, manualProduct.trim()]
+          }));
+          setManualProduct('');
+        }
+      };
+
+      const handleRemoveProduct = (productList: 'original' | 'suggested', index: number) => {
+        setLocalSuggestions(prev => ({
+          ...prev,
+          originalProducts: productList === 'original' 
+            ? prev.originalProducts.filter((_, i) => i !== index)
+            : prev.originalProducts,
+          suggestedProducts: productList === 'suggested' 
+            ? prev.suggestedProducts.filter((_, i) => i !== index)
+            : prev.suggestedProducts
+        }));
+      };
+
+      const handleProceed = () => {
+        setManualEdits({
+          products: [...localSuggestions.originalProducts, ...localSuggestions.suggestedProducts],
+          features: localSuggestions.features,
+          targetCustomer: localSuggestions.targetCustomer
+        });
+        setCurrentStep('validation');
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
+          <Card className="w-full max-w-5xl">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold">AI-Enhanced Analysis Setup</CardTitle>
+              <CardDescription>
+                Review and customize your analysis setup. Add or remove products as needed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold">Your Original Products</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {localSuggestions.originalProducts.map((product, index) => (
+                        <Badge key={index} variant="default" className="relative group">
+                          {product}
+                          <button
+                            onClick={() => handleRemoveProduct('original', index)}
+                            className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold">AI Suggested Products</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {localSuggestions.suggestedProducts.map((product, index) => (
+                        <Badge key={index} variant="secondary" className="relative group">
+                          {product}
+                          <button
+                            onClick={() => handleRemoveProduct('suggested', index)}
+                            className="ml-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ×
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Add Manual Product */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 space-y-3">
+                    <h4 className="font-semibold">Add Another Product</h4>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="e.g., Notion, Figma"
+                        value={manualProduct}
+                        onChange={(e) => setManualProduct(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddManualProduct()}
+                      />
+                      <Button 
+                        onClick={handleAddManualProduct}
+                        disabled={!manualProduct.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Key Features</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {localSuggestions.features.map((feature, index) => (
+                      <Badge key={index} variant="outline">{feature}</Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
 
+              <Separator />
+
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Key Features</h3>
-                <div className="flex flex-wrap gap-2">
-                  {suggestions.features.map((feature, index) => (
-                    <Badge key={index} variant="outline">{feature}</Badge>
-                  ))}
-                </div>
+                <h3 className="text-lg font-semibold">Target Customer</h3>
+                <Badge variant="default" className="text-sm">
+                  {localSuggestions.targetCustomer}
+                </Badge>
               </div>
-            </div>
 
-            <Separator />
+              <div className="flex gap-4 pt-4">
+                <Button 
+                  onClick={handleProceed} 
+                  className="flex-1"
+                  size="lg"
+                >
+                  Proceed with Analysis
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCurrentStep('form')}
+                  size="lg"
+                >
+                  Modify Setup
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Target Customer</h3>
-              <Badge variant="default" className="text-sm">
-                {suggestions.targetCustomer}
-              </Badge>
-            </div>
+          {/* Orchestrator Chat Bubble */}
+          <OrchestratorChat
+            isVisible={showChat}
+            onToggle={() => setShowChat(!showChat)}
+            onMessage={handleChatMessage}
+            context="suggestions"
+          />
+        </div>
+      );
+    };
 
-            <div className="flex gap-4 pt-4">
-              <Button 
-                onClick={handleAcceptSuggestions} 
-                className="flex-1"
-                size="lg"
-              >
-                Proceed with Analysis
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setCurrentStep('form')}
-                size="lg"
-              >
-                Modify Setup
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Orchestrator Chat Bubble */}
-        <OrchestratorChat
-          isVisible={showChat}
-          onToggle={() => setShowChat(!showChat)}
-          onMessage={handleChatMessage}
-          context="suggestions"
-        />
-      </div>
-    );
+    return <SuggestionsScreen />;
   }
 
   // Step 3: Manual Input Validation
