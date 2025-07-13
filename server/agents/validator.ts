@@ -109,29 +109,48 @@ export class ValidatorAgent {
     researchData.products.forEach((product: any) => {
       if (product.features && Array.isArray(product.features)) {
         product.features.forEach((feature: any) => {
-          if (!uniqueFeatures.has(feature.name)) {
-            uniqueFeatures.set(feature.name, {
-              name: feature.name,
-              descriptions: new Map(),
-              benefits: new Map(),
-              implementations: new Map(),
-              productCount: 0,
-              products: []
-            });
+          // Filter out garbage features
+          if (this.isValidFeature(feature.name)) {
+            if (!uniqueFeatures.has(feature.name)) {
+              uniqueFeatures.set(feature.name, {
+                name: feature.name,
+                descriptions: new Map(),
+                benefits: new Map(),
+                implementations: new Map(),
+                productCount: 0,
+                products: []
+              });
+            }
+            
+            const featureData = uniqueFeatures.get(feature.name);
+            featureData.descriptions.set(product.name, feature.description);
+            featureData.benefits.set(product.name, feature.benefit);
+            featureData.implementations.set(product.name, feature.implementationDetails);
+            featureData.productCount++;
+            featureData.products.push(product.name);
           }
-          
-          const featureData = uniqueFeatures.get(feature.name);
-          featureData.descriptions.set(product.name, feature.description);
-          featureData.benefits.set(product.name, feature.benefit);
-          featureData.implementations.set(product.name, feature.implementationDetails);
-          featureData.productCount++;
-          featureData.products.push(product.name);
         });
       }
     });
     
     console.log('[Validator] Unique features extracted:', Array.from(uniqueFeatures.keys()));
     return uniqueFeatures;
+  }
+  
+  private isValidFeature(featureName: string): boolean {
+    // Filter out garbage features
+    const invalidPatterns = [
+      /pricing.*review.*\d{4}/i,
+      /this product is used/i,
+      /market with various/i,
+      /features and capabilities/i,
+      /^\d+\.\s/,
+      /^product\s+\w+\s+review/i
+    ];
+    
+    return !invalidPatterns.some(pattern => pattern.test(featureName)) && 
+           featureName.length > 3 && 
+           featureName.length < 50;
   }
   
   private categorizeFeature(
@@ -147,13 +166,15 @@ export class ValidatorAgent {
     let category: 'must-have' | 'performance' | 'delighter';
     let categoryRationale: string;
     
-    if (featureFrequency >= 0.8) {
+    console.log(`[Validator] Categorizing ${featureName}: ${featureData.productCount}/${totalProducts} products (${Math.round(featureFrequency * 100)}%)`);
+    
+    if (featureFrequency >= 0.75) {
       category = 'must-have';
       categoryRationale = `Present in ${featureData.productCount}/${totalProducts} products (${Math.round(featureFrequency * 100)}%). This indicates it's a basic expectation.`;
     } else if (this.isPerformanceFeature(featureName)) {
       category = 'performance';
       categoryRationale = `Measurable feature where more/better performance directly impacts user satisfaction.`;
-    } else if (featureFrequency <= 0.3) {
+    } else if (featureFrequency <= 0.4) {
       category = 'delighter';
       categoryRationale = `Unique feature in ${featureData.productCount}/${totalProducts} products. Creates competitive differentiation.`;
     } else {
@@ -188,6 +209,8 @@ export class ValidatorAgent {
         }
       }
     });
+    
+    console.log(`[Validator] Product ratings for ${featureName}:`, Object.keys(productRatings).map(p => `${p}: ${productRatings[p].rating}`).join(', '));
     
     return {
       featureName,

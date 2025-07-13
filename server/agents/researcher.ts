@@ -192,7 +192,7 @@ export class ResearcherAgent {
     targetCustomer: string
   ): Promise<any[]> {
     const featureQueries = features.map(feature => 
-      `${productName} ${feature} implementation ${targetCustomer} benefits performance`
+      `${productName} ${feature} features for ${targetCustomer}`
     );
 
     // Process features in batches with delays to avoid rate limits
