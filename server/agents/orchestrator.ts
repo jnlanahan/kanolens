@@ -373,14 +373,23 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
       ratings[feature.featureName] = {};
       sources[feature.featureName] = ['Market research', 'Product documentation'];
       
+      console.log(`[Orchestrator] Processing feature: ${feature.featureName}`);
+      console.log(`[Orchestrator] Product ratings available:`, Object.keys(feature.productRatings || {}));
+      
       products.forEach(product => {
         const productRating = feature.productRatings?.[product];
         if (productRating) {
           ratings[feature.featureName][product] = productRating.rating;
+          console.log(`[Orchestrator] Set ${feature.featureName} -> ${product} = ${productRating.rating}`);
+        } else {
+          // Set default value instead of leaving undefined
+          ratings[feature.featureName][product] = 'N/A';
+          console.log(`[Orchestrator] No rating found for ${feature.featureName} -> ${product}, setting N/A`);
         }
       });
     });
 
+    console.log('[Orchestrator] Final ratings object:', JSON.stringify(ratings, null, 2));
     console.log('[Orchestrator] Kano table built with', Object.keys(ratings).length, 'rated features');
     return {
       products,

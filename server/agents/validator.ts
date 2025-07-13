@@ -147,32 +147,51 @@ export class ValidatorAgent {
   private extractUniqueFeatures(researchData: any): Map<string, any> {
     const uniqueFeatures = new Map<string, any>();
     
-    researchData.products.forEach((product: any) => {
-      if (product.features && Array.isArray(product.features)) {
-        product.features.forEach((feature: any) => {
-          // Filter out garbage features
-          if (this.isValidFeature(feature.name)) {
-            if (!uniqueFeatures.has(feature.name)) {
-              uniqueFeatures.set(feature.name, {
-                name: feature.name,
-                descriptions: new Map(),
-                benefits: new Map(),
-                implementations: new Map(),
-                productCount: 0,
-                products: []
-              });
+    // Handle both direct feature list and product-based feature structure
+    if (researchData.features && Array.isArray(researchData.features)) {
+      // Direct feature list structure (from our test data)
+      researchData.features.forEach((feature: any) => {
+        if (this.isValidFeature(feature.name)) {
+          uniqueFeatures.set(feature.name, {
+            name: feature.name,
+            descriptions: feature.implementations || new Map(),
+            benefits: feature.benefits || new Map(),
+            implementations: feature.implementations || new Map(),
+            productCount: feature.productCount || 0,
+            products: feature.products || []
+          });
+        }
+      });
+    } else if (researchData.products && Array.isArray(researchData.products)) {
+      // Product-based structure (from researcher agent)
+      researchData.products.forEach((product: any) => {
+        if (product.features && Array.isArray(product.features)) {
+          product.features.forEach((feature: any) => {
+            const featureName = feature.name || feature;
+            // Filter out garbage features
+            if (this.isValidFeature(featureName)) {
+              if (!uniqueFeatures.has(featureName)) {
+                uniqueFeatures.set(featureName, {
+                  name: featureName,
+                  descriptions: new Map(),
+                  benefits: new Map(),
+                  implementations: new Map(),
+                  productCount: 0,
+                  products: []
+                });
+              }
+              
+              const featureData = uniqueFeatures.get(featureName);
+              featureData.descriptions.set(product.name, feature.description || '');
+              featureData.benefits.set(product.name, feature.benefit || '');
+              featureData.implementations.set(product.name, feature.implementationDetails || '');
+              featureData.productCount++;
+              featureData.products.push(product.name);
             }
-            
-            const featureData = uniqueFeatures.get(feature.name);
-            featureData.descriptions.set(product.name, feature.description);
-            featureData.benefits.set(product.name, feature.benefit);
-            featureData.implementations.set(product.name, feature.implementationDetails);
-            featureData.productCount++;
-            featureData.products.push(product.name);
-          }
-        });
-      }
-    });
+          });
+        }
+      });
+    }
     
     console.log('[Validator] Unique features extracted:', Array.from(uniqueFeatures.keys()));
     return uniqueFeatures;
@@ -190,6 +209,7 @@ export class ValidatorAgent {
     ];
     
     return !invalidPatterns.some(pattern => pattern.test(featureName)) && 
+           featureName && 
            featureName.length > 3 && 
            featureName.length < 50;
   }
