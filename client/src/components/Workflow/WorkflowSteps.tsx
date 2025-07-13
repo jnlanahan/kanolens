@@ -768,6 +768,38 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
 
   // Step 3: Progress Tracking
   if (currentStep === 'progress' && finalData) {
+    const testMultiAgent = async () => {
+      try {
+        console.log('Testing multi-agent directly...');
+        const response = await fetch('/api/test/multi-agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: finalData.products,
+            features: finalData.features,
+            targetCustomer: finalData.targetCustomer
+          })
+        });
+        
+        const result = await response.json();
+        console.log('Test multi-agent result:', result);
+        
+        if (result.success) {
+          alert('Multi-agent test successful! Check console for details.');
+          // If successful, update the UI with the results
+          if (result.result) {
+            setTableData(result.result);
+            setCurrentStep('results');
+          }
+        } else {
+          alert(`Multi-agent test failed: ${result.error || result.message}`);
+        }
+      } catch (error) {
+        console.error('Test multi-agent error:', error);
+        alert(`Test failed: ${error.message}`);
+      }
+    };
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
         <Card className="w-full max-w-4xl">
@@ -778,6 +810,18 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Test Button - Debug Only */}
+            <div className="flex justify-center">
+              <Button
+                onClick={testMultiAgent}
+                variant="destructive"
+                size="lg"
+                className="bg-red-600 hover:bg-red-700"
+              >
+                🧪 Test Multi-Agent Directly (Debug)
+              </Button>
+            </div>
+
             {/* Analysis Context */}
             <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
               <div className="grid md:grid-cols-3 gap-4 text-sm">
