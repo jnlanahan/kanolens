@@ -184,6 +184,18 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       console.log('Session created successfully:', session.id);
       setCurrentSessionId(session.id);
       
+      // Check if session already has completed analysis
+      const existingMessagesResponse = await fetch(`/api/analysis/sessions/${session.id}/messages`);
+      const existingMessages = await existingMessagesResponse.json();
+      const lastExistingMessage = existingMessages[existingMessages.length - 1];
+      
+      if (lastExistingMessage?.metadata?.step === 'table_creation' && lastExistingMessage?.metadata?.data) {
+        console.log('Found existing completed analysis, showing results immediately');
+        setAnalysisResults(lastExistingMessage.metadata.data);
+        setCurrentStep('results');
+        return;
+      }
+      
       // Start the multi-agent analysis by sending approval message
       console.log('Sending multi-agent approval message to session:', session.id);
       const analysisResponse = await fetch(`/api/analysis/sessions/${session.id}/messages`, {
@@ -225,8 +237,8 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
         updateAgentProgress('Analysis Agent', 'working', 'Generating strategic insights and competitive recommendations', 70);
       }, 15000);
       
-      // Check for real analysis completion
-      const progressInterval = setInterval(async () => {
+      // Check for real analysis completion immediately and then periodically
+      const checkAnalysisCompletion = async () => {
         try {
           const messagesResponse = await fetch(`/api/analysis/sessions/${session.id}/messages`);
           const messages = await messagesResponse.json();
@@ -237,25 +249,48 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
             step: lastMessage?.metadata?.step,
             hasData: !!lastMessage?.metadata?.data,
             hasTableData: !!lastMessage?.metadata?.data?.tableData,
+            role: lastMessage?.role,
+            messageLength: lastMessage?.content?.length || 0,
             fullMetadata: lastMessage?.metadata
           });
           
-          // Check if analysis is complete - look for table_creation step OR tableData
-          if (lastMessage?.metadata?.step === 'table_creation' && 
-              (lastMessage?.metadata?.data || lastMessage?.metadata?.data?.tableData)) {
+          // Check if analysis is complete - look for table_creation step with data
+          if (lastMessage?.metadata?.step === 'table_creation' && lastMessage?.metadata?.data) {
             updateAgentProgress('Analysis Agent', 'completed', 'Strategic analysis complete', 100);
             clearInterval(progressInterval);
             
             // Set the analysis results and move to results step
-            const resultsData = lastMessage.metadata.data?.tableData || lastMessage.metadata.data;
+            const resultsData = lastMessage.metadata.data;
             console.log('Analysis complete! Setting results:', resultsData);
             setAnalysisResults(resultsData);
             setCurrentStep('results');
+            return true;
           }
+          
+          // Also check for any message with tableData in metadata
+          if (lastMessage?.metadata?.data?.tableData) {
+            updateAgentProgress('Analysis Agent', 'completed', 'Strategic analysis complete', 100);
+            clearInterval(progressInterval);
+            
+            const resultsData = lastMessage.metadata.data;
+            console.log('Analysis complete via tableData! Setting results:', resultsData);
+            setAnalysisResults(resultsData);
+            setCurrentStep('results');
+            return true;
+          }
+          
+          return false;
         } catch (error) {
           console.error('Progress tracking error:', error);
+          return false;
         }
-      }, 3000);
+      };
+      
+      // Check immediately in case analysis is already complete
+      checkAnalysisCompletion();
+      
+      // Then check periodically
+      const progressInterval = setInterval(checkAnalysisCompletion, 3000);
       
       // Timeout after 5 minutes
       setTimeout(() => {
@@ -920,12 +955,18 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
             </p>
           </div>
 
-          <KanoTable 
-            tableData={analysisResults.tableData || analysisResults} 
-            isLoading={false}
-            sessionId={currentSessionId}
-            onEditTable={() => console.log('Edit table clicked')}
-          />
+          {analysisResults ? (
+            <KanoTable 
+              tableData={analysisResults.tableData || analysisResults} 
+              isLoading={false}
+              sessionId={currentSessionId}
+              onEditTable={() => console.log('Edit table clicked')}
+            />
+          ) : (
+            <div className="text-center p-8">
+              <p className="text-gray-600">Loading analysis results...</p>
+            </div>
+          )}
 
           <div className="mt-8 text-center">
             <Button 
