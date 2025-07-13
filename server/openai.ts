@@ -149,34 +149,46 @@ export async function processChatMessage(
     }
     
     // Log exactly what we're checking
-    console.log("[OpenAI] Multi-agent check - message:", message);
-    console.log("[OpenAI] Multi-agent check - currentStep:", currentStep);
-    console.log("[OpenAI] Multi-agent check - sessionData.features:", sessionData.features);
-    console.log("[OpenAI] Multi-agent check - conversationHistory length:", conversationHistory.length);
+    console.log("[OpenAI] === MULTI-AGENT TRIGGER CHECK ===");
+    console.log("[OpenAI] Incoming message:", message);
+    console.log("[OpenAI] Current step:", currentStep);
+    console.log("[OpenAI] Products:", sessionData.products);
+    console.log("[OpenAI] Features:", sessionData.features?.length, "features");
+    console.log("[OpenAI] Target customer:", sessionData.targetCustomer);
+    console.log("[OpenAI] History length:", conversationHistory.length);
     
-    // Check if this is a direct request to start multi-agent analysis
-    const isDirectMultiAgentRequest = message.toLowerCase().includes('yes proceed with the full competitive analysis');
+    // PHASE 4: Simplified trigger logic
+    // Trigger multi-agent when:
+    // 1. User sends any message after suggestions step with required data
+    // 2. Message contains approval keywords OR metadata flag
+    const hasRequiredData = sessionData.products?.length > 0 && 
+                           sessionData.features?.length > 0 && 
+                           sessionData.targetCustomer;
     
-    // Also check for regular approval with multi-agent flag
+    const isApprovalMessage = message.toLowerCase().includes('yes') || 
+                             message.toLowerCase().includes('proceed') || 
+                             message.toLowerCase().includes('start') ||
+                             message.toLowerCase().includes('confirm') ||
+                             message.toLowerCase().includes('continue');
+    
     const lastMessage = conversationHistory[conversationHistory.length - 1];
     const hasMultiAgentFlag = lastMessage?.metadata?.useMultiAgent || 
                              sessionData?.chatHistory?.some((h: any) => h?.metadata?.useMultiAgent);
     
-    const isMultiAgentApproval = (isDirectMultiAgentRequest || 
-                                 ((message.toLowerCase().includes('yes') || 
-                                   message.toLowerCase().includes('proceed') || 
-                                   message.toLowerCase().includes('continue')) &&
-                                  hasMultiAgentFlag));
+    // Simplified trigger: if we're in suggestions step with data and any approval-like message
+    const shouldTriggerMultiAgent = currentStep === 'suggestions' && 
+                                   hasRequiredData && 
+                                   (isApprovalMessage || hasMultiAgentFlag);
     
-    console.log("[OpenAI] Multi-agent check results:");
-    console.log("  - isDirectMultiAgentRequest:", isDirectMultiAgentRequest);
+    console.log("[OpenAI] PHASE 4 - Simplified multi-agent check:");
+    console.log("  - currentStep:", currentStep);
+    console.log("  - hasRequiredData:", hasRequiredData);
+    console.log("  - isApprovalMessage:", isApprovalMessage);
     console.log("  - hasMultiAgentFlag:", hasMultiAgentFlag);
-    console.log("  - isMultiAgentApproval:", isMultiAgentApproval);
-    console.log("  - currentStep === 'suggestions':", currentStep === 'suggestions');
+    console.log("  - shouldTriggerMultiAgent:", shouldTriggerMultiAgent);
     
-    if (isMultiAgentApproval && currentStep === 'suggestions') {
+    if (shouldTriggerMultiAgent) {
       console.log("[OpenAI] MULTI-AGENT TRIGGER DETECTED!");
-      console.log("[OpenAI] Direct request:", isDirectMultiAgentRequest);
       console.log("[OpenAI] Has multi-agent flag:", hasMultiAgentFlag);
       console.log("[OpenAI] Current step:", currentStep);
       console.log("[OpenAI] Message:", message);
