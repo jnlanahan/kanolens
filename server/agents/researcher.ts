@@ -140,9 +140,30 @@ export class ResearcherAgent {
       `${productName} ${feature} implementation ${targetCustomer} benefits performance`
     );
 
-    const results = await Promise.all(
-      featureQueries.map(query => searchProductInformation(query))
-    );
+    // Process features in batches with delays to avoid rate limits
+    const results = [];
+    const batchSize = 2; // Process 2 features at a time
+    
+    for (let i = 0; i < featureQueries.length; i += batchSize) {
+      const batch = featureQueries.slice(i, i + batchSize);
+      try {
+        const batchResults = await Promise.all(
+          batch.map(query => searchProductInformation(query))
+        );
+        results.push(...batchResults);
+        
+        // Add delay between batches to avoid rate limits
+        if (i + batchSize < featureQueries.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+        }
+      } catch (error) {
+        console.error(`[Researcher] Batch failed at index ${i}:`, error);
+        // Add placeholder results for failed queries
+        for (let j = 0; j < batch.length; j++) {
+          results.push({ content: '', sources: [] });
+        }
+      }
+    }
 
     return results.map((result, index) => ({
       name: features[index],

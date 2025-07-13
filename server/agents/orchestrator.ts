@@ -248,6 +248,12 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
     executionTime: number
   ) {
     try {
+      // Skip evaluation for test sessions
+      if (sessionId === 999999) {
+        console.log(`[Orchestrator] Skipping evaluation for test session`);
+        return;
+      }
+
       const evaluation = await evaluatorAgent.evaluateAgent({
         agentName,
         input,

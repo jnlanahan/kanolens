@@ -58,6 +58,23 @@ export class ValidatorAgent {
   async categorizeFeatures(request: ValidationRequest): Promise<ValidationResult> {
     console.log('[Validator] Starting feature categorization for', request.targetCustomer);
     
+    // Check if research data exists and has products
+    if (!request.researchData || !request.researchData.products) {
+      console.error('[Validator] No research data or products found');
+      return {
+        categorizedFeatures: [],
+        summary: {
+          totalFeatures: 0,
+          categoryBreakdown: {
+            mustHave: 0,
+            performance: 0,
+            delighter: 0
+          },
+          keyInsights: ['No research data available for validation']
+        }
+      };
+    }
+    
     // Extract all unique features across products
     const allFeatures = this.extractUniqueFeatures(request.researchData);
     
