@@ -232,14 +232,24 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
           const messages = await messagesResponse.json();
           const lastMessage = messages[messages.length - 1];
           
-          // Check if analysis is complete
-          if (lastMessage?.metadata?.step === 'table_creation' && lastMessage?.metadata?.data) {
+          console.log('Checking analysis completion:', {
+            hasLastMessage: !!lastMessage,
+            step: lastMessage?.metadata?.step,
+            hasData: !!lastMessage?.metadata?.data,
+            hasTableData: !!lastMessage?.metadata?.data?.tableData,
+            fullMetadata: lastMessage?.metadata
+          });
+          
+          // Check if analysis is complete - look for table_creation step OR tableData
+          if (lastMessage?.metadata?.step === 'table_creation' && 
+              (lastMessage?.metadata?.data || lastMessage?.metadata?.data?.tableData)) {
             updateAgentProgress('Analysis Agent', 'completed', 'Strategic analysis complete', 100);
             clearInterval(progressInterval);
             
             // Set the analysis results and move to results step
-            console.log('Analysis complete! Setting results:', lastMessage.metadata.data);
-            setAnalysisResults(lastMessage.metadata.data);
+            const resultsData = lastMessage.metadata.data?.tableData || lastMessage.metadata.data;
+            console.log('Analysis complete! Setting results:', resultsData);
+            setAnalysisResults(resultsData);
             setCurrentStep('results');
           }
         } catch (error) {
