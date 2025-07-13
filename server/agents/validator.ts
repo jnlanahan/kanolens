@@ -22,6 +22,8 @@ export interface CategorizedFeature {
   productRatings: Record<string, {
     rating: 'Yes' | 'No' | 'High' | 'Medium' | 'Low';
     justification: string;
+    sources: string[];
+    flags: string[]; // Accuracy flags instead of removing data
   }>;
 }
 
@@ -285,29 +287,45 @@ export class ValidatorAgent {
       }
     }
     
-    // Generate product ratings
-    const productRatings: Record<string, {rating: 'Yes' | 'No' | 'High' | 'Medium' | 'Low'; justification: string}> = {};
+    // Generate product ratings using actual research data
+    const productRatings: Record<string, {rating: 'Yes' | 'No' | 'High' | 'Medium' | 'Low'; justification: string; sources: string[]; flags: string[]}> = {};
     
     researchData.products.forEach((product: any) => {
       const hasFeature = featureData.products.includes(product.name);
       
       if (category === 'must-have') {
-        productRatings[product.name] = {
-          rating: hasFeature ? 'Yes' : 'No',
-          justification: hasFeature ? 'Feature is available' : 'Feature is missing'
-        };
+        if (hasFeature) {
+          const quality = this.assessFeatureQuality(featureName, product, featureData);
+          productRatings[product.name] = {
+            rating: 'Yes',
+            justification: quality.justification,
+            sources: quality.sources,
+            flags: quality.flags
+          };
+        } else {
+          productRatings[product.name] = {
+            rating: 'No',
+            justification: 'Feature not found in research data',
+            sources: [`${product.name} research - ${featureName}`],
+            flags: ['Feature absence requires verification']
+          };
+        }
       } else {
         // For performance and delighter features, use quality ratings
         if (hasFeature) {
           const quality = this.assessFeatureQuality(featureName, product, featureData);
           productRatings[product.name] = {
             rating: quality.rating,
-            justification: quality.justification
+            justification: quality.justification,
+            sources: quality.sources,
+            flags: quality.flags
           };
         } else {
           productRatings[product.name] = {
             rating: 'No',
-            justification: 'Feature not available'
+            justification: 'Feature not found in research data',
+            sources: [`${product.name} research - ${featureName}`],
+            flags: ['Feature absence requires verification']
           };
         }
       }
@@ -361,70 +379,112 @@ export class ValidatorAgent {
     );
   }
   
-  private assessFeatureQuality(featureName: string, product: any, featureData: any): {rating: 'High' | 'Medium' | 'Low'; justification: string} {
+  private assessFeatureQuality(featureName: string, product: any, featureData: any): {rating: 'High' | 'Medium' | 'Low'; justification: string; sources: string[]; flags: string[]} {
     const productName = product.name;
-    const productKnowledge = this.realProductKnowledge[productName];
+    const flags: string[] = [];
+    const sources: string[] = [];
     
-    // Use real product knowledge for authentic ratings
-    if (productKnowledge) {
-      const featureNameLower = featureName.toLowerCase();
-      
-      // Check for specific feature-to-product mappings
-      const specificRating = this.getSpecificFeatureRating(featureNameLower, productName, productKnowledge);
-      if (specificRating) {
-        return specificRating;
-      }
-      
-      // Check if feature aligns with product strengths (more sophisticated matching)
-      const strengthMatch = this.findFeatureMatch(featureNameLower, productKnowledge.strengths);
-      const weaknessMatch = this.findFeatureMatch(featureNameLower, productKnowledge.weaknesses);
-      const specialtyMatch = this.findFeatureMatch(featureNameLower, productKnowledge.specialties || []);
-      
-      if (specialtyMatch) {
-        return {
-          rating: 'High',
-          justification: `${productName} specializes in ${featureName.toLowerCase()} - this is a core strength`
-        };
-      } else if (strengthMatch) {
-        return {
-          rating: 'High',
-          justification: `${productName} is known for strong ${featureName.toLowerCase()} capabilities`
-        };
-      } else if (weaknessMatch) {
-        return {
-          rating: 'Low',
-          justification: `${productName} has documented limitations in ${featureName.toLowerCase()}`
-        };
-      } else {
-        return {
-          rating: 'Medium',
-          justification: `${productName} provides standard ${featureName.toLowerCase()} functionality`
-        };
-      }
+    // Use actual research data from Perplexity
+    const description = featureData.descriptions.get(productName) || '';
+    const benefit = featureData.benefits.get(productName) || '';
+    const implementation = featureData.implementations.get(productName) || '';
+    
+    // Extract sources from the research content
+    const researchSources = this.extractSourcesFromContent(description, benefit, implementation);
+    sources.push(...researchSources);
+    
+    // If no research data found, flag it
+    if (!description && !benefit && !implementation) {
+      flags.push('No research data available for this feature');
+      return {
+        rating: 'Medium',
+        justification: 'No specific research data found - requires manual verification',
+        sources: [`${productName} - Feature research pending`],
+        flags
+      };
     }
     
-    // Fallback to generic assessment
-    const implementation = featureData.implementations.get(productName) || '';
-    const benefit = featureData.benefits.get(productName) || '';
+    // Analyze the actual research content for rating
+    const rating = this.analyzeResearchContent(featureName, productName, description, benefit, implementation, flags);
     
-    if (implementation.includes('advanced') || implementation.includes('comprehensive') || 
-        benefit.includes('significantly') || benefit.includes('exceptional')) {
+    return {
+      ...rating,
+      sources: sources.length > 0 ? sources : [`${productName} research - ${featureName}`],
+      flags
+    };
+  }
+
+  private analyzeResearchContent(
+    featureName: string, 
+    productName: string, 
+    description: string, 
+    benefit: string, 
+    implementation: string,
+    flags: string[]
+  ): {rating: 'High' | 'Medium' | 'Low'; justification: string} {
+    const allContent = [description, benefit, implementation].join(' ').toLowerCase();
+    
+    // Check for quality indicators in the actual research content
+    const highQualityIndicators = [
+      'advanced', 'comprehensive', 'robust', 'sophisticated', 'powerful', 'extensive',
+      'innovative', 'leading', 'superior', 'excellent', 'outstanding', 'exceptional',
+      'enterprise-grade', 'industry-standard', 'best-in-class', 'cutting-edge'
+    ];
+    
+    const lowQualityIndicators = [
+      'basic', 'limited', 'simple', 'minimal', 'elementary', 'rudimentary',
+      'lacks', 'missing', 'no support', 'not available', 'insufficient',
+      'poor', 'weak', 'inadequate', 'limited functionality'
+    ];
+    
+    const highMatches = highQualityIndicators.filter(indicator => allContent.includes(indicator));
+    const lowMatches = lowQualityIndicators.filter(indicator => allContent.includes(indicator));
+    
+    // Flag potential inaccuracies
+    if (allContent.includes('may not') || allContent.includes('might not') || allContent.includes('unclear')) {
+      flags.push('Potentially uncertain information - requires verification');
+    }
+    
+    if (allContent.includes('rumored') || allContent.includes('reportedly') || allContent.includes('allegedly')) {
+      flags.push('Unverified claims detected - treat with caution');
+    }
+    
+    // Determine rating based on research content
+    if (highMatches.length > lowMatches.length) {
       return {
         rating: 'High',
-        justification: 'Advanced implementation with significant benefits'
+        justification: `Research indicates ${productName} has strong ${featureName.toLowerCase()} capabilities: ${highMatches.join(', ')}`
       };
-    } else if (implementation.includes('basic') || implementation.includes('limited') ||
-               benefit.includes('minimal') || benefit.includes('basic')) {
+    } else if (lowMatches.length > highMatches.length) {
       return {
         rating: 'Low',
-        justification: 'Basic implementation with limited benefits'
+        justification: `Research indicates ${productName} has limited ${featureName.toLowerCase()} capabilities: ${lowMatches.join(', ')}`
       };
     } else {
       return {
         rating: 'Medium',
-        justification: 'Standard implementation with moderate benefits'
+        justification: `Research indicates ${productName} provides standard ${featureName.toLowerCase()} functionality`
       };
     }
+  }
+
+  private extractSourcesFromContent(description: string, benefit: string, implementation: string): string[] {
+    const sources: string[] = [];
+    const content = [description, benefit, implementation].join(' ');
+    
+    // Extract URLs and citations from the content
+    const urlPattern = /https?:\/\/[^\s]+/g;
+    const urls = content.match(urlPattern) || [];
+    sources.push(...urls);
+    
+    // Extract source references
+    const sourcePattern = /(?:source|according to|from|via):\s*([^,.\n]+)/gi;
+    const sourceMatches = content.matchAll(sourcePattern);
+    for (const match of sourceMatches) {
+      sources.push(match[1].trim());
+    }
+    
+    return sources;
   }
 
   private getSpecificFeatureRating(featureName: string, productName: string, productKnowledge: any): {rating: 'High' | 'Medium' | 'Low'; justification: string} | null {
