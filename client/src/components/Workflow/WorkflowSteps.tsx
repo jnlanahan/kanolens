@@ -238,6 +238,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
             clearInterval(progressInterval);
             
             // Set the analysis results and move to results step
+            console.log('Analysis complete! Setting results:', lastMessage.metadata.data);
             setAnalysisResults(lastMessage.metadata.data);
             setCurrentStep('results');
           }
@@ -910,8 +911,10 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
           </div>
 
           <KanoTable 
-            data={analysisResults.tableData} 
-            onFeatureClick={(feature) => console.log('Feature clicked:', feature)}
+            tableData={analysisResults.tableData || analysisResults} 
+            isLoading={false}
+            sessionId={currentSessionId}
+            onEditTable={() => console.log('Edit table clicked')}
           />
 
           <div className="mt-8 text-center">
