@@ -60,6 +60,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [showChat, setShowChat] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const { toast } = useToast();
 
   const [agentProgress, setAgentProgress] = useState<AgentProgress[]>([
@@ -153,18 +154,25 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
         body: JSON.stringify({
           title: `Analysis: ${finalData.products.join(', ')}`,
           products: finalData.products,
-          targetCustomer: finalData.targetCustomer
+          targetCustomer: finalData.targetCustomer,
+          features: finalData.features,
+          currentStep: 'suggestions' // Set to suggestions for multi-agent trigger
         })
       });
       
-      const session = await sessionResponse.json();
+      if (!sessionResponse.ok) {
+        throw new Error('Failed to create session');
+      }
       
-      // Start the multi-agent analysis
+      const session = await sessionResponse.json();
+      setCurrentSessionId(session.id);
+      
+      // Start the multi-agent analysis by sending approval message
       const analysisResponse = await fetch(`/api/analysis/sessions/${session.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: `yes, proceed with the analysis for ${finalData.products.join(', ')} targeting ${finalData.targetCustomer}`,
+          content: 'yes proceed with the full competitive analysis', // Trigger word for multi-agent
           metadata: {
             products: finalData.products,
             features: finalData.features,
@@ -174,45 +182,59 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
         })
       });
       
-      const result = await analysisResponse.json();
+      if (!analysisResponse.ok) {
+        throw new Error('Failed to start analysis');
+      }
       
-      // Update agent progress based on real analysis
+      const result = await analysisResponse.json();
+      console.log('Analysis started:', result);
+      
+      // Simulate agent progress updates
+      setTimeout(() => {
+        updateAgentProgress('Coordination Agent', 'completed', 'Analysis workflow setup complete', 100);
+        updateAgentProgress('Research Agent', 'working', 'Gathering competitive intelligence and product feature data', 30);
+      }, 2000);
+      
+      setTimeout(() => {
+        updateAgentProgress('Research Agent', 'completed', 'Market research complete', 100);
+        updateAgentProgress('Validation Agent', 'working', 'Categorizing features using Kano Model framework', 50);
+      }, 8000);
+      
+      setTimeout(() => {
+        updateAgentProgress('Validation Agent', 'completed', 'Kano categorization complete', 100);
+        updateAgentProgress('Analysis Agent', 'working', 'Generating strategic insights and competitive recommendations', 70);
+      }, 15000);
+      
+      // Check for real analysis completion
       const progressInterval = setInterval(async () => {
         try {
           const messagesResponse = await fetch(`/api/analysis/sessions/${session.id}/messages`);
           const messages = await messagesResponse.json();
           const lastMessage = messages[messages.length - 1];
           
-          if (lastMessage?.metadata?.step === 'table_creation') {
-            updateAgentProgress('Research Agent', 'completed', 'Research complete', 100);
-            updateAgentProgress('Validation Agent', 'completed', 'Features categorized', 100);
-            updateAgentProgress('Analysis Agent', 'working', 'Generating strategic insights', 80);
-          }
-          
-          if (lastMessage?.metadata?.step === 'analysis_complete') {
-            updateAgentProgress('Analysis Agent', 'completed', 'Analysis complete', 100);
+          // Check if analysis is complete
+          if (lastMessage?.metadata?.step === 'table_creation' && lastMessage?.metadata?.data) {
+            updateAgentProgress('Analysis Agent', 'completed', 'Strategic analysis complete', 100);
             clearInterval(progressInterval);
             
-            // Get final session data
-            const finalSessionResponse = await fetch(`/api/analysis/sessions/${session.id}`);
-            const finalSession = await finalSessionResponse.json();
-            
-            if (finalSession.data?.tableData) {
-              setAnalysisResults(finalSession.data);
-              setCurrentStep('results');
-            }
+            // Set the analysis results and move to results step
+            setAnalysisResults(lastMessage.metadata.data);
+            setCurrentStep('results');
           }
         } catch (error) {
           console.error('Progress tracking error:', error);
         }
       }, 3000);
       
-      // Fallback timeout
+      // Timeout after 5 minutes
       setTimeout(() => {
         clearInterval(progressInterval);
         if (currentStep === 'progress') {
-          updateAgentProgress('Analysis Agent', 'completed', 'Analysis complete', 100);
-          // Use mock data as fallback
+          toast({
+            title: "Analysis Taking Longer",
+            description: "The analysis is taking longer than expected. Please check back in a few minutes.",
+            variant: "destructive"
+          });
           setAnalysisResults({
             tableData: {
               products: finalData.products,

@@ -148,14 +148,26 @@ export async function processChatMessage(
       };
     }
     
-    // Check if this is an approval to proceed with full analysis using multi-agent
-    const isMultiAgentApproval = (message.toLowerCase().includes('yes') || 
-                                 message.toLowerCase().includes('proceed') || 
-                                 message.toLowerCase().includes('continue')) &&
-                                 sessionData?.metadata?.useMultiAgent;
+    // Check if this is a direct request to start multi-agent analysis
+    const isDirectMultiAgentRequest = message.toLowerCase().includes('yes proceed with the full competitive analysis');
+    
+    // Also check for regular approval with multi-agent flag
+    const lastMessage = conversationHistory[conversationHistory.length - 1];
+    const hasMultiAgentFlag = lastMessage?.metadata?.useMultiAgent || 
+                             sessionData?.chatHistory?.some((h: any) => h?.metadata?.useMultiAgent);
+    
+    const isMultiAgentApproval = (isDirectMultiAgentRequest || 
+                                 ((message.toLowerCase().includes('yes') || 
+                                   message.toLowerCase().includes('proceed') || 
+                                   message.toLowerCase().includes('continue')) &&
+                                  hasMultiAgentFlag));
     
     if (isMultiAgentApproval && currentStep === 'suggestions') {
       console.log("[OpenAI] Starting multi-agent analysis coordination");
+      console.log("[OpenAI] Direct request:", isDirectMultiAgentRequest);
+      console.log("[OpenAI] Products:", sessionData.products);
+      console.log("[OpenAI] Features:", sessionData.features);
+      console.log("[OpenAI] Target Customer:", sessionData.targetCustomer);
       
       const products = sessionData.products || [];
       const features = sessionData.features || [];

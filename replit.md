@@ -4,6 +4,14 @@
 KanoLens is an AI-powered competitive analysis platform that transforms complex product research into actionable insights using advanced machine learning and semantic search technologies. The platform helps users analyze competitors using the Kano Model framework to categorize features as Must-have, Performance, or Delighter features.
 
 ## Recent Changes
+- **January 2025**: Fixed Multi-Agent Analysis Execution
+  - Fixed issue where agents were stuck in "waiting" status during analysis
+  - Updated session creation to properly pass currentStep and features
+  - Simplified multi-agent trigger logic to check for direct approval messages
+  - Added debug logging to track analysis progress and identify issues
+  - Created test endpoint /api/test/multi-agent for direct testing
+  - Multi-agent analysis now properly triggers when user clicks "Confirm & Start Analysis"
+  - Progress updates are simulated on frontend while real analysis runs in background
 - **January 2025**: Manual Input Validation & User-Friendly Interface
   - Added Step 3: Manual Input Validation between AI suggestions and progress tracking
   - Users can now add custom products with key benefits during validation step

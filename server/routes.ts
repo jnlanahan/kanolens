@@ -14,6 +14,7 @@ import {
   insertDocumentSchema 
 } from "@shared/schema";
 import { ZodError } from "zod";
+import { orchestratorAgent } from "./agents/orchestrator";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -217,7 +218,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId: sessionId,
         userId: userId,
         currentStep: session.currentStep,
-        historyLength: conversationHistory.length
+        historyLength: conversationHistory.length,
+        metadata: req.body.metadata
       });
       const aiResponse = await processChatMessage(
         sessionId,
@@ -226,7 +228,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         session,
         conversationHistory
       );
-      console.log("[Routes] OpenAI response received:", aiResponse);
+      console.log("[Routes] OpenAI response received:", {
+        step: aiResponse.step,
+        hasData: !!aiResponse.data,
+        hasMetadata: !!aiResponse.metadata,
+        message: aiResponse.message.substring(0, 100) + '...'
+      });
 
       // Add AI response message
       const aiMessage = await storage.addChatMessage({
@@ -252,6 +259,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (aiResponse.data.products) updateData.products = aiResponse.data.products;
           if (aiResponse.data.tableData) updateData.tableData = aiResponse.data.tableData;
           if (aiResponse.data.targetCustomer) updateData.targetCustomer = aiResponse.data.targetCustomer;
+          
+          // Store metadata in chatHistory for now
+          if (aiResponse.metadata) {
+            const currentHistory = session.chatHistory || [];
+            currentHistory.push({ metadata: aiResponse.metadata });
+            updateData.chatHistory = currentHistory;
+          }
           
           // Auto-update title when products are identified (if still using generic title)
           if (aiResponse.data.products && Array.isArray(aiResponse.data.products) && aiResponse.data.products.length > 0) {
@@ -299,6 +313,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get messages error:", error);
       res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // Test endpoint for multi-agent analysis
+  app.post('/api/test/multi-agent', isAuthenticated, async (req, res) => {
+    try {
+      console.log("[Test] Starting multi-agent test");
+      const { products, features, targetCustomer } = req.body;
+      
+      if (!products || !features || !targetCustomer) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Use a test session ID
+      const testSessionId = 999999;
+      
+      // Test the orchestrator directly
+      const result = await orchestratorAgent.coordinateFullAnalysis(
+        products,
+        features,
+        targetCustomer,
+        (update) => {
+          console.log(`[Test Progress] ${update.step}: ${update.message} (${update.progress}%)`);
+        },
+        testSessionId
+      );
+      
+      res.json({
+        success: true,
+        message: "Multi-agent analysis completed",
+        result
+      });
+    } catch (error) {
+      console.error("[Test] Multi-agent error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Multi-agent test failed",
+        error: error.message 
+      });
     }
   });
 
