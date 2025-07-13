@@ -786,10 +786,18 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
         
         if (result.success) {
           alert('Multi-agent test successful! Check console for details.');
+          console.log('Full analysis result:', result.result);
+          
           // If successful, update the UI with the results
-          if (result.result) {
-            setTableData(result.result);
+          if (result.result && result.result.tableData) {
+            // Update local state with the results
+            setAnalysisResults(result.result.tableData);
             setCurrentStep('results');
+            
+            // Call parent handler if defined
+            if (onAnalysisComplete) {
+              onAnalysisComplete(result.result.tableData);
+            }
           }
         } else {
           alert(`Multi-agent test failed: ${result.error || result.message}`);
