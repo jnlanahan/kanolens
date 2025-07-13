@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -766,6 +766,14 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     return <ManualInputValidation />;
   }
 
+  // Automatically start analysis when reaching progress screen
+  useEffect(() => {
+    if (currentStep === 'progress' && finalData && !currentSessionId) {
+      console.log('Auto-starting analysis on progress screen...');
+      startAnalysis();
+    }
+  }, [currentStep]);
+
   // Step 3: Progress Tracking
   if (currentStep === 'progress' && finalData) {
     const testMultiAgent = async () => {
@@ -818,17 +826,15 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Test Button - Debug Only */}
-            <div className="flex justify-center">
-              <Button
-                onClick={testMultiAgent}
-                variant="destructive"
-                size="lg"
-                className="bg-red-600 hover:bg-red-700"
-              >
-                🧪 Test Multi-Agent Directly (Debug)
-              </Button>
-            </div>
+            {/* Loading state while analysis starts */}
+            {!currentSessionId && (
+              <div className="flex justify-center">
+                <div className="text-center space-y-2">
+                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-purple-600" />
+                  <p className="text-sm text-gray-600">Starting multi-agent analysis...</p>
+                </div>
+              </div>
+            )}
 
             {/* Analysis Context */}
             <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
