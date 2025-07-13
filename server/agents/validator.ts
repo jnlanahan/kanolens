@@ -56,22 +56,54 @@ export class ValidatorAgent {
   };
 
   private readonly realProductKnowledge = {
-    // Product management tools
-    'Trello': {
-      strengths: ['Simple kanban boards', 'Easy collaboration', 'Power-ups ecosystem'],
-      weaknesses: ['Limited reporting', 'No time tracking', 'Basic project management']
+    // Product management tools with detailed competitive insights
+    'Productboard': {
+      strengths: ['User feedback integration', 'Customer insight prioritization', 'Feature roadmapping', 'Product strategy alignment'],
+      weaknesses: ['Expensive pricing', 'Complex initial setup', 'Limited task execution', 'Basic team collaboration'],
+      specialties: ['User feedback', 'Prioritization frameworks', 'Product strategy'],
+      integrations: 'Medium - Slack, Jira, GitHub'
     },
-    'Asana': {
-      strengths: ['Task management', 'Team collaboration', 'Project templates', 'Timeline view'],
-      weaknesses: ['Complex for simple tasks', 'Limited customization']
+    'Craft.io': {
+      strengths: ['Strategic alignment', 'Roadmap visualization', 'Stakeholder communication', 'Impact mapping'],
+      weaknesses: ['Limited integrations', 'Basic automation', 'Small user community', 'Simple analytics'],
+      specialties: ['Strategic planning', 'Visual roadmaps', 'Alignment tools'],
+      integrations: 'Low - Basic integrations only'
+    },
+    'Aha!': {
+      strengths: ['Comprehensive feature set', 'Strategic planning', 'Advanced reporting', 'Roadmap management'],
+      weaknesses: ['Very expensive', 'Complex interface', 'Steep learning curve', 'Overwhelming for small teams'],
+      specialties: ['Strategic planning', 'Comprehensive roadmapping', 'Enterprise features'],
+      integrations: 'High - Extensive integration library'
+    },
+    'Jira Product Discovery': {
+      strengths: ['Jira integration', 'Opportunity mapping', 'Developer workflow', 'Agile alignment'],
+      weaknesses: ['Atlassian ecosystem dependency', 'Basic roadmapping', 'No customer feedback', 'Technical focus'],
+      specialties: ['Developer workflows', 'Agile processes', 'Technical teams'],
+      integrations: 'High - Deep Atlassian integration'
+    },
+    'Trello': {
+      strengths: ['Simple kanban boards', 'Easy collaboration', 'Power-ups ecosystem', 'Visual organization'],
+      weaknesses: ['Limited reporting', 'No time tracking', 'Basic project management', 'Simple prioritization'],
+      specialties: ['Visual organization', 'Simple workflows', 'Basic collaboration'],
+      integrations: 'Medium - Good third-party ecosystem'
     },
     'Monday.com': {
-      strengths: ['Visual project tracking', 'Automation', 'Customizable workflows', 'Integrations'],
-      weaknesses: ['Pricing complexity', 'Learning curve']
+      strengths: ['Visual project tracking', 'Automation', 'Customizable workflows', 'Integrations', 'Dashboards'],
+      weaknesses: ['Pricing complexity', 'Learning curve', 'Can be overwhelming', 'Limited free plan'],
+      specialties: ['Automation', 'Customization', 'Visual dashboards', 'Integration hub'],
+      integrations: 'High - Extensive integration marketplace'
     },
-    'Jira': {
-      strengths: ['Issue tracking', 'Agile workflows', 'Developer tools', 'Reporting'],
-      weaknesses: ['Complex setup', 'Steep learning curve']
+    'Asana': {
+      strengths: ['Task management', 'Team collaboration', 'Project templates', 'Timeline view', 'Goal tracking'],
+      weaknesses: ['Complex for simple tasks', 'Limited customization', 'Expensive for advanced features'],
+      specialties: ['Task management', 'Team collaboration', 'Project tracking'],
+      integrations: 'High - Strong integration ecosystem'
+    },
+    'Roadmunk': {
+      strengths: ['Visual roadmaps', 'Timeline management', 'Presentation mode', 'Ease of use'],
+      weaknesses: ['Limited features', 'Basic integrations', 'No feedback collection', 'Simple prioritization'],
+      specialties: ['Visual roadmaps', 'Timeline visualization', 'Presentation tools'],
+      integrations: 'Low - Basic integrations only'
     },
     'Notion': {
       strengths: ['All-in-one workspace', 'Flexible databases', 'Documentation', 'Templates'],
@@ -337,27 +369,31 @@ export class ValidatorAgent {
     if (productKnowledge) {
       const featureNameLower = featureName.toLowerCase();
       
-      // Check if feature aligns with product strengths
-      const isStrength = productKnowledge.strengths.some(strength => 
-        featureNameLower.includes(strength.toLowerCase().split(' ')[0]) ||
-        strength.toLowerCase().includes(featureNameLower.split(' ')[0])
-      );
+      // Check for specific feature-to-product mappings
+      const specificRating = this.getSpecificFeatureRating(featureNameLower, productName, productKnowledge);
+      if (specificRating) {
+        return specificRating;
+      }
       
-      // Check if feature aligns with product weaknesses
-      const isWeakness = productKnowledge.weaknesses.some(weakness => 
-        featureNameLower.includes(weakness.toLowerCase().split(' ')[0]) ||
-        weakness.toLowerCase().includes(featureNameLower.split(' ')[0])
-      );
+      // Check if feature aligns with product strengths (more sophisticated matching)
+      const strengthMatch = this.findFeatureMatch(featureNameLower, productKnowledge.strengths);
+      const weaknessMatch = this.findFeatureMatch(featureNameLower, productKnowledge.weaknesses);
+      const specialtyMatch = this.findFeatureMatch(featureNameLower, productKnowledge.specialties || []);
       
-      if (isStrength) {
+      if (specialtyMatch) {
+        return {
+          rating: 'High',
+          justification: `${productName} specializes in ${featureName.toLowerCase()} - this is a core strength`
+        };
+      } else if (strengthMatch) {
         return {
           rating: 'High',
           justification: `${productName} is known for strong ${featureName.toLowerCase()} capabilities`
         };
-      } else if (isWeakness) {
+      } else if (weaknessMatch) {
         return {
           rating: 'Low',
-          justification: `${productName} has limitations in ${featureName.toLowerCase()}`
+          justification: `${productName} has documented limitations in ${featureName.toLowerCase()}`
         };
       } else {
         return {
@@ -389,6 +425,59 @@ export class ValidatorAgent {
         justification: 'Standard implementation with moderate benefits'
       };
     }
+  }
+
+  private getSpecificFeatureRating(featureName: string, productName: string, productKnowledge: any): {rating: 'High' | 'Medium' | 'Low'; justification: string} | null {
+    // Specific feature-to-product mappings based on real competitive analysis
+    const specificMappings: Record<string, Record<string, {rating: 'High' | 'Medium' | 'Low'; justification: string}>> = {
+      'user feedback integration': {
+        'Productboard': { rating: 'High', justification: 'Productboard is built specifically for user feedback integration - this is their core differentiator' },
+        'Craft.io': { rating: 'Low', justification: 'Craft.io has minimal user feedback integration capabilities' },
+        'Aha!': { rating: 'Medium', justification: 'Aha! includes user feedback features but not as comprehensive as Productboard' },
+        'Jira Product Discovery': { rating: 'Low', justification: 'Jira Product Discovery focuses on development workflow, not user feedback' },
+        'Trello': { rating: 'Low', justification: 'Trello has no built-in user feedback integration capabilities' },
+        'Monday.com': { rating: 'Medium', justification: 'Monday.com can collect feedback through forms but lacks advanced analysis' },
+        'Asana': { rating: 'Low', justification: 'Asana has basic feedback collection but no integration focus' },
+        'Roadmunk': { rating: 'Low', justification: 'Roadmunk has no user feedback integration capabilities' }
+      },
+      'integration with other tools': {
+        'Monday.com': { rating: 'High', justification: 'Monday.com has the most extensive integration marketplace with 100+ native integrations' },
+        'Asana': { rating: 'High', justification: 'Asana has strong integration ecosystem with most major tools' },
+        'Aha!': { rating: 'High', justification: 'Aha! offers extensive integration library for enterprise tools' },
+        'Jira Product Discovery': { rating: 'High', justification: 'Deep integration with Atlassian ecosystem and development tools' },
+        'Trello': { rating: 'Medium', justification: 'Trello has good third-party integrations through Power-ups' },
+        'Productboard': { rating: 'Medium', justification: 'Productboard integrates with key tools like Slack, Jira, and GitHub' },
+        'Craft.io': { rating: 'Low', justification: 'Craft.io has limited integration options' },
+        'Roadmunk': { rating: 'Low', justification: 'Roadmunk has basic integration capabilities only' }
+      },
+      'ai-powered insights': {
+        'Productboard': { rating: 'Medium', justification: 'Productboard has some AI for feedback analysis but not comprehensive' },
+        'Craft.io': { rating: 'Low', justification: 'Craft.io has minimal AI capabilities' },
+        'Aha!': { rating: 'Medium', justification: 'Aha! includes some AI features for strategic planning' },
+        'Jira Product Discovery': { rating: 'Low', justification: 'Jira Product Discovery focuses on workflows, not AI insights' },
+        'Trello': { rating: 'Low', justification: 'Trello has no AI-powered insights capabilities' },
+        'Monday.com': { rating: 'Medium', justification: 'Monday.com has some AI automation features' },
+        'Asana': { rating: 'Medium', justification: 'Asana has AI-powered project insights and recommendations' },
+        'Roadmunk': { rating: 'Low', justification: 'Roadmunk has no AI capabilities' }
+      }
+    };
+    
+    return specificMappings[featureName]?.[productName] || null;
+  }
+
+  private findFeatureMatch(featureName: string, items: string[]): boolean {
+    return items.some(item => {
+      const itemLower = item.toLowerCase();
+      const featureWords = featureName.split(' ');
+      const itemWords = itemLower.split(' ');
+      
+      // Check for direct word matches or substring matches
+      return featureWords.some(featureWord => 
+        itemWords.some(itemWord => 
+          itemWord.includes(featureWord) || featureWord.includes(itemWord)
+        )
+      );
+    });
   }
   
   private generateGenericDescription(featureName: string, featureData: any): string {
