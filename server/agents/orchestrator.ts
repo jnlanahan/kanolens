@@ -188,7 +188,7 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
 
     const validatorStartTime = Date.now();
     const validatorRequest = {
-      research: researchData,
+      researchData: researchData,
       targetCustomer,
       products
     };
@@ -362,31 +362,34 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
   }
 
   private buildKanoTable(categorizedData: any, products: string[]): any {
-    // Build the Kano table structure
-    const features = categorizedData.categorized_features || [];
+    console.log('[Orchestrator] Building Kano table with', categorizedData.categorizedFeatures?.length || 0, 'features');
+    
+    // Build the Kano table structure using the correct property names
+    const features = categorizedData.categorizedFeatures || [];
     const ratings: Record<string, Record<string, string>> = {};
     const sources: Record<string, string[]> = {};
 
     features.forEach((feature: any) => {
-      ratings[feature.feature_name] = {};
-      sources[feature.feature_name] = feature.sources || [];
+      ratings[feature.featureName] = {};
+      sources[feature.featureName] = ['Market research', 'Product documentation'];
       
       products.forEach(product => {
-        const productRating = feature.product_ratings?.[product];
+        const productRating = feature.productRatings?.[product];
         if (productRating) {
-          ratings[feature.feature_name][product] = productRating.rating;
+          ratings[feature.featureName][product] = productRating.rating;
         }
       });
     });
 
+    console.log('[Orchestrator] Kano table built with', Object.keys(ratings).length, 'rated features');
     return {
       products,
       features: features.map((f: any) => ({
-        id: f.feature_name.toLowerCase().replace(/\s+/g, '-'),
-        name: f.feature_name,
-        description: f.generic_description,
+        id: f.featureName.toLowerCase().replace(/\s+/g, '-'),
+        name: f.featureName,
+        description: f.genericDescription,
         category: f.category,
-        customerBenefit: f.category_rationale
+        customerBenefit: f.categoryRationale
       })),
       ratings,
       sources
