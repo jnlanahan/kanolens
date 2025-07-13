@@ -97,6 +97,14 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     }
   ]);
 
+  // Automatically start analysis when reaching progress screen
+  useEffect(() => {
+    if (currentStep === 'progress' && finalData && !currentSessionId) {
+      console.log('Auto-starting analysis on progress screen...');
+      startAnalysis();
+    }
+  }, [currentStep, finalData, currentSessionId]);
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -765,14 +773,6 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
 
     return <ManualInputValidation />;
   }
-
-  // Automatically start analysis when reaching progress screen
-  useEffect(() => {
-    if (currentStep === 'progress' && finalData && !currentSessionId) {
-      console.log('Auto-starting analysis on progress screen...');
-      startAnalysis();
-    }
-  }, [currentStep]);
 
   // Step 3: Progress Tracking
   if (currentStep === 'progress' && finalData) {
