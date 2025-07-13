@@ -148,6 +148,12 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       updateAgentProgress('Coordination Agent', 'working', 'Setting up analysis workflow and sending criteria to research team', 20);
       
       // Create session for the analysis
+      console.log('Creating session with data:', {
+        products: finalData.products,
+        features: finalData.features,
+        targetCustomer: finalData.targetCustomer
+      });
+      
       const sessionResponse = await fetch('/api/analysis/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,13 +167,17 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       });
       
       if (!sessionResponse.ok) {
-        throw new Error('Failed to create session');
+        const errorText = await sessionResponse.text();
+        console.error('Failed to create session:', errorText);
+        throw new Error(`Failed to create session: ${errorText}`);
       }
       
       const session = await sessionResponse.json();
+      console.log('Session created successfully:', session.id);
       setCurrentSessionId(session.id);
       
       // Start the multi-agent analysis by sending approval message
+      console.log('Sending multi-agent approval message to session:', session.id);
       const analysisResponse = await fetch(`/api/analysis/sessions/${session.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,7 +193,9 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       });
       
       if (!analysisResponse.ok) {
-        throw new Error('Failed to start analysis');
+        const errorText = await analysisResponse.text();
+        console.error('Failed to start analysis:', errorText);
+        throw new Error(`Failed to start analysis: ${errorText}`);
       }
       
       const result = await analysisResponse.json();
