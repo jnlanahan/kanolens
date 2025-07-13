@@ -4,12 +4,25 @@
 KanoLens is an AI-powered competitive analysis platform that transforms complex product research into actionable insights using advanced machine learning and semantic search technologies. The platform helps users analyze competitors using the Kano Model framework to categorize features as Must-have, Performance, or Delighter features.
 
 ## Recent Changes
+- **January 2025**: Manual Input Validation & User-Friendly Interface
+  - Added Step 3: Manual Input Validation between AI suggestions and progress tracking
+  - Users can now add custom products with key benefits during validation step
+  - Orchestrator agent validates product names, corrects spelling, and checks legitimacy
+  - Visual feedback shows validation results with green/red status and detailed suggestions
+  - Real-time loading indicators during validation process
+  - Replaced technical "Orchestrator" language with user-friendly terms like "AI agent"
+  - Progress screen now shows "Coordination Agent", "Research Agent", etc.
+  - Added descriptive task messages: "Setting up analysis workflow and sending criteria to research team"
+  - Users can remove products/features with hover-to-delete functionality
+  - Seamless integration with existing multi-agent workflow
+
 - **January 2025**: Simplified UX/UI with Step-by-Step Workflow
   - Completely redesigned user experience with focused, single-purpose screens
   - Step 1: Clean initial form (only thing on screen when filling out)
   - Step 2: AI suggestions acceptance screen (only suggestions visible)
-  - Step 3: Real-time agent progress tracking (shows actual agent work with time estimates)
-  - Step 4: Final Kano Model table results (table-only view)
+  - Step 3: Manual input validation with real-time AI feedback
+  - Step 4: Real-time agent progress tracking (shows actual agent work with time estimates)
+  - Step 5: Final Kano Model table results (table-only view)
   - Added floating Orchestrator chat bubble available on all screens
   - Orchestrator agent can modify analysis at any point and navigate between steps
   - Progress tracker shows actual agent status: waiting, working, completed

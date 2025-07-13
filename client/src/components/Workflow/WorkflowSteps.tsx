@@ -57,33 +57,33 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
 
   const [agentProgress, setAgentProgress] = useState<AgentProgress[]>([
     {
-      name: 'Orchestrator',
+      name: 'Coordination Agent',
       icon: Brain,
       status: 'waiting',
-      currentTask: 'Coordinating analysis workflow',
+      currentTask: 'Setting up analysis workflow and sending criteria to research team',
       progress: 0
     },
     {
-      name: 'Researcher',
+      name: 'Research Agent',
       icon: Search,
       status: 'waiting',
-      currentTask: 'Gathering competitive intelligence',
+      currentTask: 'Gathering competitive intelligence and product feature data',
       progress: 0,
       timeEstimate: '2-3 min'
     },
     {
-      name: 'Validator',
+      name: 'Validation Agent',
       icon: CheckCircle,
       status: 'waiting',
-      currentTask: 'Categorizing features using Kano Model',
+      currentTask: 'Categorizing features using Kano Model framework',
       progress: 0,
       timeEstimate: '1-2 min'
     },
     {
-      name: 'Analyst',
+      name: 'Analysis Agent',
       icon: BarChart3,
       status: 'waiting',
-      currentTask: 'Generating strategic insights',
+      currentTask: 'Generating strategic insights and competitive recommendations',
       progress: 0,
       timeEstimate: '1-2 min'
     }
@@ -134,8 +134,8 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
     if (!finalData) return;
 
     try {
-      // Start orchestrator
-      updateAgentProgress('Orchestrator', 'working', 'Starting multi-agent analysis', 20);
+      // Start coordination agent
+      updateAgentProgress('Coordination Agent', 'working', 'Setting up analysis workflow and sending criteria to research team', 20);
       
       // Create session for the analysis
       const sessionResponse = await fetch('/api/analysis/sessions', {
@@ -175,13 +175,13 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
           const lastMessage = messages[messages.length - 1];
           
           if (lastMessage?.metadata?.step === 'table_creation') {
-            updateAgentProgress('Researcher', 'completed', 'Research complete', 100);
-            updateAgentProgress('Validator', 'completed', 'Features categorized', 100);
-            updateAgentProgress('Analyst', 'working', 'Generating strategic insights', 80);
+            updateAgentProgress('Research Agent', 'completed', 'Research complete', 100);
+            updateAgentProgress('Validation Agent', 'completed', 'Features categorized', 100);
+            updateAgentProgress('Analysis Agent', 'working', 'Generating strategic insights', 80);
           }
           
           if (lastMessage?.metadata?.step === 'analysis_complete') {
-            updateAgentProgress('Analyst', 'completed', 'Analysis complete', 100);
+            updateAgentProgress('Analysis Agent', 'completed', 'Analysis complete', 100);
             clearInterval(progressInterval);
             
             // Get final session data
@@ -202,7 +202,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       setTimeout(() => {
         clearInterval(progressInterval);
         if (currentStep === 'progress') {
-          updateAgentProgress('Analyst', 'completed', 'Analysis complete', 100);
+          updateAgentProgress('Analysis Agent', 'completed', 'Analysis complete', 100);
           // Use mock data as fallback
           setAnalysisResults({
             tableData: {
@@ -470,9 +470,9 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
           <Card className="w-full max-w-5xl">
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">Manual Input Validation</CardTitle>
+              <CardTitle className="text-2xl font-bold">Customize Your Analysis</CardTitle>
               <CardDescription>
-                Add custom products or refine the analysis setup. The Orchestrator will validate your inputs.
+                Add custom products or refine the analysis setup. Our AI will validate your inputs to ensure accurate results.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -525,7 +525,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
                   {isValidating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Validating with Orchestrator...
+                      AI agent is validating product...
                     </>
                   ) : (
                     "Add & Validate Product"
@@ -545,7 +545,7 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
                           <Target className="h-5 w-5 text-red-600" />
                         )}
                         <span className="font-semibold">
-                          {validationResults.isValid ? 'Validated Successfully' : 'Validation Issues'}
+                          {validationResults.isValid ? 'Product Validated Successfully' : 'AI Found Issues'}
                         </span>
                       </div>
                       <p className="text-sm">{validationResults.message}</p>
@@ -559,6 +559,21 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
                           </ul>
                         </div>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Loading State During Validation */}
+              {isValidating && (
+                <Card className="border-2 border-blue-200 bg-blue-50">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center space-x-3">
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                      <div>
+                        <p className="font-semibold text-blue-900">AI agent is working...</p>
+                        <p className="text-sm text-blue-700">Checking if "{customProduct}" is a real product and relevant competitor</p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -630,9 +645,9 @@ export default function WorkflowSteps({ onAnalysisComplete }: WorkflowStepsProps
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
         <Card className="w-full max-w-4xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Multi-Agent Analysis in Progress</CardTitle>
+            <CardTitle className="text-2xl font-bold">AI Analysis in Progress</CardTitle>
             <CardDescription>
-              Our specialized AI agents are analyzing your competitive landscape
+              Our AI agents are working together to analyze your competitive landscape
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
