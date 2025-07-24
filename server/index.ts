@@ -1,3 +1,4 @@
+import './config'; // Load environment variables first
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -50,21 +51,53 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  // Enable Vite development server for live updates
+  if (nodeEnv === "development") {
+    console.log('[Server] Setting up Vite development server...');
     await setupVite(app, server);
   } else {
+    console.log('[Server] Serving static files...');
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // Serve the app on port 3004 (temporarily to avoid port conflict)
   // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  const port = process.env.PORT || 3006;
+  const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1';
+  
+  const serverOptions: any = { port, host };
+  
+  // Only use reusePort in production (Linux/Railway)
+  if (process.env.NODE_ENV === 'production') {
+    serverOptions.reusePort = true;
+  }
+  
+  const serverInstance = server.listen(serverOptions, () => {
+    log(`serving on http://${host}:${port}`);
   });
+
+  // Graceful shutdown handling
+  const gracefulShutdown = (signal: string) => {
+    console.log(`\n[Server] Received ${signal}. Shutting down gracefully...`);
+    
+    // Import webSocketService dynamically to avoid circular dependency
+    import('./websocket').then(({ webSocketService }) => {
+      webSocketService.shutdown();
+    });
+    
+    serverInstance.close(() => {
+      console.log('[Server] HTTP server closed.');
+      process.exit(0);
+    });
+    
+    // Force exit after 10 seconds if graceful shutdown fails
+    setTimeout(() => {
+      console.error('[Server] Could not close connections in time, forcefully shutting down');
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 })();

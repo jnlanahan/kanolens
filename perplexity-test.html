@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perplexity API Test - KanoLens</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .info { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2563eb; }
+        button:disabled { 
+            background: #9ca3af; 
+            cursor: not-allowed; 
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .response-content {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .metadata-item {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .metadata-label {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .metadata-value {
+            font-size: 16px;
+            color: #111827;
+        }
+        .sources {
+            margin-top: 20px;
+        }
+        .source-item {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 0 6px 6px 0;
+        }
+        .source-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .source-url {
+            color: #0ea5e9;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        .source-url:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Perplexity API Test</h1>
+            <p>Test the Perplexity integration for KanoLens research functionality</p>
+        </div>
+
+        <div id="status" class="status info">
+            Ready to test Perplexity API. Make sure your server is running on localhost:3004
+        </div>
+
+        <div class="form-group">
+            <label for="serverUrl">Server URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:3004/api/perplexity-simple" placeholder="http://localhost:3004/api/perplexity-simple">
+        </div>
+
+        <div class="form-group">
+            <label for="query">Research Query:</label>
+            <textarea id="query" placeholder="What are the key features of Notion that make it popular among knowledge workers?">What are the key features of Notion that make it popular among knowledge workers?</textarea>
+        </div>
+
+        <button onclick="testPerplexity()" id="testBtn">🚀 Test Perplexity API</button>
+
+        <div id="results" class="results" style="display: none;">
+            <h3>📊 Results</h3>
+            <div id="responseContent" class="response-content"></div>
+            
+            <div id="metadata" class="metadata"></div>
+            
+            <div id="sources" class="sources" style="display: none;">
+                <h4>📚 Sources</h4>
+                <div id="sourcesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testPerplexity() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            const responseDiv = document.getElementById('responseContent');
+            const metadataDiv = document.getElementById('metadata');
+            const sourcesDiv = document.getElementById('sources');
+            const sourcesListDiv = document.getElementById('sourcesList');
+            const testBtn = document.getElementById('testBtn');
+            
+            const serverUrl = document.getElementById('serverUrl').value;
+            const query = document.getElementById('query').value;
+            
+            if (!query.trim()) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Please enter a research query';
+                return;
+            }
+            
+            // Update UI for loading state
+            testBtn.disabled = true;
+            testBtn.textContent = '🔄 Testing...';
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔄 Sending request to Perplexity API...';
+            resultsDiv.style.display = 'none';
+            
+            try {
+                const startTime = Date.now();
+                
+                const response = await fetch(serverUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query })
+                });
+                
+                const duration = Date.now() - startTime;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Success
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = `✅ Success! Perplexity API responded in ${duration}ms`;
+                    
+                    // Show results
+                    resultsDiv.style.display = 'block';
+                    responseDiv.textContent = data.response;
+                    
+                    // Show metadata
+                    metadataDiv.innerHTML = `
+                        <div class="metadata-item">
+                            <div class="metadata-label">Duration</div>
+                            <div class="metadata-value">${data.metadata.duration}ms</div>
+                        </div>
+                        <div class="metadata-item">
+                            <div class="metadata-label">Content Length</div>
+                            <div class="metadata-value">${data.response.length} chars</div>
+                        </div>
+                        <div class="metadata-item">
+                            <div class="metadata-label">Citations</div>
+                            <div class="metadata-value">${data.metadata.citations}</div>
+                        </div>
+                        <div class="metadata-item">
+                            <div class="metadata-label">Search Results</div>
+                            <div class="metadata-value">${data.metadata.searchResults}</div>
+                        </div>
+                        <div class="metadata-item">
+                            <div class="metadata-label">Model</div>
+                            <div class="metadata-value">${data.metadata.model || 'sonar'}</div>
+                        </div>
+                        <div class="metadata-item">
+                            <div class="metadata-label">API Key Status</div>
+                            <div class="metadata-value">${data.environment.hasPerplexityKey ? '✅ Present' : '❌ Missing'}</div>
+                        </div>
+                    `;
+                    
+                    // Show sources if available
+                    if (data.fullResponse && data.fullResponse.citations && data.fullResponse.citations.length > 0) {
+                        sourcesDiv.style.display = 'block';
+                        sourcesListDiv.innerHTML = data.fullResponse.citations.map((citation, index) => {
+                            const searchResult = data.fullResponse.search_results && data.fullResponse.search_results[index];
+                            return `
+                                <div class="source-item">
+                                    <div class="source-title">${searchResult ? searchResult.title : `Source ${index + 1}`}</div>
+                                    <a href="${citation}" class="source-url" target="_blank">${citation}</a>
+                                    ${searchResult && searchResult.date ? `<div style="font-size: 12px; color: #6b7280; margin-top: 5px;">Published: ${searchResult.date}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                    
+                } else {
+                    // API error
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ API Error: ${data.error}`;
+                    resultsDiv.style.display = 'block';
+                    responseDiv.textContent = `Error: ${data.details}\n\nEnvironment: ${JSON.stringify(data.environment, null, 2)}`;
+                }
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Request Failed: ${error.message}`;
+                console.error('Test failed:', error);
+            } finally {
+                testBtn.disabled = false;
+                testBtn.textContent = '🚀 Test Perplexity API';
+            }
+        }
+        
+        // Test on Enter key
+        document.getElementById('query').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                testPerplexity();
+            }
+        });
+        
+        // Auto-focus query input
+        document.getElementById('query').focus();
+    </script>
+</body>
+</html>

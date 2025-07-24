@@ -7,6 +7,7 @@ import {
   userFeedback,
   promptVersions,
   adminUsers,
+  sharedAnalyses,
   type User,
   type UpsertUser,
   type AnalysisSession,
@@ -23,8 +24,12 @@ import {
   type InsertPromptVersion,
   type AdminUser,
   type InsertAdminUser,
+  type SharedAnalysis,
+  type InsertSharedAnalysis,
+  ANALYSIS_STATUS,
+  ANALYSIS_STEPS
 } from "@shared/schema";
-import { db } from "./db";
+import { db, dbManager } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -67,13 +72,61 @@ export interface IStorage {
   createAdminUser(admin: InsertAdminUser): Promise<AdminUser>;
   getAdminByEmail(email: string): Promise<AdminUser | undefined>;
   updateAdminLastLogin(id: string): Promise<void>;
+  
+  // Shared analysis operations
+  createSharedAnalysis(sharedAnalysis: InsertSharedAnalysis): Promise<SharedAnalysis>;
+  getSharedAnalysis(shareId: string): Promise<SharedAnalysis | undefined>;
+  getUserSharedAnalyses(userId: string): Promise<SharedAnalysis[]>;
+  updateSharedAnalysis(shareId: string, updates: Partial<SharedAnalysis>): Promise<SharedAnalysis>;
+  incrementShareViewCount(shareId: string): Promise<void>;
+  deleteSharedAnalysis(shareId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
+  // Helper method for transaction retry logic
+  private async executeWithTransaction<T>(
+    operation: (tx: any) => Promise<T>,
+    maxRetries = 3,
+    operationName = 'database operation'
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await db.transaction(operation);
+      } catch (error) {
+        console.error(`[Storage] Transaction attempt ${attempt} failed for ${operationName}:`, error);
+        
+        if (attempt === maxRetries) {
+          throw new Error(`${operationName} failed after ${maxRetries} attempts: ${error.message}`);
+        }
+        
+        // Exponential backoff with jitter
+        const baseDelay = Math.pow(2, attempt) * 1000;
+        const jitter = Math.random() * 1000;
+        const delay = Math.min(baseDelay + jitter, 10000);
+        
+        console.log(`[Storage] Retrying ${operationName} in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  // Helper method for retry logic without transactions
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3,
+    operationName = 'database operation'
+  ): Promise<T> {
+    return await dbManager.executeWithRetry(async () => {
+      return await operation();
+    }, maxRetries);
+  }
+
   // User operations - mandatory for Replit Auth
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return await this.executeWithRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    }, 3, 'getUser');
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -93,36 +146,58 @@ export class DatabaseStorage implements IStorage {
 
   // Analysis session operations
   async createAnalysisSession(sessionData: InsertAnalysisSession): Promise<AnalysisSession> {
-    const [session] = await db
-      .insert(analysisSessions)
-      .values(sessionData)
-      .returning();
-    return session;
+    return await this.executeWithTransaction(async (tx) => {
+      const [session] = await tx
+        .insert(analysisSessions)
+        .values(sessionData)
+        .returning();
+      return session;
+    }, 3, 'createAnalysisSession');
   }
 
   async getAnalysisSession(id: number): Promise<AnalysisSession | undefined> {
-    const [session] = await db
-      .select()
-      .from(analysisSessions)
-      .where(eq(analysisSessions.id, id));
-    return session;
+    try {
+      const [session] = await db
+        .select()
+        .from(analysisSessions)
+        .where(eq(analysisSessions.id, id));
+      return session;
+    } catch (error) {
+      console.error('[Storage] getAnalysisSession failed:', error);
+      throw error;
+    }
   }
 
   async getUserAnalysisSessions(userId: string): Promise<AnalysisSession[]> {
-    return await db
-      .select()
-      .from(analysisSessions)
-      .where(eq(analysisSessions.userId, userId))
-      .orderBy(desc(analysisSessions.updatedAt));
+    return await this.executeWithRetry(async () => {
+      return await db
+        .select()
+        .from(analysisSessions)
+        .where(eq(analysisSessions.userId, userId))
+        .orderBy(desc(analysisSessions.updatedAt));
+    }, 3, 'getUserAnalysisSessions');
   }
 
   async updateAnalysisSession(id: number, updates: Partial<AnalysisSession>): Promise<AnalysisSession> {
-    const [session] = await db
-      .update(analysisSessions)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(analysisSessions.id, id))
-      .returning();
-    return session;
+    return await this.executeWithTransaction(async (tx) => {
+      // Validate session exists first
+      const [existingSession] = await tx
+        .select()
+        .from(analysisSessions)
+        .where(eq(analysisSessions.id, id));
+      
+      if (!existingSession) {
+        throw new Error(`Session ${id} not found`);
+      }
+
+      const [session] = await tx
+        .update(analysisSessions)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(analysisSessions.id, id))
+        .returning();
+      
+      return session;
+    }, 3, 'updateAnalysisSession');
   }
 
   async deleteAnalysisSession(id: number): Promise<void> {
@@ -286,6 +361,67 @@ export class DatabaseStorage implements IStorage {
       .update(adminUsers)
       .set({ lastLogin: new Date() })
       .where(eq(adminUsers.id, id));
+  }
+
+  // Shared Analysis operations
+  async createSharedAnalysis(sharedAnalysis: InsertSharedAnalysis): Promise<SharedAnalysis> {
+    return await this.executeWithTransaction(async (tx) => {
+      const [result] = await tx
+        .insert(sharedAnalyses)
+        .values(sharedAnalysis)
+        .returning();
+      return result;
+    }, 3, 'create shared analysis');
+  }
+
+  async getSharedAnalysis(shareId: string): Promise<SharedAnalysis | undefined> {
+    const results = await db
+      .select()
+      .from(sharedAnalyses)
+      .where(and(
+        eq(sharedAnalyses.shareId, shareId),
+        eq(sharedAnalyses.isActive, true)
+      ))
+      .limit(1);
+    return results[0];
+  }
+
+  async getUserSharedAnalyses(userId: string): Promise<SharedAnalysis[]> {
+    return await db
+      .select()
+      .from(sharedAnalyses)
+      .where(and(
+        eq(sharedAnalyses.userId, userId),
+        eq(sharedAnalyses.isActive, true)
+      ))
+      .orderBy(desc(sharedAnalyses.createdAt));
+  }
+
+  async updateSharedAnalysis(shareId: string, updates: Partial<SharedAnalysis>): Promise<SharedAnalysis> {
+    return await this.executeWithTransaction(async (tx) => {
+      const [result] = await tx
+        .update(sharedAnalyses)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(sharedAnalyses.shareId, shareId))
+        .returning();
+      return result;
+    }, 3, 'update shared analysis');
+  }
+
+  async incrementShareViewCount(shareId: string): Promise<void> {
+    await db
+      .update(sharedAnalyses)
+      .set({ 
+        viewCount: db.sql`${sharedAnalyses.viewCount} + 1`,
+        updatedAt: new Date()
+      })
+      .where(eq(sharedAnalyses.shareId, shareId));
+  }
+
+  async deleteSharedAnalysis(shareId: string): Promise<void> {
+    await db
+      .delete(sharedAnalyses)
+      .where(eq(sharedAnalyses.shareId, shareId));
   }
 }
 

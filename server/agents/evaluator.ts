@@ -47,7 +47,9 @@ Always provide actionable suggestions for improvement.`;
 
   constructor() {
     if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY environment variable is required');
+      console.warn('[Evaluator] ANTHROPIC_API_KEY not set - evaluations will be skipped in development');
+      this.anthropic = null as any;
+      return;
     }
     this.anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -55,6 +57,22 @@ Always provide actionable suggestions for improvement.`;
   }
 
   async evaluateAgent(request: EvaluationRequest): Promise<EvaluationResult> {
+    // Skip evaluation if API key is not set (development mode)
+    if (!this.anthropic) {
+      return {
+        score: 75, // Default development score
+        strengths: ['Development mode - evaluation skipped'],
+        weaknesses: [],
+        suggestions: ['Add ANTHROPIC_API_KEY to enable evaluations'],
+        qualityMetrics: {
+          accuracy: 75,
+          completeness: 75,
+          relevance: 75,
+          clarity: 75,
+        }
+      };
+    }
+
     try {
       const evaluationPrompt = this.buildEvaluationPrompt(request);
       

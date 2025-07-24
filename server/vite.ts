@@ -1,10 +1,35 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+
+// Get directory path with fallback for older Node.js versions
+const getDirname = () => {
+  try {
+    if (import.meta.dirname) {
+      return import.meta.dirname;
+    }
+  } catch (e) {
+    // Ignore error and fall through
+  }
+  
+  try {
+    if (import.meta.url) {
+      const __filename = fileURLToPath(import.meta.url);
+      return path.dirname(__filename);
+    }
+  } catch (e) {
+    console.warn('Failed to get dirname from import.meta.url:', e);
+  }
+  
+  return process.cwd();
+};
+
+const __dirname = getDirname();
 
 const viteLogger = createLogger();
 
@@ -22,7 +47,7 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server },
+    hmr: false, // Disable HMR to avoid WebSocket port issues
     allowedHosts: true,
   };
 
@@ -43,10 +68,15 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    
+    // Skip API routes - let them be handled by the API router
+    if (url.startsWith('/api/')) {
+      return next();
+    }
 
     try {
       const clientTemplate = path.resolve(
-        import.meta.dirname,
+        __dirname,
         "..",
         "client",
         "index.html",
@@ -68,7 +98,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+  const distPath = path.resolve(__dirname, "..", "dist", "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

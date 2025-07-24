@@ -1,0 +1,3 @@
+@echo off
+echo Starting KanoLens server with environment variables...
+npm run dev

@@ -133,6 +133,23 @@ export const adminUsers = pgTable("admin_users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Shared Analysis table for public sharing
+export const sharedAnalyses = pgTable("shared_analyses", {
+  id: serial("id").primaryKey(),
+  shareId: varchar("share_id").unique().notNull(),
+  sessionId: integer("session_id").references(() => analysisSessions.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id),
+  title: varchar("title").notNull(),
+  products: jsonb("products").notNull(),
+  targetCustomer: text("target_customer"),
+  tableData: jsonb("table_data").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isActive: boolean("is_active").default(true),
+  viewCount: integer("view_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export type InsertAgentEvaluation = typeof agentEvaluations.$inferInsert;
 export type AgentEvaluation = typeof agentEvaluations.$inferSelect;
 
@@ -144,6 +161,9 @@ export type PromptVersion = typeof promptVersions.$inferSelect;
 
 export type InsertAdminUser = typeof adminUsers.$inferInsert;
 export type AdminUser = typeof adminUsers.$inferSelect;
+
+export type InsertSharedAnalysis = typeof sharedAnalyses.$inferInsert;
+export type SharedAnalysis = typeof sharedAnalyses.$inferSelect;
 
 // Zod schemas for validation
 export const insertAnalysisSessionSchema = createInsertSchema(analysisSessions).omit({
@@ -200,6 +220,7 @@ export interface KanoTableData {
   products: string[];
   features: KanoFeature[];
   ratings: Record<string, Record<string, string>>; // feature_id -> product -> rating
+  justifications: Record<string, Record<string, string>>; // feature_id -> product -> detailed explanation
   sources: Record<string, string[]>; // feature_id -> source URLs
 }
 
@@ -214,3 +235,23 @@ export interface ChatMessageUI {
     uploadedFiles?: string[];
   };
 }
+
+// Standardized analysis steps and status
+export const ANALYSIS_STEPS = {
+  DISCOVERY: 'discovery',
+  RESEARCH: 'research',
+  CATEGORIZATION: 'categorization', 
+  TABLE_CREATION: 'table_creation',
+  ANALYSIS: 'analysis',
+  COMPLETED: 'completed',
+  ERROR: 'error'
+} as const;
+
+export const ANALYSIS_STATUS = {
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed', 
+  FAILED: 'failed'
+} as const;
+
+export type AnalysisStep = typeof ANALYSIS_STEPS[keyof typeof ANALYSIS_STEPS];
+export type AnalysisStatus = typeof ANALYSIS_STATUS[keyof typeof ANALYSIS_STATUS];
