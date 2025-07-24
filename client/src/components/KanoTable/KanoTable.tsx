@@ -72,11 +72,30 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
   const [editMessage, setEditMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedCell, setSelectedCell] = useState<{
+    feature: KanoFeature;
+    product: string;
+    rating: string;
+    justification: string;
+    sources: string[];
+  } | null>(null);
+  const [isCellModalOpen, setIsCellModalOpen] = useState(false);
   const { toast } = useToast();
 
   const handleFeatureClick = useCallback((feature: KanoFeature) => {
     setSelectedFeature(feature);
     setIsModalOpen(true);
+  }, []);
+
+  const handleCellClick = useCallback((feature: KanoFeature, product: string, rating: string, justification: string, sources: string[]) => {
+    setSelectedCell({
+      feature,
+      product,
+      rating,
+      justification,
+      sources
+    });
+    setIsCellModalOpen(true);
   }, []);
 
   const handleExport = useCallback(async () => {
@@ -395,13 +414,26 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
                             </td>
                             {tableData.products.map((product) => {
                               const rating = tableData.ratings[feature.id]?.[product] || "N/A";
+                              const justification = tableData.justifications?.[feature.id]?.[product] || "No additional details available";
+                              const sources = tableData.sources?.[feature.id] || [];
+                              const hasDetails = sources.length > 0 || rating !== "N/A" || justification !== "No additional details available";
+                              
                               return (
                                 <td key={product} className="p-4 text-center">
-                                  <Badge className={getRatingBadge(rating, category)}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation(); // Prevent row click
+                                      handleCellClick(feature, product, rating, justification, sources);
+                                    }}
+                                    className={`${getRatingBadge(rating, category)} ${hasDetails ? 'hover:shadow-md hover:scale-105 transition-all duration-200 cursor-pointer' : ''} inline-flex items-center gap-1`}
+                                    disabled={!hasDetails}
+                                  >
                                     {rating === "Yes" && "✓ Yes"}
                                     {rating === "No" && "✗ No"}
-                                    {rating !== "Yes" && rating !== "No" && rating}
-                                  </Badge>
+                                    {rating === "" && "—"} {/* Blank rating for delighters */}
+                                    {rating !== "Yes" && rating !== "No" && rating !== "" && rating}
+                                    {hasDetails && <span className="ml-1 text-xs opacity-60">🔗</span>}
+                                  </button>
                                 </td>
                               );
                             })}
@@ -485,6 +517,57 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cell Details Modal */}
+      <Dialog open={isCellModalOpen} onOpenChange={setIsCellModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <span>Cell Details</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedCell && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white">{selectedCell.feature.name}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedCell.product}</p>
+              </div>
+              
+              <div>
+                <span className="text-sm font-medium">Rating: </span>
+                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getRatingBadge(selectedCell.rating, selectedCell.feature.category)}`}>
+                  {selectedCell.rating === "Yes" && "✓ Yes"}
+                  {selectedCell.rating === "No" && "✗ No"}
+                  {selectedCell.rating !== "Yes" && selectedCell.rating !== "No" && selectedCell.rating}
+                </span>
+              </div>
+              
+              <div>
+                <h5 className="text-sm font-medium mb-2">Details:</h5>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedCell.justification}</p>
+              </div>
+              
+              {selectedCell.sources && selectedCell.sources.length > 0 && (
+                <div>
+                  <h5 className="text-sm font-medium mb-2">Sources:</h5>
+                  <ul className="space-y-1">
+                    {selectedCell.sources.map((source, index) => (
+                      <li key={index} className="text-xs text-gray-600 dark:text-gray-400">
+                        • {source}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                Click on any rating cell to see detailed information and sources.
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
       </div>

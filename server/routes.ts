@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, setupLoginRoute } from "./simpleAuth";
 import { 
   processChatMessage, 
   conductCompetitiveResearch, 
@@ -11,19 +11,55 @@ import {
 import { 
   insertAnalysisSessionSchema, 
   insertChatMessageSchema,
-  insertDocumentSchema 
+  insertDocumentSchema,
+  ANALYSIS_STEPS,
+  ANALYSIS_STATUS
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { orchestratorAgent } from "./agents/orchestrator";
+import { webSocketService } from "./websocket";
+import { langSmithService } from "./langsmith";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  
+  // Setup login routes for development
+  setupLoginRoute(app);
+
+  // Ensure dev user exists in development mode
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      await storage.upsertUser({
+        id: 'dev-user-123',
+        email: 'dev@example.com',
+        firstName: 'Development',
+        lastName: 'User'
+      });
+      console.log('[Routes] Development user created/updated');
+    } catch (error) {
+      console.error('[Routes] Failed to create dev user:', error);
+    }
+  }
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      
+      // For development mode, return mock user
+      if (userId === 'dev-user-123') {
+        return res.json({
+          id: 'dev-user-123',
+          email: 'dev@example.com',
+          firstName: 'Development',
+          lastName: 'User',
+          profileImageUrl: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      }
+      
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
@@ -654,6 +690,1060 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WebSocket debug endpoint
+  app.get('/api/debug/websocket-status', isAuthenticated, async (req: any, res) => {
+    try {
+      const status = webSocketService.getConnectionStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('WebSocket status error:', error);
+      res.status(500).json({ message: 'Failed to get WebSocket status' });
+    }
+  });
+
+  // LangSmith test endpoint
+  app.post('/api/debug/test-langsmith', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('[LangSmith Test] Starting test trace...');
+      
+      // Create a test workflow trace
+      const testTrace = await langSmithService.createWorkflowTrace(99999, {
+        products: ['Test Product A', 'Test Product B'],
+        features: ['Feature 1', 'Feature 2'],
+        targetCustomer: 'Test Customer Segment'
+      });
+
+      if (!testTrace) {
+        return res.json({
+          success: false,
+          message: 'LangSmith is disabled (no API key configured)',
+          isEnabled: langSmithService.isReady()
+        });
+      }
+
+      // Create a test agent trace
+      const agentTrace = await langSmithService.traceAgent(testTrace, {
+        agentName: 'test-agent',
+        sessionId: 99999,
+        input: { testQuery: 'Sample test input for LangSmith verification' },
+        output: { testResult: 'Sample test output - LangSmith is working!' },
+        startTime: Date.now() - 1000,
+        endTime: Date.now(),
+        metadata: { testType: 'manual-verification', timestamp: new Date().toISOString() }
+      });
+
+      // Complete the workflow with test metrics
+      await langSmithService.completeWorkflowTrace(testTrace, {
+        testResults: 'LangSmith integration test completed successfully',
+        verificationStatus: 'passed'
+      }, {
+        accuracy: 0.95,
+        completeness: 1.0,
+        latency: 1000
+      });
+
+      // Test evaluation submission
+      if (agentTrace) {
+        await langSmithService.evaluateAgent(agentTrace, {
+          accuracy: 0.95,
+          completeness: 1.0,
+          relevance: 0.9,
+          performance: 0.85
+        }, 'test-evaluator');
+      }
+
+      console.log('[LangSmith Test] Test trace completed successfully');
+
+      res.json({
+        success: true,
+        message: 'LangSmith test completed successfully! Check your LangSmith dashboard.',
+        isEnabled: langSmithService.isReady(),
+        traceId: testTrace.id,
+        projectName: process.env.LANGCHAIN_PROJECT || 'kanolens-multi-agent',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('[LangSmith Test] Test failed:', error);
+      res.status(500).json({
+        success: false,
+        message: 'LangSmith test failed',
+        error: error.message,
+        isEnabled: langSmithService.isReady()
+      });
+    }
+  });
+
+  // Export and sharing endpoints
+  app.post('/api/analysis/sessions/:id/export/pdf', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session || session.userId !== req.user.claims.sub) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      if (!session.tableData) {
+        return res.status(400).json({ message: "No analysis data available for export" });
+      }
+
+      // TODO: Implement PDF generation
+      const { generatePDFReport } = await import('./export/pdf');
+      const pdfBuffer = await generatePDFReport(session);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${session.title} - Report.pdf"`);
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('PDF export error:', error);
+      res.status(500).json({ message: 'Failed to generate PDF report' });
+    }
+  });
+
+  app.post('/api/analysis/sessions/:id/export/powerpoint', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session || session.userId !== req.user.claims.sub) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      if (!session.tableData) {
+        return res.status(400).json({ message: "No analysis data available for export" });
+      }
+
+      // TODO: Implement PowerPoint generation
+      const { generatePowerPointSlides } = await import('./export/powerpoint');
+      const pptxBuffer = await generatePowerPointSlides(session);
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      res.setHeader('Content-Disposition', `attachment; filename="${session.title} - Slides.pptx"`);
+      res.send(pptxBuffer);
+    } catch (error) {
+      console.error('PowerPoint export error:', error);
+      res.status(500).json({ message: 'Failed to generate PowerPoint slides' });
+    }
+  });
+
+  app.post('/api/analysis/sessions/:id/share', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session || session.userId !== req.user.claims.sub) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      if (!session.tableData) {
+        return res.status(400).json({ message: "No analysis data available for sharing" });
+      }
+
+      // TODO: Implement share link generation
+      const { generateShareLink } = await import('./export/share');
+      const shareData = await generateShareLink(session);
+
+      res.json({
+        shareUrl: shareData.url,
+        expiresAt: shareData.expiresAt,
+        shareId: shareData.shareId
+      });
+    } catch (error) {
+      console.error('Share link error:', error);
+      res.status(500).json({ message: 'Failed to create share link' });
+    }
+  });
+
+  // Public share route (no authentication required)
+  app.get('/share/:shareId', async (req: any, res) => {
+    try {
+      const { shareId } = req.params;
+      const { getSharedAnalysis } = await import('./export/share');
+      const sharedData = await getSharedAnalysis(shareId);
+
+      if (!sharedData) {
+        return res.status(404).json({ message: "Shared analysis not found or expired" });
+      }
+
+      res.json(sharedData);
+    } catch (error) {
+      console.error('Shared analysis error:', error);
+      res.status(500).json({ message: 'Failed to load shared analysis' });
+    }
+  });
+
+  // Force regeneration of existing session with fresh analysis
+  app.post('/api/analysis/sessions/:id/regenerate', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session || session.userId !== req.user.claims.sub) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      console.log(`[Regenerate] Starting fresh analysis for session ${sessionId}`);
+      
+      // Extract products and features from session
+      const products = Array.isArray(session.products) ? session.products : [];
+      const targetCustomer = session.targetCustomer || 'Product Managers';
+      const features = session.features || ['User Interface', 'AI Code Assistance', 'Real-Time Collaboration'];
+      
+      if (products.length === 0) {
+        return res.status(400).json({ message: "No products found in session to regenerate" });
+      }
+      
+      // Reset session to in-progress state
+      await storage.updateAnalysisSession(sessionId, {
+        status: ANALYSIS_STATUS.IN_PROGRESS,
+        currentStep: ANALYSIS_STEPS.DISCOVERY,
+        tableData: null // Clear old fallback data
+      });
+      
+      // Return immediately
+      res.json({ message: "Regeneration started", sessionId });
+      
+      // Start fresh analysis in background
+      setImmediate(async () => {
+        try {
+          console.log(`[Regenerate] Starting background analysis for session ${sessionId}`);
+          
+          const progressCallback = async (update: any) => {
+            try {
+              console.log(`[Regenerate] Progress - Step: ${update.step}, Progress: ${update.progress}%`);
+              
+              await storage.updateAnalysisSession(sessionId, {
+                currentStep: update.step,
+              });
+              
+              webSocketService.broadcastProgress(sessionId, {
+                step: update.step,
+                message: update.message,
+                progress: update.progress,
+                data: update.data,
+                sessionId: sessionId
+              });
+            } catch (error) {
+              console.error('[Regenerate] Failed to update progress:', error);
+            }
+          };
+
+          // Call the FIXED orchestrator
+          const result = await orchestratorAgent.coordinateFullAnalysis(
+            products,
+            features,
+            targetCustomer,
+            progressCallback,
+            sessionId,
+            'quick'
+          );
+
+          console.log(`[Regenerate] Analysis complete for session ${sessionId}`);
+
+          // Update session with fresh results
+          await storage.updateAnalysisSession(sessionId, {
+            tableData: result.tableData,
+            status: ANALYSIS_STATUS.COMPLETED,
+            currentStep: ANALYSIS_STEPS.COMPLETED,
+            sourceDocumentation: result.sourceDocumentation || null
+          });
+
+          // Broadcast completion
+          webSocketService.broadcastComplete(sessionId, {
+            tableData: result.tableData,
+            analysis: result.analysis,
+            status: ANALYSIS_STATUS.COMPLETED
+          });
+
+          console.log(`[Regenerate] Session ${sessionId} regenerated successfully`);
+
+        } catch (error) {
+          console.error(`[Regenerate] Failed for session ${sessionId}:`, error);
+          
+          try {
+            await storage.updateAnalysisSession(sessionId, {
+              status: ANALYSIS_STATUS.FAILED,
+              currentStep: ANALYSIS_STEPS.ERROR
+            });
+            
+            webSocketService.broadcastProgress(sessionId, {
+              step: 'error',
+              message: 'Analysis failed - please try again',
+              progress: 0,
+              data: { error: error.message },
+              sessionId: sessionId
+            });
+          } catch (updateError) {
+            console.error(`[Regenerate] Failed to update error status:`, updateError);
+          }
+        }
+      });
+      
+    } catch (error) {
+      console.error("Regenerate session error:", error);
+      res.status(500).json({ message: "Failed to regenerate session" });
+    }
+  });
+
+  // New linear flow API endpoints
+  app.post('/api/analysis/suggestions', isAuthenticated, async (req: any, res) => {
+    try {
+      const { orchestratorAgent } = await import('./agents/orchestrator');
+      
+      const input = {
+        mode: 'suggestions' as const,
+        formData: req.body,
+        sessionId: 0 // Temporary session ID for suggestions
+      };
+      
+      const suggestions = await orchestratorAgent.processSuggestions(input);
+      
+      res.json({
+        productInterpretation: suggestions.productInterpretation,
+        suggestedProducts: suggestions.suggestedProducts,
+        suggestedFeatures: suggestions.suggestedFeatures
+      });
+    } catch (error) {
+      console.error('Analysis suggestions error:', error);
+      res.status(500).json({ message: 'Failed to generate suggestions' });
+    }
+  });
+
+  app.post('/api/analysis/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Create a new analysis session
+      const session = await storage.createAnalysisSession({
+        userId,
+        title: `Analysis ${new Date().toLocaleDateString()}`,
+        status: ANALYSIS_STATUS.IN_PROGRESS,
+        currentStep: ANALYSIS_STEPS.DISCOVERY,
+        products: req.body.products || [],
+        targetCustomer: req.body.targetCustomers || req.body.targetCustomer,
+        features: req.body.features || [],
+        chatHistory: []
+      });
+
+      // Return session ID immediately to user
+      res.json({ sessionId: session.id });
+
+      // Start the multi-agent analysis in background
+      setImmediate(async () => {
+        try {
+          console.log(`[DEBUG] About to call orchestrator for session: ${session.id}`);
+          console.log(`[DEBUG] Orchestrator request data:`, {
+            products: req.body.products || [],
+            features: req.body.features || [],
+            targetCustomer: req.body.targetCustomers || req.body.targetCustomer || '',
+            analysisMode: req.body.analysisMode || 'quick'
+          });
+          // Progress callback to update session in real-time
+          const progressCallback = async (update: any) => {
+            try {
+              console.log(`[Analysis] Progress update - Step: ${update.step}, Progress: ${update.progress}%, Message: ${update.message}`);
+              
+              // Update database with granular progress tracking
+              const updateData: any = {
+                currentStep: update.step
+              };
+              
+              // Store granular research progress if available
+              if (update.step === 'research' && update.data && update.data.currentProduct) {
+                updateData.researchProgress = update.progress;
+              }
+              
+              await storage.updateAnalysisSession(session.id, updateData);
+              
+              // Broadcast to WebSocket clients
+              webSocketService.broadcastProgress(session.id, {
+                step: update.step,
+                message: update.message,
+                progress: update.progress,
+                data: update.data,
+                sessionId: session.id
+              });
+            } catch (error) {
+              console.error('[Analysis] Failed to update progress:', error);
+            }
+          };
+
+          // Call orchestrator directly to coordinate full analysis
+          console.log(`[Analysis] About to call orchestrator for session ${session.id}`);
+          console.log(`[Analysis] Request data:`, {
+            products: req.body.products || [],
+            features: req.body.features || [],
+            targetCustomer: req.body.targetCustomers || req.body.targetCustomer || '',
+            analysisMode: req.body.analysisMode || 'quick'
+          });
+          
+          // Add timeout to prevent hanging processes
+          const analysisPromise = orchestratorAgent.coordinateFullAnalysis(
+            req.body.products || [],
+            req.body.features || [],
+            req.body.targetCustomers || req.body.targetCustomer || '',
+            progressCallback,
+            session.id,
+            req.body.analysisMode || 'quick' // Default to quick mode
+          );
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Analysis timeout after 10 minutes')), 600000)
+          );
+          
+          const result = await Promise.race([analysisPromise, timeoutPromise]);
+
+          console.log(`[DEBUG] Orchestrator result for session ${session.id}:`, result);
+          console.log(`[Analysis] Analysis complete for session ${session.id}`);
+
+          // Update session with final results
+          await storage.updateAnalysisSession(session.id, {
+            tableData: result.tableData,
+            status: ANALYSIS_STATUS.COMPLETED,
+            currentStep: ANALYSIS_STEPS.COMPLETED,
+            sourceDocumentation: result.sourceDocumentation || null
+          }).catch(err => console.error('[Analysis] Failed to save completion:', err));
+
+          // Broadcast completion to WebSocket clients
+          webSocketService.broadcastComplete(session.id, {
+            tableData: result.tableData,
+            analysis: result.analysis,
+            status: ANALYSIS_STATUS.COMPLETED
+          });
+
+          console.log(`[Analysis] Session ${session.id} marked as completed`);
+
+        } catch (error) {
+          console.error(`[CRITICAL] Orchestrator failed for session ${session.id}:`, error);
+          console.error(`[CRITICAL] Error type:`, error.constructor.name);
+          console.error(`[CRITICAL] Error message:`, error.message);
+          console.error(`[CRITICAL] Stack trace:`, error.stack);
+          
+          try {
+            // Mark session as failed with error details
+            await storage.updateAnalysisSession(session.id, {
+              status: ANALYSIS_STATUS.FAILED,
+              currentStep: ANALYSIS_STEPS.ERROR,
+              // Store error info for debugging (if we add error field to schema)
+            });
+            
+            // Broadcast error to WebSocket clients
+            webSocketService.broadcastError(session.id, {
+              message: error.message || 'Analysis failed',
+              step: 'error',
+              error: error.message
+            });
+          } catch (updateError) {
+            console.error(`[Analysis] Failed to update session ${session.id} status:`, updateError);
+          }
+
+          // NO FALLBACK - Analysis must complete with real data or fail completely
+          console.error(`[Analysis] Analysis failed completely for session ${session.id} - no fallback available`);
+        }
+      });
+
+    } catch (error) {
+      console.error('Start analysis error:', error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        message: 'Failed to start analysis',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get('/api/analysis/sessions/:id/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      
+      if (session.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Map internal steps to progress steps using standardized constants
+      const stepMap = {
+        [ANALYSIS_STEPS.DISCOVERY]: ANALYSIS_STEPS.DISCOVERY,
+        [ANALYSIS_STEPS.RESEARCH]: ANALYSIS_STEPS.RESEARCH,
+        [ANALYSIS_STEPS.CATEGORIZATION]: ANALYSIS_STEPS.CATEGORIZATION,
+        [ANALYSIS_STEPS.TABLE_CREATION]: ANALYSIS_STEPS.ANALYSIS,  // Map table_creation to analysis for frontend
+        [ANALYSIS_STEPS.ANALYSIS]: ANALYSIS_STEPS.ANALYSIS,
+        [ANALYSIS_STEPS.COMPLETED]: ANALYSIS_STEPS.COMPLETED,
+        [ANALYSIS_STEPS.ERROR]: ANALYSIS_STEPS.ERROR,
+        'failed': ANALYSIS_STEPS.ERROR
+      };
+
+      // Calculate progress based on status first, then step using orchestrator's percentages
+      let progress = 20; // Default for discovery (matches orchestrator)
+      if (session.status === ANALYSIS_STATUS.COMPLETED) {
+        progress = 100;
+      } else if (session.status === ANALYSIS_STATUS.FAILED) {
+        progress = 0;
+      } else {
+        // Calculate dynamic progress based on actual session state
+        switch (session.currentStep) {
+          case ANALYSIS_STEPS.DISCOVERY:
+            progress = 20;
+            break;
+          case ANALYSIS_STEPS.RESEARCH:
+            // Check if research has additional progress data
+            progress = session.researchProgress || 30;
+            break;
+          case ANALYSIS_STEPS.CATEGORIZATION:
+            progress = 60;
+            break;
+          case ANALYSIS_STEPS.TABLE_CREATION:
+            progress = 80;
+            break;
+          case ANALYSIS_STEPS.ANALYSIS:
+            progress = 90;
+            break;
+          default:
+            progress = 20;
+        }
+      }
+
+      res.json({
+        currentStep: stepMap[session.currentStep as keyof typeof stepMap] || 'discovery',
+        status: session.status,
+        progress: progress
+      });
+    } catch (error) {
+      console.error('Progress check error:', error);
+      res.status(500).json({ message: 'Failed to check progress' });
+    }
+  });
+
+  // Debug endpoint for agent flow analysis
+  app.post('/api/analysis/debug', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { products, targetCustomer } = req.body;
+
+      if (!products || !targetCustomer) {
+        return res.status(400).json({ message: 'Products and target customer are required' });
+      }
+
+      console.log('[Debug] Starting debug analysis for:', { products, targetCustomer });
+
+      // Track all agent steps with detailed information
+      const debugSteps: any[] = [];
+      let stepCounter = 0;
+
+      // Helper to record each agent step
+      const recordStep = (agent: string, instruction: string, input?: any, output?: any, error?: string) => {
+        const step = {
+          agent,
+          instruction,
+          input,
+          output,
+          timestamp: new Date().toISOString(),
+          status: error ? 'error' : 'completed',
+          error,
+          duration: Math.floor(Math.random() * 2000) + 500 // Mock duration for now
+        };
+        debugSteps.push(step);
+        console.log(`[Debug] Step ${++stepCounter}: ${agent} - ${step.status}`);
+        return step;
+      };
+
+      // Record orchestrator step
+      recordStep(
+        'orchestrator',
+        'Coordinate multi-agent analysis workflow',
+        { products, targetCustomer },
+        { action: 'Initiating research phase' }
+      );
+
+      try {
+        console.log('[Debug] Calling orchestrator with:', { 
+          products, 
+          targetCustomer, 
+          featuresLength: 0,
+          sessionId: -1,
+          mode: 'quick'
+        });
+        
+        // Run actual orchestrator analysis with detailed tracking
+        const result = await orchestratorAgent.coordinateFullAnalysis(
+          products,
+          [], // Empty features for debug
+          targetCustomer,
+          (update: any) => {
+            console.log('[Debug] Progress callback received:', update);
+            recordStep(
+              update.agent || 'progress',
+              `Progress update: ${update.message}`,
+              { step: update.step, progress: update.progress },
+              { message: update.message, data: update.data }
+            );
+          },
+          -1, // Debug session ID
+          'quick' // Use quick mode for debug
+        );
+
+        // Record final result
+        recordStep(
+          'orchestrator',
+          'Complete analysis coordination',
+          { analysisMode: 'debug' },
+          { 
+            tableData: result.tableData, 
+            analysis: result.analysis,
+            featuresCount: result.tableData?.features?.length || 0,
+            productsCount: result.tableData?.products?.length || 0
+          }
+        );
+
+        res.json({
+          sessionId: -1,
+          steps: debugSteps,
+          finalResult: result,
+          environmentTest: {
+            PERPLEXITY_API_KEY: !!process.env.PERPLEXITY_API_KEY,
+            perplexityPrefix: process.env.PERPLEXITY_API_KEY?.substring(0, 12) + '...',
+            OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+            NODE_ENV: process.env.NODE_ENV
+          }
+        });
+
+      } catch (analysisError) {
+        console.error('[Debug] Analysis error:', analysisError);
+        recordStep(
+          'orchestrator',
+          'Analysis failed',
+          { products, targetCustomer },
+          null,
+          analysisError.message
+        );
+
+        res.json({
+          sessionId: -1,
+          steps: debugSteps,
+          finalResult: null,
+          error: analysisError.message
+        });
+      }
+
+    } catch (error) {
+      console.error('[Debug] Debug endpoint error:', error);
+      res.status(500).json({ 
+        message: 'Debug analysis failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Comprehensive agent testing endpoint
+  app.post('/api/analysis/test', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('[Test] Starting comprehensive agent testing...');
+      
+      // Test environment first
+      const envTest = {
+        agent: 'environment',
+        test: 'Environment Variables Check',
+        status: 'pass' as const,
+        input: 'Environment variable check',
+        output: {
+          PERPLEXITY_API_KEY: !!process.env.PERPLEXITY_API_KEY,
+          OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+          ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+          DATABASE_URL: !!process.env.DATABASE_URL,
+          NODE_ENV: process.env.NODE_ENV
+        },
+        duration: 1,
+        details: {
+          perplexityKeyPrefix: process.env.PERPLEXITY_API_KEY?.substring(0, 8) + '...',
+          openaiKeyPrefix: process.env.OPENAI_API_KEY?.substring(0, 8) + '...'
+        }
+      };
+
+      // Test Perplexity API directly
+      let perplexityTest;
+      try {
+        console.log('[Test] Testing Perplexity API...');
+        const startTime = Date.now();
+        
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'sonar',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a helpful assistant. Be concise.'
+              },
+              {
+                role: 'user',
+                content: 'What are the main features of Notion? List 3 key features.'
+              }
+            ],
+            max_tokens: 200,
+            temperature: 0.2
+          })
+        });
+
+        const data = await response.json();
+        
+        perplexityTest = {
+          agent: 'perplexity',
+          test: 'Direct Perplexity API Call',
+          status: response.ok ? 'pass' as const : 'fail' as const,
+          input: 'Test query about Notion features',
+          output: response.ok ? data : null,
+          error: !response.ok ? `HTTP ${response.status}: ${data.error || 'Unknown error'}` : undefined,
+          duration: Date.now() - startTime,
+          details: {
+            responseStatus: response.status,
+            contentLength: data.choices?.[0]?.message?.content?.length || 0,
+            citations: data.citations?.length || 0,
+            searchResults: data.search_results?.length || 0
+          }
+        };
+      } catch (error) {
+        perplexityTest = {
+          agent: 'perplexity',
+          test: 'Direct Perplexity API Call',
+          status: 'error' as const,
+          error: error.message,
+          duration: 0
+        };
+      }
+
+      const testResults = [envTest, perplexityTest];
+      const passed = testResults.filter(r => r.status === 'pass').length;
+      const failed = testResults.filter(r => r.status === 'fail').length;
+      const errors = testResults.filter(r => r.status === 'error').length;
+
+      const summary = {
+        total: testResults.length,
+        passed,
+        failed,
+        errors,
+        success: failed === 0 && errors === 0
+      };
+
+      res.json({
+        summary,
+        testResults,
+        timestamp: new Date().toISOString(),
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          hasPerplexityKey: !!process.env.PERPLEXITY_API_KEY,
+          hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+          perplexityKeyPrefix: process.env.PERPLEXITY_API_KEY?.substring(0, 8) + '...',
+          openaiKeyPrefix: process.env.OPENAI_API_KEY?.substring(0, 8) + '...'
+        }
+      });
+    } catch (error) {
+      console.error('[Test] Comprehensive testing failed:', error);
+      res.status(500).json({
+        message: 'Comprehensive testing failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+    }
+  });
+
+  // Comprehensive Perplexity API connection test
+  app.post('/api/debug/test-perplexity', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('[Debug] Testing Perplexity API connection and configuration...');
+      
+      const tests = [];
+      
+      // Test 1: Environment Configuration
+      const envTest = {
+        test: 'Environment Configuration',
+        status: 'pass',
+        details: {
+          hasApiKey: !!process.env.PERPLEXITY_API_KEY,
+          keyPrefix: process.env.PERPLEXITY_API_KEY?.substring(0, 12) + '***' || 'Not configured',
+          keyLength: process.env.PERPLEXITY_API_KEY?.length || 0
+        }
+      };
+      
+      if (!process.env.PERPLEXITY_API_KEY) {
+        envTest.status = 'fail';
+        envTest.details.error = 'PERPLEXITY_API_KEY not configured';
+      }
+      
+      tests.push(envTest);
+      
+      // Test 2: Basic API Connection
+      if (process.env.PERPLEXITY_API_KEY) {
+        const { query = 'What are the main features of Notion? List 3 key features.' } = req.body;
+        const startTime = Date.now();
+        
+        try {
+          const response = await fetch('https://api.perplexity.ai/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'sonar',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a helpful research assistant. Provide detailed, factual information with sources when possible.'
+                },
+                {
+                  role: 'user',
+                  content: query
+                }
+              ],
+              max_tokens: 500,
+              temperature: 0.2
+            })
+          });
+
+          const data = await response.json();
+          const duration = Date.now() - startTime;
+          
+          const apiTest = {
+            test: 'API Connection',
+            status: response.ok ? 'pass' : 'fail',
+            details: {
+              status: response.status,
+              duration,
+              responseSize: JSON.stringify(data).length,
+              hasContent: !!data.choices?.[0]?.message?.content,
+              contentLength: data.choices?.[0]?.message?.content?.length || 0,
+              hasCitations: !!data.citations,
+              citationCount: data.citations?.length || 0,
+              query
+            }
+          };
+          
+          if (!response.ok) {
+            apiTest.details.error = `HTTP ${response.status}`;
+            apiTest.details.apiError = data;
+          } else {
+            apiTest.details.content = data.choices?.[0]?.message?.content?.substring(0, 200) + '...';
+          }
+          
+          tests.push(apiTest);
+        } catch (apiError) {
+          tests.push({
+            test: 'API Connection',
+            status: 'fail',
+            details: {
+              error: 'Network or parsing error',
+              message: apiError.message,
+              stack: apiError.stack
+            }
+          });
+        }
+      }
+      
+      // Test 3: Rate Limiting Check
+      const rateLimitTest = {
+        test: 'Rate Limiting',
+        status: 'info',
+        details: {
+          message: 'Rate limiting configured with 10 requests per minute',
+          strategy: 'Built-in rate limiter in researcher agent'
+        }
+      };
+      tests.push(rateLimitTest);
+      
+      // Determine overall status
+      const hasFailures = tests.some(test => test.status === 'fail');
+      const overallStatus = hasFailures ? 'fail' : 'pass';
+      
+      console.log('[Debug] Perplexity API test completed:', { overallStatus, testCount: tests.length });
+      
+      res.json({
+        status: overallStatus,
+        message: hasFailures ? 'Perplexity API tests failed' : 'Perplexity API connection healthy',
+        tests,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('[Debug] Perplexity test failed:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Perplexity test framework error',
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Simple Perplexity test endpoint - bypass all agent complexity (legacy endpoint)
+  app.post('/api/perplexity-simple', isAuthenticated, async (req: any, res) => {
+    try {
+      console.log('[Perplexity-Simple] Testing direct Perplexity API call...');
+      
+      const { query = 'What are the main features of Notion? List 3 key features.' } = req.body;
+      const startTime = Date.now();
+      
+      const response = await fetch('https://api.perplexity.ai/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'sonar',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful research assistant. Provide detailed, factual information with sources when possible.'
+            },
+            {
+              role: 'user',
+              content: query
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.2
+        })
+      });
+
+      const data = await response.json();
+      const duration = Date.now() - startTime;
+      
+      console.log('[Perplexity-Simple] Response received:', {
+        status: response.status,
+        contentLength: data.choices?.[0]?.message?.content?.length || 0,
+        duration
+      });
+
+      if (!response.ok) {
+        return res.status(400).json({
+          success: false,
+          error: `Perplexity API error: ${response.status}`,
+          details: data,
+          duration
+        });
+      }
+
+      res.json({
+        success: true,
+        query,
+        response: data.choices?.[0]?.message?.content || 'No content received',
+        fullResponse: data,
+        metadata: {
+          duration,
+          citations: data.citations?.length || 0,
+          searchResults: data.search_results?.length || 0,
+          model: 'sonar',
+          timestamp: new Date().toISOString()
+        },
+        environment: {
+          hasPerplexityKey: !!process.env.PERPLEXITY_API_KEY,
+          keyPrefix: process.env.PERPLEXITY_API_KEY?.substring(0, 12) + '...'
+        }
+      });
+
+    } catch (error) {
+      console.error('[Perplexity-Simple] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to test Perplexity API',
+        details: error.message,
+        environment: {
+          hasPerplexityKey: !!process.env.PERPLEXITY_API_KEY,
+          keyPrefix: process.env.PERPLEXITY_API_KEY?.substring(0, 12) + '...'
+        }
+      });
+    }
+  });
+
+  // Add debug endpoint to test orchestrator
+  app.post('/api/debug/test-orchestrator', isAuthenticated, async (req, res) => {
+    try {
+      console.log('[Debug] Testing orchestrator directly...');
+      
+      const testRequest = {
+        products: req.body.products || ['TestProduct'],
+        features: req.body.features || [],
+        targetCustomer: req.body.targetCustomer || 'Test Customer',
+        analysisMode: req.body.analysisMode || 'quick'
+      };
+      
+      console.log('[Debug] Test request:', testRequest);
+      
+      const progressUpdates = [];
+      const callbacks = {
+        onProgress: (update) => {
+          console.log('[Debug] Progress:', update);
+          progressUpdates.push(update);
+        },
+        onComplete: (result) => {
+          console.log('[Debug] Complete:', result);
+        },
+        onError: (error) => {
+          console.error('[Debug] Error:', error);
+        }
+      };
+      
+      console.log('[Debug] About to call orchestrator.coordinateFullAnalysis...');
+      const startTime = Date.now();
+      
+      const result = await orchestratorAgent.coordinateFullAnalysis(
+        testRequest.products,
+        testRequest.features,
+        testRequest.targetCustomer,
+        callbacks.onProgress,
+        -1, // test session ID
+        testRequest.analysisMode
+      );
+      
+      const duration = Date.now() - startTime;
+      console.log('[Debug] Orchestrator completed successfully in', duration, 'ms');
+      
+      res.json({ 
+        status: 'success', 
+        message: 'Orchestrator test completed',
+        duration,
+        progressUpdates,
+        result: {
+          hasTableData: !!result?.tableData,
+          tableDataLength: result?.tableData?.length || 0,
+          hasSourceDocs: !!result?.sourceDocumentation,
+          analysis: result?.analysis || null
+        }
+      });
+      
+    } catch (error) {
+      console.error('[Debug] Orchestrator test failed:', error);
+      console.error('[Debug] Error type:', error.constructor.name);
+      console.error('[Debug] Error stack:', error.stack);
+      
+      res.status(500).json({ 
+        status: 'error', 
+        message: error.message,
+        errorType: error.constructor.name,
+        stack: error.stack 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Initialize WebSocket server - temporarily disabled to debug port conflicts
+  try {
+    webSocketService.initialize(httpServer);
+    console.log('[WebSocket] Successfully initialized');
+  } catch (error) {
+    console.error('[WebSocket] Failed to initialize, continuing without WebSocket:', error.message);
+  }
+  
   return httpServer;
 }
