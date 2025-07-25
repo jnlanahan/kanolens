@@ -50,7 +50,14 @@
       "Bash(start-dev.cmd)",
       "Bash(mv:*)",
       "Bash(tail:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npm test)",
+      "Bash(npx vitest:*)",
+      "Bash(npm test:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }
