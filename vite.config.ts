@@ -56,5 +56,53 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    
+    // Bundle optimization settings
+    rollupOptions: {
+      output: {
+        // Manual chunk splitting for better caching
+        manualChunks: {
+          // Vendor libraries
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          routing: ['wouter'],
+          query: ['@tanstack/react-query'],
+          forms: ['react-hook-form', '@hookform/resolvers'],
+          utils: ['clsx', 'tailwind-merge', 'date-fns']
+        },
+        // Add hash to chunk names for cache busting
+        chunkFileNames: (chunkInfo) => {
+          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
+          return `js/[name]-[hash].js`;
+        },
+        assetFileNames: (assetInfo) => {
+          const extType = assetInfo.name?.split('.').pop();
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType ?? '')) {
+            return `images/[name]-[hash][extname]`;
+          }
+          if (/css/i.test(extType ?? '')) {
+            return `css/[name]-[hash][extname]`;
+          }
+          return `assets/[name]-[hash][extname]`;
+        }
+      }
+    },
+    
+    // Build performance settings
+    target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: true,
+        pure_funcs: process.env.NODE_ENV === 'production' ? ['console.log', 'console.debug'] : []
+      }
+    },
+    
+    // Size warnings
+    chunkSizeWarningLimit: 512, // Warn for chunks over 512KB
+    
+    // Source maps for production debugging (optional)
+    sourcemap: process.env.NODE_ENV !== 'production'
   },
 });

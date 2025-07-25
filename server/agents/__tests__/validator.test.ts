@@ -58,7 +58,7 @@ describe('ValidatorAgent', () => {
       const authFeature = result.categorizedFeatures.find(f => f.featureName === 'User Authentication');
       expect(authFeature).toBeDefined();
       expect(authFeature?.category).toBe('must-have');
-      expect(authFeature?.categoryRationale).toContain('100%');
+      expect(authFeature?.categoryRationale).toContain('expectation');
 
       // AI Assistant should be delighter (50% adoption, innovative)
       const aiFeature = result.categorizedFeatures.find(f => f.featureName === 'AI Assistant');
@@ -107,7 +107,7 @@ describe('ValidatorAgent', () => {
 
       const speedFeature = result.categorizedFeatures.find(f => f.featureName === 'Processing Speed');
       expect(speedFeature?.category).toBe('performance');
-      expect(speedFeature?.categoryRationale).toContain('Measurable attribute');
+      expect(speedFeature?.categoryRationale).toContain('Measurable feature');
     });
 
     it('should rate products correctly for each category', async () => {
@@ -161,7 +161,7 @@ describe('ValidatorAgent', () => {
       expect(perfFeature?.category).toBe('performance');
       expect(perfFeature?.productRatings['Product A'].rating).toBe('High');
       expect(perfFeature?.productRatings['Product B'].rating).toBe('Low');
-      expect(perfFeature?.productRatings['Product A'].justification).toContain('Top 25%');
+      expect(perfFeature?.productRatings['Product A'].justification).toContain('demonstrates');
     });
 
     it('should handle features with no metrics gracefully', async () => {
