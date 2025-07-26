@@ -92,26 +92,33 @@ export class ValidatorAgent {
     const allFeatures = this.extractUniqueFeatures(request.researchData);
     console.log('[Validator] Extracted unique features:', allFeatures.size);
     
+    // Apply Phase 2 feature limits and prioritization
+    const prioritizedFeatures = this.prioritizeAndLimitFeatures(allFeatures, request);
+    console.log('[Validator] Applied 50-feature limit, prioritized features:', prioritizedFeatures.size);
+    
     // Categorize each feature
     const categorizedFeatures: CategorizedFeature[] = [];
     
-    for (const [featureName, featureData] of allFeatures) {
+    for (const [featureName, featureData] of prioritizedFeatures) {
       const categorized = this.categorizeFeature(featureName, featureData, request.researchData, request.targetCustomer);
       categorizedFeatures.push(categorized);
     }
 
+    // Ensure balanced distribution across Kano categories (Phase 2 requirement)
+    const balancedFeatures = this.ensureBalancedKanoDistribution(categorizedFeatures);
+
     // Generate summary
-    const summary = this.generateSummary(categorizedFeatures, request.targetCustomer);
+    const summary = this.generateSummary(balancedFeatures, request.targetCustomer);
 
     console.log('[Validator] Categorization complete:', {
-      totalFeatures: categorizedFeatures.length,
+      totalFeatures: balancedFeatures.length,
       mustHaves: summary.mustHaves,
       performance: summary.performance,
       delighters: summary.delighters
     });
 
     return {
-      categorizedFeatures,
+      categorizedFeatures: balancedFeatures,
       summary
     };
   }
@@ -660,11 +667,60 @@ export class ValidatorAgent {
   }
   
   private generateGenericDescription(featureName: string, featureData: any): string {
-    const descriptions = Array.from(featureData.descriptions.values());
+    const descriptions = Array.from(featureData.descriptions.values()).filter(d => d && d.trim());
+    
+    // Enhanced description generation for better feature quality
     if (descriptions.length > 0) {
-      return descriptions[0]; // Use the first description as generic
+      // Find the most comprehensive description
+      const bestDescription = descriptions.reduce((best, current) => {
+        return current.length > best.length ? current : best;
+      });
+      
+      // Clean and enhance the description
+      let enhanced = bestDescription.trim();
+      
+      // Add context if description is too short
+      if (enhanced.length < 50) {
+        const featureLower = featureName.toLowerCase();
+        
+        // Add domain-specific context
+        if (featureLower.includes('ai') || featureLower.includes('smart')) {
+          enhanced += '. Leverages artificial intelligence to enhance productivity and decision-making';
+        } else if (featureLower.includes('collaboration') || featureLower.includes('team')) {
+          enhanced += '. Enables seamless team coordination and communication';
+        } else if (featureLower.includes('automation') || featureLower.includes('workflow')) {
+          enhanced += '. Streamlines processes through intelligent automation';
+        } else if (featureLower.includes('analytics') || featureLower.includes('report')) {
+          enhanced += '. Provides data-driven insights for informed decision-making';
+        } else if (featureLower.includes('integration') || featureLower.includes('api')) {
+          enhanced += '. Connects with external tools and services for extended functionality';
+        }
+      }
+      
+      return enhanced;
     }
-    return `${featureName} capability that enhances user productivity and workflow efficiency.`;
+    
+    // Generate intelligent default descriptions based on feature type
+    const featureLower = featureName.toLowerCase();
+    
+    if (featureLower.includes('ai') || featureLower.includes('artificial intelligence')) {
+      return `Advanced AI-powered ${featureName} that uses machine learning to automate complex tasks and provide intelligent recommendations`;
+    } else if (featureLower.includes('collaboration')) {
+      return `${featureName} enabling real-time team coordination, communication, and shared workspace management`;
+    } else if (featureLower.includes('automation')) {
+      return `${featureName} that automates repetitive tasks and workflows to increase efficiency and reduce manual effort`;
+    } else if (featureLower.includes('analytics')) {
+      return `${featureName} providing comprehensive data analysis, visualization, and actionable insights`;
+    } else if (featureLower.includes('integration')) {
+      return `${featureName} offering seamless connectivity with third-party tools and services`;
+    } else if (featureLower.includes('security')) {
+      return `${featureName} ensuring data protection, access control, and compliance with security standards`;
+    } else if (featureLower.includes('mobile')) {
+      return `${featureName} providing full functionality across mobile devices for on-the-go productivity`;
+    } else {
+      // Default with more context
+      return `${featureName} capability that enhances user productivity and workflow efficiency through innovative functionality`;
+    }
   }
   
   private generateSummary(categorizedFeatures: CategorizedFeature[], targetCustomer: string): ValidationResult['summary'] {
@@ -679,6 +735,303 @@ export class ValidatorAgent {
       delighters,
       targetCustomerConsiderations: `For ${targetCustomer}, focus on ${mustHaves} must-have features for parity, ${performance} performance features for competitive advantage, and ${delighters} delighter features for differentiation.`
     };
+  }
+
+  // Phase 2 Methods: Feature Limits and Prioritization
+  private prioritizeAndLimitFeatures(allFeatures: Map<string, any>, request: ValidationRequest): Map<string, any> {
+    // Convert to array for sorting and prioritization
+    const featuresArray = Array.from(allFeatures.entries());
+    
+    // Phase 2: Apply intelligent input interpretation to feature names
+    const cleanedFeatures = featuresArray.filter(([featureName, _]) => {
+      return this.isValidFeatureForAnalysis(featureName);
+    });
+
+    console.log(`[Validator] Filtered features: ${featuresArray.length} -> ${cleanedFeatures.length} (removed invalid features)`);
+    
+    // NEW: Group similar features to reduce duplicates
+    const groupedFeatures = this.groupSimilarFeatures(cleanedFeatures);
+    console.log(`[Validator] Grouped similar features: ${cleanedFeatures.length} -> ${groupedFeatures.length}`);
+    
+    // Phase 2: Prioritize features based on user context relevance
+    const prioritizedFeatures = groupedFeatures.sort(([nameA, dataA], [nameB, dataB]) => {
+      const scoreA = this.calculateRelevanceScore(nameA, dataA, request);
+      const scoreB = this.calculateRelevanceScore(nameB, dataB, request);
+      return scoreB - scoreA; // Sort by highest relevance first
+    });
+
+    // Phase 2: Apply 25-40 feature limit as per requirements
+    const targetFeatureCount = Math.min(40, Math.max(25, prioritizedFeatures.length));
+    const limitedFeatures = prioritizedFeatures.slice(0, targetFeatureCount);
+    
+    console.log(`[Validator] Applied feature limit: ${prioritizedFeatures.length} -> ${limitedFeatures.length} (target: 25-40 features)`);
+    
+    // Phase 2: Feature preservation - ensure originally agreed features are included
+    // Note: Original features would be marked in the research data and given priority in scoring
+    
+    return new Map(limitedFeatures);
+  }
+
+  private groupSimilarFeatures(features: Array<[string, any]>): Array<[string, any]> {
+    const grouped = new Map<string, [string, any]>();
+    const processedIndices = new Set<number>();
+    
+    features.forEach((feature, index) => {
+      if (processedIndices.has(index)) return;
+      
+      const [featureName, featureData] = feature;
+      const normalizedName = this.normalizeFeatureName(featureName);
+      
+      // Find similar features
+      const similarFeatures: Array<[string, any, number]> = [];
+      features.forEach((otherFeature, otherIndex) => {
+        if (index === otherIndex || processedIndices.has(otherIndex)) return;
+        
+        const [otherName, otherData] = otherFeature;
+        if (this.areSimilarFeatures(featureName, otherName)) {
+          similarFeatures.push([otherName, otherData, otherIndex]);
+          processedIndices.add(otherIndex);
+        }
+      });
+      
+      if (similarFeatures.length > 0) {
+        // Merge similar features
+        const mergedFeature = this.mergeSimilarFeatures(feature, similarFeatures);
+        grouped.set(normalizedName, mergedFeature);
+      } else {
+        grouped.set(normalizedName, feature);
+      }
+      
+      processedIndices.add(index);
+    });
+    
+    return Array.from(grouped.values());
+  }
+  
+  private normalizeFeatureName(name: string): string {
+    // Normalize feature names for comparison
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove special characters
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+  }
+  
+  private areSimilarFeatures(name1: string, name2: string): boolean {
+    const normalized1 = this.normalizeFeatureName(name1);
+    const normalized2 = this.normalizeFeatureName(name2);
+    
+    // Exact match after normalization
+    if (normalized1 === normalized2) return true;
+    
+    // Check if one contains the other (handling variations)
+    if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) return true;
+    
+    // Check for common patterns
+    const patterns = [
+      ['ai', 'artificial intelligence', 'machine learning', 'ml'],
+      ['collaboration', 'team collaboration', 'team work', 'teamwork'],
+      ['automation', 'workflow automation', 'automated workflow'],
+      ['analytics', 'reporting', 'reports', 'data analysis'],
+      ['integration', 'integrations', 'api', 'apis', 'connector'],
+      ['task management', 'task tracking', 'project management'],
+      ['real-time', 'realtime', 'real time'],
+      ['mobile', 'mobile app', 'mobile application']
+    ];
+    
+    for (const group of patterns) {
+      const hasFirst = group.some(term => normalized1.includes(term));
+      const hasSecond = group.some(term => normalized2.includes(term));
+      if (hasFirst && hasSecond) return true;
+    }
+    
+    return false;
+  }
+  
+  private mergeSimilarFeatures(
+    primary: [string, any], 
+    similar: Array<[string, any, number]>
+  ): [string, any] {
+    const [primaryName, primaryData] = primary;
+    
+    // Use the most descriptive name
+    let bestName = primaryName;
+    let maxLength = primaryName.length;
+    
+    similar.forEach(([name, _, __]) => {
+      if (name.length > maxLength && !name.toLowerCase().includes('etc')) {
+        bestName = name;
+        maxLength = name.length;
+      }
+    });
+    
+    // Merge data from all similar features
+    const mergedData = { ...primaryData };
+    
+    similar.forEach(([_, data, __]) => {
+      // Merge descriptions
+      data.descriptions?.forEach((desc: string, product: string) => {
+        if (!mergedData.descriptions.has(product)) {
+          mergedData.descriptions.set(product, desc);
+        }
+      });
+      
+      // Merge other properties
+      mergedData.productCount = Math.max(mergedData.productCount || 0, data.productCount || 0);
+      if (data.isInnovative) mergedData.isInnovative = true;
+    });
+    
+    return [bestName, mergedData];
+  }
+
+  private isValidFeatureForAnalysis(featureName: string): boolean {
+    if (!featureName || featureName.length < 3 || featureName.length > 100) return false;
+    
+    // Phase 2: Filter out generic text that should be ignored
+    const invalidPatterns = [
+      /^(more|other|additional|various|multiple|etc|and more|plus others)$/i,
+      /^(more features|other capabilities|additional tools|various options)$/i,
+      /^(and more|plus others|etc\.|etcetera)$/i,
+      /^\d+$/, // pure numbers
+      /^[^\w\s]/, // starts with special chars
+      // Enhanced patterns for Phase 2
+      /pricing.*review.*\d{4}/i,
+      /this product is used/i,
+      /market with various/i,
+      /features and capabilities/i,
+      /^\d+\.\s/,
+      /^product\s+\w+\s+review/i
+    ];
+    
+    return !invalidPatterns.some(pattern => pattern.test(featureName));
+  }
+
+  private calculateRelevanceScore(featureName: string, featureData: any, request: ValidationRequest): number {
+    let score = 0;
+    
+    // Base score from product coverage
+    score += (featureData.productCount || 0) * 10;
+    
+    // Enhanced context utilization for target customer
+    const targetCustomer = request.targetCustomer.toLowerCase();
+    const featureLower = featureName.toLowerCase();
+    
+    // Extended customer-specific scoring with more granular patterns
+    if (targetCustomer.includes('marketing') || targetCustomer.includes('marketer')) {
+      const marketingFeatures = [
+        'analytics', 'campaign', 'reporting', 'automation', 'email', 'social', 'lead',
+        'content', 'seo', 'conversion', 'engagement', 'audience', 'brand', 'creative'
+      ];
+      const matchCount = marketingFeatures.filter(feature => featureLower.includes(feature)).length;
+      score += matchCount * 30;
+    }
+    
+    if (targetCustomer.includes('project') || targetCustomer.includes('manager') || targetCustomer.includes('team')) {
+      const pmFeatures = [
+        'task', 'project', 'timeline', 'gantt', 'workflow', 'collaboration', 'planning',
+        'resource', 'milestone', 'deadline', 'budget', 'tracking', 'agile', 'scrum'
+      ];
+      const matchCount = pmFeatures.filter(feature => featureLower.includes(feature)).length;
+      score += matchCount * 30;
+    }
+    
+    if (targetCustomer.includes('developer') || targetCustomer.includes('engineer') || targetCustomer.includes('technical')) {
+      const devFeatures = [
+        'api', 'integration', 'code', 'git', 'deploy', 'version', 'automation',
+        'debug', 'test', 'ci/cd', 'webhook', 'sdk', 'documentation', 'technical'
+      ];
+      const matchCount = devFeatures.filter(feature => featureLower.includes(feature)).length;
+      score += matchCount * 30;
+    }
+    
+    if (targetCustomer.includes('sales') || targetCustomer.includes('revenue')) {
+      const salesFeatures = [
+        'crm', 'pipeline', 'lead', 'deal', 'forecast', 'quota', 'commission',
+        'prospect', 'opportunity', 'contact', 'account', 'territory'
+      ];
+      const matchCount = salesFeatures.filter(feature => featureLower.includes(feature)).length;
+      score += matchCount * 30;
+    }
+    
+    if (targetCustomer.includes('enterprise') || targetCustomer.includes('large')) {
+      const enterpriseFeatures = [
+        'security', 'compliance', 'sso', 'audit', 'permissions', 'scalability',
+        'enterprise', 'admin', 'governance', 'policy', 'multi-tenant'
+      ];
+      const matchCount = enterpriseFeatures.filter(feature => featureLower.includes(feature)).length;
+      score += matchCount * 25;
+    }
+    
+    if (targetCustomer.includes('small') || targetCustomer.includes('startup')) {
+      const smallBizFeatures = [
+        'simple', 'easy', 'affordable', 'free', 'quick', 'intuitive',
+        'all-in-one', 'template', 'guided', 'onboarding'
+      ];
+      const matchCount = smallBizFeatures.filter(feature => featureLower.includes(feature)).length;
+      score += matchCount * 25;
+    }
+    
+    // Original feature preservation (highest priority)
+    if (featureData.originallyAgreed) {
+      score += 1000;
+    }
+    
+    // Boost innovative/AI features for differentiation
+    if (featureData.isInnovative || this.isDelighterFeature(featureName, request.targetCustomer)) {
+      score += 40;
+    }
+    
+    // Boost core functionality features
+    if (this.isBasicExpectation(featureName, request.targetCustomer)) {
+      score += 35;
+    }
+    
+    // Penalty for overly generic features
+    const genericTerms = ['feature', 'tool', 'system', 'platform', 'solution'];
+    if (genericTerms.some(term => featureLower === term)) {
+      score -= 20;
+    }
+    
+    return score;
+  }
+
+  private ensureBalancedKanoDistribution(categorizedFeatures: CategorizedFeature[]): CategorizedFeature[] {
+    // Phase 2: Ensure minimum 3 features per Kano category
+    const mustHaves = categorizedFeatures.filter(f => f.category === 'must-have');
+    const performance = categorizedFeatures.filter(f => f.category === 'performance');
+    const delighters = categorizedFeatures.filter(f => f.category === 'delighter');
+    
+    console.log(`[Validator] Kano distribution: ${mustHaves.length} must-haves, ${performance.length} performance, ${delighters.length} delighters`);
+    
+    // If any category is under-represented, adjust categorization
+    const result = [...categorizedFeatures];
+    
+    // Ensure minimum of 3 features per category
+    if (mustHaves.length < 3 && performance.length > 6) {
+      // Convert some performance features to must-haves
+      const toConvert = performance.slice(0, Math.min(3 - mustHaves.length, performance.length - 3));
+      toConvert.forEach(feature => {
+        const index = result.findIndex(f => f.featureName === feature.featureName);
+        if (index !== -1) {
+          result[index].category = 'must-have';
+          result[index].categoryRationale = `Reclassified as must-have to ensure balanced Kano distribution`;
+        }
+      });
+    }
+    
+    if (delighters.length < 3 && performance.length > 6) {
+      // Convert some performance features to delighters
+      const toConvert = performance.slice(-Math.min(3 - delighters.length, performance.length - 3));
+      toConvert.forEach(feature => {
+        const index = result.findIndex(f => f.featureName === feature.featureName);
+        if (index !== -1) {
+          result[index].category = 'delighter';
+          result[index].categoryRationale = `Reclassified as delighter to ensure balanced Kano distribution`;
+        }
+      });
+    }
+    
+    return result;
   }
 }
 
