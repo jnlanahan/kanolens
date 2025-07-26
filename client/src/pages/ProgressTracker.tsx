@@ -117,6 +117,22 @@ export default function ProgressTracker() {
     return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
   };
 
+  const getEstimatedCompletion = () => {
+    const currentProgress = getProgressPercentage();
+    if (currentProgress < 10) return 'Calculating...';
+    
+    const elapsed = (Date.now() - startTime) / 1000;
+    const rate = currentProgress / elapsed;
+    const remaining = (100 - currentProgress) / rate;
+    
+    if (remaining < 60) {
+      return `~${Math.ceil(remaining)}s remaining`;
+    } else {
+      const mins = Math.ceil(remaining / 60);
+      return `~${mins}m remaining`;
+    }
+  };
+
   const getProgressPercentage = () => {
     if (progressData?.progress) {
       return progressData.progress;
@@ -142,7 +158,12 @@ export default function ProgressTracker() {
             <div className="flex justify-center items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4" />
-                <span>Elapsed time: {getElapsedTime()}</span>
+                <span>Elapsed: {getElapsedTime()}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <ArrowRight className="w-4 h-4" />
+                <span>{getEstimatedCompletion()}</span>
               </div>
               
               <div className={cn(
@@ -286,9 +307,24 @@ export default function ProgressTracker() {
           {connectionError && (
             <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
               <CardContent className="p-4">
-                <p className="text-red-800 dark:text-red-200 text-sm">
-                  Connection issue: {connectionError}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-800 dark:text-red-200 text-sm font-medium">
+                      Connection issue detected
+                    </p>
+                    <p className="text-red-600 dark:text-red-300 text-xs mt-1">
+                      {connectionError}
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={forceRefresh} 
+                    variant="outline" 
+                    size="sm"
+                    className="text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    Retry Connection
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}

@@ -279,6 +279,44 @@ export function setupAuthRoutes(app: Express): void {
     }
   });
 
+  // Token refresh endpoint
+  app.post('/api/auth/refresh', async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+
+      if (!refreshToken) {
+        return res.status(400).json({ message: 'Refresh token is required' });
+      }
+
+      // Verify refresh token
+      const { verifyRefreshToken, generateToken } = await import('../services/auth-service');
+      const decoded = verifyRefreshToken(refreshToken);
+      
+      if (!decoded) {
+        return res.status(401).json({ message: 'Invalid refresh token' });
+      }
+
+      // Get user to ensure they still exist
+      const user = await storage.getUser(decoded.userId);
+      if (!user) {
+        return res.status(401).json({ message: 'User not found' });
+      }
+
+      // Generate new access token
+      const newAccessToken = generateToken(user.id);
+      
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        token: newAccessToken
+      });
+
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      res.status(401).json({ message: 'Token refresh failed' });
+    }
+  });
+
   // User logout
   app.post('/api/auth/logout', (req, res) => {
     // For JWT-based auth, logout is handled client-side by removing the token
