@@ -9,7 +9,7 @@ import { storage } from "../storage";
 import { langSmithService, withLangSmithTrace } from "../langsmith";
 import { RunTree } from "langsmith";
 
-export type AnalysisMode = 'express' | 'quick' | 'deep';
+export type AnalysisMode = 'quick';
 
 export interface OrchestratorInput {
   mode: 'suggestions' | 'comprehensive' | 'validation';
@@ -305,6 +305,7 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
       targetCustomer,
       marketCategory: 'Competitive Analysis Tools',
       featuresToResearch: features,
+      originallyAgreedFeatures: features, // Phase 2: Mark features from initial conversation as originally agreed
       analysisMode: 'quick' as const
     };
     
@@ -389,6 +390,7 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
       targetCustomer,
       marketCategory: 'Competitive Analysis Tools',
       featuresToResearch: features,
+      originallyAgreedFeatures: features, // Phase 2: Mark features from initial conversation as originally agreed
       analysisMode // Pass through the analysis mode
     };
     
@@ -477,7 +479,12 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
       console.log('[Orchestrator] Failed to create validator trace (non-fatal):', traceError.message);
     }
     
-    const categorizedData = await validatorAgent.validateResearch(researchData);
+    // Pass proper validation request with target customer context
+    const validationRequest = {
+      researchData: researchData,
+      targetCustomer: targetCustomer
+    };
+    const categorizedData = await validatorAgent.categorizeFeatures(validationRequest);
     const validatorTime = Date.now() - validatorStartTime;
     
     // COMPREHENSIVE LOGGING - Track validation output
