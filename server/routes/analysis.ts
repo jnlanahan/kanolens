@@ -1,19 +1,20 @@
 // Analysis execution routes
 import type { Express } from "express";
 import { storage } from "../storage";
-import { isAuthenticated } from "../simpleAuth";
+import { jwtAuthMiddleware } from "../middleware/jwt-auth";
 import { conductCompetitiveResearch, generateKanoTable } from "../openai";
 import { ANALYSIS_STEPS, ANALYSIS_STATUS } from "@shared/schema";
 import { orchestratorAgent } from "../agents/orchestrator";
+import { titleGeneratorService } from "../services/title-generator";
 
 export function setupAnalysisRoutes(app: Express): void {
   // Research endpoint for manual research triggering
-  app.post('/api/analysis/sessions/:id/research', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/research', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -35,12 +36,12 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Table generation endpoint
-  app.post('/api/analysis/sessions/:id/generate-table', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/generate-table', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -62,12 +63,12 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Regenerate analysis for existing session
-  app.post('/api/analysis/sessions/:id/regenerate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/regenerate', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
       
@@ -88,10 +89,20 @@ export function setupAnalysisRoutes(app: Express): void {
       });
       
       // Use orchestrator for comprehensive analysis
+      const progressCallback = async (update: any) => {
+        console.log(`[Regenerate] Progress update for session ${sessionId}:`, update);
+        // Update session with progress
+        await storage.updateAnalysisSession(sessionId, {
+          currentStep: update.step,
+          status: 'in_progress'
+        });
+      };
+
       const result = await orchestratorAgent.coordinateFullAnalysis(
         products,
         features,
         targetCustomer,
+        progressCallback,
         sessionId
       );
 
@@ -126,7 +137,7 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Generate suggestions (linear flow)
-  app.post('/api/analysis/suggestions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/suggestions', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const input = {
         mode: 'suggestions' as const,
@@ -143,9 +154,9 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Start new analysis (linear flow)
-  app.post('/api/analysis/start', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/start', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Create a new analysis session
       const session = await storage.createAnalysisSession({
@@ -160,10 +171,20 @@ export function setupAnalysisRoutes(app: Express): void {
       });
 
       // Start analysis using orchestrator
+      const progressCallback = async (update: any) => {
+        console.log(`[Analysis] Progress update for session ${session.id}:`, update);
+        // Update session with progress
+        await storage.updateAnalysisSession(session.id, {
+          currentStep: update.step,
+          status: 'in_progress'
+        });
+      };
+
       const result = await orchestratorAgent.coordinateFullAnalysis(
         session.products,
         session.features,
         session.targetCustomer,
+        progressCallback,
         session.id
       );
 
@@ -196,9 +217,9 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Debug analysis endpoint
-  app.post('/api/analysis/debug', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/debug', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { products, targetCustomer } = req.body;
 
       if (!products || !targetCustomer) {
@@ -219,10 +240,20 @@ export function setupAnalysisRoutes(app: Express): void {
       });
 
       // Run debug analysis
+      const progressCallback = async (update: any) => {
+        console.log(`[Debug] Progress update for session ${debugSession.id}:`, update);
+        // Update session with progress
+        await storage.updateAnalysisSession(debugSession.id, {
+          currentStep: update.step,
+          status: 'in_progress'
+        });
+      };
+
       const result = await orchestratorAgent.coordinateFullAnalysis(
         debugSession.products,
         ['Feature Analysis', 'Competitive Research', 'Market Position'],
         targetCustomer,
+        progressCallback,
         debugSession.id
       );
 
@@ -240,7 +271,7 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Multi-agent test endpoint
-  app.post('/api/test/multi-agent', isAuthenticated, async (req, res) => {
+  app.post('/api/test/multi-agent', jwtAuthMiddleware, async (req, res) => {
     try {
       console.log("[Test] Starting multi-agent test");
       const { products, features, targetCustomer } = req.body;
@@ -253,10 +284,15 @@ export function setupAnalysisRoutes(app: Express): void {
       const testSessionId = 999999;
       
       // Test the orchestrator directly
+      const progressCallback = async (update: any) => {
+        console.log(`[MultiAgentTest] Progress update:`, update);
+      };
+
       const result = await orchestratorAgent.coordinateFullAnalysis(
         products,
         features,
         targetCustomer,
+        progressCallback,
         testSessionId
       );
 
@@ -273,7 +309,7 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Comprehensive analysis test endpoint
-  app.post('/api/analysis/test', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/test', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log('[Test] Starting comprehensive agent testing...');
       
@@ -303,11 +339,16 @@ export function setupAnalysisRoutes(app: Express): void {
         const testFeatures = ['Feature1', 'Feature2'];
         const testCustomer = 'Product Managers';
         
+        const progressCallback = async (update: any) => {
+          console.log(`[ComprehensiveTest] Progress update:`, update);
+        };
+
         const startTime = Date.now();
         const orchestratorResult = await orchestratorAgent.coordinateFullAnalysis(
           testProducts,
           testFeatures,
           testCustomer,
+          progressCallback,
           999998 // Test session ID
         );
         const duration = Date.now() - startTime;
@@ -348,6 +389,65 @@ export function setupAnalysisRoutes(app: Express): void {
     } catch (error) {
       console.error('Analysis test error:', error);
       res.status(500).json({ message: 'Analysis testing failed' });
+    }
+  });
+
+  // Title generation endpoint
+  app.post('/api/analysis/generate-title', jwtAuthMiddleware, async (req: any, res) => {
+    try {
+      const { products, description, targetCustomers, role } = req.body;
+
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ message: 'Products array is required' });
+      }
+
+      const generatedTitle = await titleGeneratorService.generateSmartTitle({
+        products,
+        description,
+        targetCustomers,
+        role
+      });
+
+      const titleWithDate = titleGeneratorService.generateTitleWithDate(generatedTitle);
+
+      res.json({
+        title: generatedTitle,
+        titleWithDate,
+        success: true
+      });
+    } catch (error) {
+      console.error('Title generation error:', error);
+      res.status(500).json({ message: 'Failed to generate title' });
+    }
+  });
+
+  // Update session title endpoint
+  app.put('/api/analysis/sessions/:id/title', jwtAuthMiddleware, async (req: any, res) => {
+    try {
+      const sessionId = parseInt(req.params.id);
+      const { title } = req.body;
+      
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        return res.status(400).json({ message: 'Title is required' });
+      }
+
+      const session = await storage.getAnalysisSession(sessionId);
+      
+      if (!session || session.userId !== req.user.id) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+
+      const updatedSession = await storage.updateAnalysisSession(sessionId, {
+        title: title.trim()
+      });
+
+      res.json({
+        session: updatedSession,
+        success: true
+      });
+    } catch (error) {
+      console.error('Title update error:', error);
+      res.status(500).json({ message: 'Failed to update title' });
     }
   });
 }
