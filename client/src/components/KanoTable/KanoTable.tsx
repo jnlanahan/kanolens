@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
-import { Download, Share, Edit, Clock, Brain, Users, Check, Send, Info } from "lucide-react";
+import { Edit, Clock, Brain, Users, Check, Send, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import FeatureModal from "./FeatureModal";
 import type { KanoTableData, KanoFeature } from "@shared/schema";
@@ -49,14 +49,14 @@ const getRatingBadge = (rating: string, category: string) => {
   }
   
   if (category === "performance") {
-    const colorMap = {
+    const colorMap: Record<string, string> = {
       "High": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
       "Medium": "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
       "Low": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
     };
     return colorMap[rating] || "bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-200";
   } else {
-    const colorMap = {
+    const colorMap: Record<string, string> = {
       "Yes": "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
       "No": "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200",
       "Maybe": "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200",
@@ -72,14 +72,6 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
   const [editMessage, setEditMessage] = useState("");
   const [chatMessages, setChatMessages] = useState<Array<{role: 'user' | 'assistant', content: string}>>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedCell, setSelectedCell] = useState<{
-    feature: KanoFeature;
-    product: string;
-    rating: string;
-    justification: string;
-    sources: string[];
-  } | null>(null);
-  const [isCellModalOpen, setIsCellModalOpen] = useState(false);
   const { toast } = useToast();
 
   const handleFeatureClick = useCallback((feature: KanoFeature) => {
@@ -88,90 +80,12 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
   }, []);
 
   const handleCellClick = useCallback((feature: KanoFeature, product: string, rating: string, justification: string, sources: string[]) => {
-    setSelectedCell({
-      feature,
-      product,
-      rating,
-      justification,
-      sources
-    });
-    setIsCellModalOpen(true);
+    // Use the main FeatureModal for cell clicks instead of the simpler cell modal
+    // This provides the complete analysis including Market Analysis and Strategic Recommendations
+    setSelectedFeature(feature);
+    setIsModalOpen(true);
   }, []);
 
-  const handleExport = useCallback(async () => {
-    if (!tableData) return;
-    
-    try {
-      // Create CSV content
-      const csvHeaders = ['Feature', 'Category', 'Description', 'Customer Benefit', ...tableData.products];
-      const csvRows = tableData.features.map(feature => [
-        feature.name,
-        feature.category,
-        feature.description,
-        feature.customerBenefit,
-        ...tableData.products.map(product => tableData.ratings[feature.id]?.[product] || '')
-      ]);
-      
-      const csvContent = [csvHeaders, ...csvRows]
-        .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-        .join('\n');
-      
-      // Create and download file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'kano-analysis.csv');
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: "Export Successful",
-        description: "Your Kano analysis has been exported as CSV.",
-      });
-    } catch (error) {
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting your analysis.",
-        variant: "destructive",
-      });
-    }
-  }, [tableData, toast]);
-
-  const handleShare = useCallback(async () => {
-    if (!tableData) return;
-    
-    try {
-      const shareData = {
-        title: 'Kano Model Analysis',
-        text: `Competitive analysis of ${tableData.products.join(', ')} with ${tableData.features.length} features analyzed.`,
-        url: window.location.href,
-      };
-      
-      if (navigator.share) {
-        await navigator.share(shareData);
-        toast({
-          title: "Shared Successfully",
-          description: "Your Kano analysis has been shared.",
-        });
-      } else {
-        // Fallback: copy to clipboard
-        await navigator.clipboard.writeText(`${shareData.title}\n${shareData.text}\n${shareData.url}`);
-        toast({
-          title: "Link Copied",
-          description: "Analysis link has been copied to your clipboard.",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Share Failed",
-        description: "There was an error sharing your analysis.",
-        variant: "destructive",
-      });
-    }
-  }, [tableData, toast]);
 
   const handleEditTableClick = useCallback(() => {
     setIsEditChatOpen(true);
@@ -211,32 +125,41 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
       
       const result = await response.json();
       
-      // Add AI response to chat
-      setChatMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: result.aiMessage.content 
-      }]);
-      
       // If the AI response indicates table data was updated, trigger a refresh
       if (result.aiMessage?.metadata?.isTableEditResponse && onEditTable) {
-        // Close the chat modal immediately
-        setIsEditChatOpen(false);
+        // Add AI response to chat first, so user sees it briefly
+        setChatMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: result.aiMessage.content 
+        }]);
         
-        // Clear chat messages for next time
-        setChatMessages([]);
+        // Small delay to let user see the success message
+        setTimeout(() => {
+          // Close the chat modal
+          setIsEditChatOpen(false);
+          
+          // Clear chat messages for next time
+          setChatMessages([]);
+        }, 1000);
         
         // Call the parent component to refresh the session data
         onEditTable();
         
         // Show success toast with more specific message
         toast({
-          title: "Table Updated Successfully",
+          title: "Table Updated Successfully", 
           description: "Your changes have been applied to the analysis table.",
           duration: 3000,
         });
         
         return; // Exit early to avoid duplicate toast
       }
+      
+      // For non-table-edit responses, add AI response to chat normally
+      setChatMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: result.aiMessage.content 
+      }]);
       
       toast({
         title: "Edit Request Processed",
@@ -343,14 +266,6 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
         <div className="p-4 border-b border-gray-200 dark:border-slate-700 kano-gradient-light">
           <div className="flex items-center justify-start">
             <div className="flex items-center space-x-2">
-              <Button onClick={handleExport} variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-              <Button onClick={handleShare} variant="outline" size="sm">
-                <Share className="h-4 w-4 mr-2" />
-                Share
-              </Button>
               <Button onClick={handleEditTableClick} variant="default" size="sm" className="kano-gradient text-white">
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Table
@@ -520,57 +435,109 @@ export default function KanoTable({ tableData, isLoading, sessionId, onEditTable
         </DialogContent>
       </Dialog>
 
-      {/* Cell Details Modal */}
-      <Dialog open={isCellModalOpen} onOpenChange={setIsCellModalOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <span>Cell Details</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedCell && (
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-gray-900 dark:text-white">{selectedCell.feature.name}</h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedCell.product}</p>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium">Rating: </span>
-                <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getRatingBadge(selectedCell.rating, selectedCell.feature.category)}`}>
-                  {selectedCell.rating === "Yes" && "✓ Yes"}
-                  {selectedCell.rating === "No" && "✗ No"}
-                  {selectedCell.rating !== "Yes" && selectedCell.rating !== "No" && selectedCell.rating}
-                </span>
-              </div>
-              
-              <div>
-                <h5 className="text-sm font-medium mb-2">Details:</h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{selectedCell.justification}</p>
-              </div>
-              
-              {selectedCell.sources && selectedCell.sources.length > 0 && (
-                <div>
-                  <h5 className="text-sm font-medium mb-2">Sources:</h5>
-                  <ul className="space-y-1">
-                    {selectedCell.sources.map((source, index) => (
-                      <li key={index} className="text-xs text-gray-600 dark:text-gray-400">
-                        • {source}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                Click on any rating cell to see detailed information and sources.
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
       </div>
     </TooltipProvider>
   );
 }
+
+// Phase 4: Excel Export Functionality
+export const exportToExcel = async (tableData: KanoTableData, analysisTitle: string) => {
+  const XLSX = await import('xlsx');
+  
+  // Create a new workbook
+  const wb = XLSX.utils.book_new();
+  
+  // Prepare data for Excel with Kano structure
+  const excelData: any[] = [];
+  
+  // Add title row
+  excelData.push([analysisTitle]);
+  excelData.push([]); // Empty row
+  
+  // Group features by category
+  const groupedFeatures = {
+    'must-have': tableData.features?.filter(f => f.category === 'must-have') || [],
+    'performance': tableData.features?.filter(f => f.category === 'performance') || [],
+    'delighter': tableData.features?.filter(f => f.category === 'delighter') || []
+  };
+  
+  // Create header row
+  const headerRow = ['Feature/Benefit', 'Category', 'Description', 'Customer Benefit'];
+  if (tableData.products) {
+    headerRow.push(...tableData.products);
+  }
+  
+  // Process each category
+  Object.entries(groupedFeatures).forEach(([category, features]) => {
+    if (features.length === 0) return;
+    
+    // Add category header
+    const categoryLabel = category === 'must-have' ? 'MUST-HAVE FEATURES' :
+                         category === 'performance' ? 'PERFORMANCE BENEFITS' :
+                         'DELIGHTER FEATURES';
+    
+    excelData.push([categoryLabel]);
+    excelData.push(headerRow);
+    
+    // Add features for this category
+    features.forEach(feature => {
+      const row = [
+        feature.name || '',
+        category.toUpperCase(),
+        feature.description || '',
+        feature.customerBenefit || ''
+      ];
+      
+      // Add product ratings
+      if (tableData.products && tableData.ratings) {
+        tableData.products.forEach(product => {
+          row.push(tableData.ratings[feature.id]?.[product] || '');
+        });
+      }
+      
+      excelData.push(row);
+    });
+    
+    excelData.push([]); // Empty row between categories
+  });
+  
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet(excelData);
+  
+  // Set column widths
+  const colWidths = [
+    { wch: 30 }, // Feature/Benefit
+    { wch: 15 }, // Category  
+    { wch: 40 }, // Description
+    { wch: 30 }, // Customer Benefit
+  ];
+  
+  // Add product column widths
+  if (tableData.products) {
+    tableData.products.forEach(() => {
+      colWidths.push({ wch: 12 });
+    });
+  }
+  
+  ws['!cols'] = colWidths;
+  
+  // Add styling and colors (basic version - more advanced styling would require a different library)
+  // Note: xlsx library has limited styling capabilities compared to exceljs
+  
+  // Add worksheet to workbook
+  XLSX.utils.book_append_sheet(wb, ws, 'Kano Analysis');
+  
+  // Generate filename with current date
+  const date = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit', 
+    day: '2-digit'
+  }).replace(/\//g, '-');
+  
+  const filename = `${analysisTitle.replace(/[^a-zA-Z0-9\s-]/g, '')} - ${date}.xlsx`;
+  
+  // Download the file
+  XLSX.writeFile(wb, filename);
+  
+  console.log('Excel export completed:', filename);
+};

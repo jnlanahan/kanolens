@@ -1,16 +1,16 @@
 // Export and sharing routes
 import type { Express } from "express";
 import { storage } from "../storage";
-import { isAuthenticated } from "../simpleAuth";
+import { jwtAuthMiddleware } from "../middleware/jwt-auth";
 
 export function setupExportRoutes(app: Express): void {
   // PDF export
-  app.post('/api/analysis/sessions/:id/export/pdf', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/export/pdf', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -32,12 +32,12 @@ export function setupExportRoutes(app: Express): void {
   });
 
   // PowerPoint export
-  app.post('/api/analysis/sessions/:id/export/powerpoint', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/export/powerpoint', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -59,12 +59,12 @@ export function setupExportRoutes(app: Express): void {
   });
 
   // Create share link
-  app.post('/api/analysis/sessions/:id/share', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/share', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 

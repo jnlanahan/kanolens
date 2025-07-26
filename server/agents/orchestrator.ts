@@ -519,7 +519,7 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
     
     // Trigger evaluation for validator agent asynchronously
     if (sessionId) {
-      this.evaluateAgent('validator', validatorRequest, categorizedData, sessionId, targetCustomer, products, validatorTime);
+      this.evaluateAgent('validator', validationRequest, categorizedData, sessionId, targetCustomer, products, validatorTime);
     }
 
     // Step 3: Table Creation

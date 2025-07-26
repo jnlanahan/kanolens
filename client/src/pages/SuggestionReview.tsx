@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, ArrowRight, Check, X, Plus, Edit2 } from "lucide-react";
+import { ArrowRight, Check, X, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -23,7 +22,6 @@ interface FormData {
   products: string;
   targetCustomers: string;
   features: string;
-  analysisMode: string;
 }
 
 export default function SuggestionReview() {
@@ -36,7 +34,6 @@ export default function SuggestionReview() {
   const [newFeature, setNewFeature] = useState('');
 
   useEffect(() => {
-    // Load data from localStorage
     const setupData = localStorage.getItem('analysisSetup');
     const suggestionsData = localStorage.getItem('analysisSuggestions');
     
@@ -56,7 +53,6 @@ export default function SuggestionReview() {
     setOriginalData(parsed);
     setSuggestions(parsedSuggestions);
     
-    // Initialize with original products and all suggested products
     const originalProducts = parsed.products.split(',').map((p: string) => p.trim()).filter(Boolean);
     setSelectedProducts([...originalProducts, ...parsedSuggestions.suggestedProducts.map((p: any) => p.name)]);
     setSelectedFeatures([...parsedSuggestions.suggestedFeatures]);
@@ -124,7 +120,6 @@ export default function SuggestionReview() {
       ...originalData,
       products: selectedProducts,
       features: selectedFeatures,
-      analysisMode: originalData?.analysisMode || 'quick', // Include analysis mode
     };
 
     proceedMutation.mutate(finalData);
@@ -144,41 +139,15 @@ export default function SuggestionReview() {
   const originalProducts = originalData.products.split(',').map(p => p.trim()).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setLocation("/analysis/setup")}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Setup
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Review AI Suggestions
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Review and modify the products and features for your analysis
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-6">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Products to Compare ({selectedProducts.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* Products to Compare */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Products to Compare ({selectedProducts.length})
+          </h2>
+          <div className="space-y-4">
             
             {/* Original Products */}
             <div>
@@ -242,15 +211,15 @@ export default function SuggestionReview() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Features */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Features to Analyze ({selectedFeatures.length})</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        {/* Features to Analyze */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Features to Analyze ({selectedFeatures.length})
+          </h2>
+          <div className="space-y-4">
             
             {/* Suggested Features */}
             {suggestions.suggestedFeatures.length > 0 && (
@@ -294,35 +263,33 @@ export default function SuggestionReview() {
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
-      {/* Bottom Action Bar */}
-      <div className="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {selectedProducts.length} products • {selectedFeatures.length} features selected
-          </div>
-          <Button 
-            onClick={handleProceed}
-            size="lg"
-            disabled={selectedProducts.length < 2 || proceedMutation.isPending}
-            className="flex items-center gap-2"
-          >
-            {proceedMutation.isPending ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Starting Analysis...
-              </>
-            ) : (
-              <>
-                Start Analysis
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </Button>
+      {/* Bottom Status and Action */}
+      <div className="max-w-6xl mx-auto mt-8 flex justify-between items-center">
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          {selectedProducts.length} products • {selectedFeatures.length} features selected
         </div>
+        <Button 
+          onClick={handleProceed}
+          size="lg"
+          disabled={selectedProducts.length < 2 || proceedMutation.isPending}
+          className="flex items-center gap-2"
+        >
+          {proceedMutation.isPending ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Starting Analysis...
+            </>
+          ) : (
+            <>
+              Start Analysis
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </Button>
       </div>
     </div>
   );

@@ -1,10 +1,17 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from "wouter";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+
   const handleSignIn = () => {
-    window.location.href = "/api/login";
+    setLocation("/login");
+  };
+
+  const handleSignUp = () => {
+    setLocation("/register");
   };
 
   return (
@@ -44,13 +51,21 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-4">
             <Button 
-              onClick={handleSignIn} 
+              onClick={handleSignUp} 
               size="lg" 
               className="kano-gradient text-white px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
             >
               Get Started Free
+            </Button>
+            <Button 
+              onClick={handleSignIn} 
+              variant="outline"
+              size="lg" 
+              className="border-slate-300 dark:border-slate-600 px-8 py-3 text-lg font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
+            >
+              Sign In
             </Button>
           </div>
         </div>

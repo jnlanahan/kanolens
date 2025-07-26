@@ -143,6 +143,53 @@ FEATURE PRESERVATION:
 - TC2.14: Original features take priority in top 50 feature selection
 - TC2.15: UI clearly distinguishes between original and research-discovered features
 
+### 2.4 Intelligent Input Interpretation (PROMPT UPDATE ONLY)
+**Type**: Agent prompt modification - NO CODE CHANGES  
+**Issue**: Agents should better interpret user input to recognize misspellings, duplicates, and non-product/feature text  
+**Files to modify**: 
+- All server agent prompt files (researcher, validator, coordinator agents)
+
+**Tasks**:
+1. Update all agent prompts to intelligently interpret user input for products, features, and benefits
+2. Add logic to detect and consolidate duplicate or similar products (e.g., "Salesforce" vs "SalesForce" vs "Sales Force")
+3. Add instruction to ignore non-product text like "more", "other products", "additional features", etc.
+4. Add spell-checking and fuzzy matching for common product/feature names
+5. Include instruction to ask for clarification when input is ambiguous
+
+**Prompt additions**:
+```
+INPUT INTERPRETATION GUIDELINES:
+- Recognize common misspellings and variations of product names (e.g., "Salesforce" = "SalesForce" = "Sales Force")
+- Consolidate duplicate or similar product entries automatically
+- Ignore generic text like "more", "other products", "additional", "etc.", "various", "multiple" 
+- Filter out non-specific entries like "and more", "plus others", "additional tools"
+- When user input contains unclear or generic terms, prioritize the specific, identifiable products/features
+- If a product name is unclear, use the most common/official spelling found in research
+
+EXAMPLES OF WHAT TO IGNORE:
+- "more products like these"
+- "other CRM tools" 
+- "additional features"
+- "various integrations"
+- "etc."
+- "and more"
+- "plus others"
+- Any entry that doesn't name a specific product or feature
+
+EXAMPLES OF CONSOLIDATION:
+- "Salesforce, SalesForce, Sales Force" → "Salesforce"
+- "Microsoft Teams, MS Teams, Teams" → "Microsoft Teams"  
+- "Slack, slack" → "Slack"
+```
+
+**Test Cases**:
+- TC2.16: Agent recognizes "Salesforce" and "SalesForce" as the same product
+- TC2.17: Generic text like "more products" is ignored and not treated as actual products
+- TC2.18: Misspelled product names are corrected to official spellings
+- TC2.19: Agent consolidates obvious duplicates in user input
+- TC2.20: Analysis doesn't include generic entries like "additional features" or "etc."
+- TC2.21: Agent focuses on specific, identifiable products and features only
+
 ---
 
 ## Phase 3: Smart Analysis Naming (Easy - 1 day)

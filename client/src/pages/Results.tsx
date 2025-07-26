@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import KanoTable from "@/components/KanoTable/KanoTable";
-import { ArrowLeft, Download, Share, BarChart3, Users, Calendar, FileText, Presentation, Link, ChevronDown } from "lucide-react";
+import PageLayout from "@/components/Layout/PageLayout";
+import StandardHeader from "@/components/Layout/StandardHeader";
+import { ArrowLeft, Download, Share, BarChart3, Users, Calendar, FileText, ChevronDown, FileSpreadsheet } from "lucide-react";
 import type { AnalysisSession } from "@shared/schema";
 
 export default function Results() {
@@ -72,50 +74,23 @@ export default function Results() {
     }
   };
 
-  const handleExportPowerPoint = async () => {
+  const handleExportExcel = async () => {
     setShowExportMenu(false);
     try {
-      const response = await fetch(`/api/analysis/sessions/${sessionId}/export/powerpoint`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      if (!response.ok) throw new Error('Failed to generate PowerPoint');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${session?.title || 'Analysis'} - Slides.pptx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      // Phase 4: Call KanoTable Excel export functionality
+      if (session?.tableData) {
+        const { exportToExcel } = await import('@/components/KanoTable/KanoTable');
+        await exportToExcel(session.tableData, session.title || 'Analysis');
+      } else {
+        throw new Error('No table data available for export');
+      }
     } catch (error) {
-      console.error('PowerPoint export failed:', error);
+      console.error('Excel export failed:', error);
       // TODO: Show error toast
     }
   };
 
-  const handleShareLink = async () => {
-    setShowExportMenu(false);
-    try {
-      const response = await fetch(`/api/analysis/sessions/${sessionId}/share`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      
-      if (!response.ok) throw new Error('Failed to create share link');
-      
-      const data = await response.json();
-      await navigator.clipboard.writeText(data.shareUrl);
-      // TODO: Show success toast with "Link copied to clipboard"
-      console.log('Share link copied to clipboard:', data.shareUrl);
-    } catch (error) {
-      console.error('Share link failed:', error);
-      // TODO: Show error toast
-    }
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -262,18 +237,11 @@ export default function Results() {
                           PDF Report
                         </button>
                         <button
-                          onClick={handleExportPowerPoint}
+                          onClick={handleExportExcel}
                           className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                         >
-                          <Presentation className="w-4 h-4" />
-                          PowerPoint Slides
-                        </button>
-                        <button
-                          onClick={handleShareLink}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-                        >
-                          <Link className="w-4 h-4" />
-                          Share Link
+                          <FileSpreadsheet className="w-4 h-4" />
+                          Excel Spreadsheet
                         </button>
                       </div>
                     </div>

@@ -21,10 +21,11 @@ export async function setupAuth(app: Express) {
 
 export function isAuthenticated(req: any, res: Response, next: NextFunction) {
   // For development, create a mock user
+  // In production, this would check actual auth tokens
   req.user = {
     claims: {
       sub: 'dev-user-123',
-      email: 'dev@example.com',
+      email: 'jnlanahan@gmail.com', // Use the unlimited user email for development
       name: 'Development User'
     }
   };
@@ -43,7 +44,7 @@ export function setupLoginRoute(app: any) {
     // In development, automatically "log in" the user
     req.session.user = {
       id: 'dev-user-123',
-      email: 'dev@example.com',
+      email: 'jnlanahan@gmail.com',
       name: 'Development User'
     };
     

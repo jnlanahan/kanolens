@@ -96,6 +96,7 @@ export interface ResearchRequest {
   targetCustomer: string;
   marketCategory?: string;
   featuresToResearch?: string[];
+  originallyAgreedFeatures?: string[]; // Phase 2: Features from initial user conversation
 }
 
 export interface ProductSuggestion {
@@ -140,7 +141,9 @@ export class ResearcherAgent {
   }
 
   private async findCompetitorSuggestions(request: ResearchRequest): Promise<ProductSuggestion[]> {
-    const searchQuery = `competitive products similar to ${request.products.join(', ')} for ${request.targetCustomer} ${request.marketCategory || ''} 2024 alternatives competitors market analysis`;
+    // Apply intelligent input interpretation
+    const cleanProducts = this.interpretAndCleanProducts(request.products);
+    const searchQuery = `competitive products similar to ${cleanProducts.join(', ')} for ${request.targetCustomer} ${request.marketCategory || ''} 2024 alternatives competitors market analysis`;
     
     try {
       console.log(`[Researcher] Searching for competitor suggestions: ${searchQuery}`);
@@ -160,18 +163,41 @@ export class ResearcherAgent {
   }
 
   private async performComprehensiveResearch(request: ResearchRequest): Promise<ComprehensiveResearch> {
+    // Apply intelligent input interpretation
+    const cleanProducts = this.interpretAndCleanProducts(request.products);
+    const cleanFeatures = request.featuresToResearch ? this.interpretAndCleanFeatures(request.featuresToResearch) : [];
+    
+    // Phase 2: Track originally agreed features for preservation
+    const originalFeatures = request.originallyAgreedFeatures ? this.interpretAndCleanFeatures(request.originallyAgreedFeatures) : [];
+    console.log(`[Researcher] Original agreed features: ${originalFeatures.join(', ')}`);
+    
     const products = await Promise.all(
-      request.products.map(product => this.researchSingleProduct(product, request))
+      cleanProducts.map(product => this.researchSingleProduct(product, { 
+        ...request, 
+        featuresToResearch: cleanFeatures,
+        originallyAgreedFeatures: originalFeatures 
+      }))
     );
 
     // Analyze features across all products
     const allFeatures = new Set<string>();
     const featureFrequency = new Map<string, number>();
     
+    // Phase 2: Mark originally agreed features in the product data
     products.forEach(product => {
       product.features.forEach(feature => {
         allFeatures.add(feature.name);
         featureFrequency.set(feature.name, (featureFrequency.get(feature.name) || 0) + 1);
+        
+        // Mark if this was an originally agreed feature
+        if (originalFeatures.some(orig => 
+          orig.toLowerCase() === feature.name.toLowerCase() || 
+          feature.name.toLowerCase().includes(orig.toLowerCase()) ||
+          orig.toLowerCase().includes(feature.name.toLowerCase())
+        )) {
+          feature.originallyAgreed = true;
+          console.log(`[Researcher] Marked "${feature.name}" as originally agreed feature`);
+        }
       });
     });
 
@@ -201,7 +227,29 @@ export class ResearcherAgent {
     console.log(`[Researcher] Researching ${productName} for ${request.targetCustomer}`);
     
     // Use EXACT approach that works manually - single targeted query
-    const kanoPrompt = `Give me a list of 10-15 features/benefits of ${productName} and categorize them using these definitions:
+    const kanoPrompt = `Give me a list of features/benefits of ${productName} and categorize them using these definitions:
+
+FEATURE DEFINITION: A feature is a specific, identifiable characteristic or functionality of a product that provides value to the user and fulfills a need or solves a problem.
+
+DESCRIPTION GUIDELINES:
+- Write in plain text that clearly explains what the feature does
+- Use the user's context (products: ${request.products}, role: ${request.targetCustomer}, industry context: ${request.marketCategory || 'general'}) to make descriptions relevant
+- Avoid generic marketing language
+- Keep descriptions 1-2 sentences, clear and concise
+- Focus on the actual functionality, not benefits
+
+FEATURE LIMITS:
+- Limit analysis to maximum 50 features in the main table
+- Prioritize features most relevant to the user's context: ${request.products}, ${request.targetCustomer}, ${request.marketCategory || 'general'}
+- Group similar features under broader benefit categories when appropriate
+- If more than 50 features are discovered, select the 50 most relevant and note others for "Additional Features" section
+
+FEATURE PRESERVATION:
+- CRITICAL: Include 100% of features that were agreed upon with the user in the initial conversation
+- Mark any new features discovered during research with "*new based on research not included in original search criteria"
+- Original agreed features MUST appear in the final analysis and take priority in top 50 selection
+- Never drop, replace, or modify originally requested features
+- If original + new features exceed 50, prioritize all original features first
 
 Must-Have Benefits of a Product: Aspects of a Product that customers require and expect in your Product. You cannot avoid adding these, and they should be a top priority if they are not already part of your Product.
 
@@ -931,6 +979,104 @@ Focus on current 2024-2025 features and capabilities. Target customer: ${request
     }
     
     return sources;
+  }
+
+  // Input interpretation methods for Phase 2
+  private interpretAndCleanProducts(products: string[]): string[] {
+    const cleanProducts: string[] = [];
+    const seenProducts = new Set<string>();
+    
+    for (const product of products) {
+      const cleaned = this.cleanProductName(product);
+      if (this.isValidProduct(cleaned)) {
+        const normalized = this.normalizeProductName(cleaned);
+        if (!seenProducts.has(normalized.toLowerCase())) {
+          seenProducts.add(normalized.toLowerCase());
+          cleanProducts.push(normalized);
+        }
+      }
+    }
+    
+    return cleanProducts;
+  }
+  
+  private interpretAndCleanFeatures(features: string[]): string[] {
+    const cleanFeatures: string[] = [];
+    const seenFeatures = new Set<string>();
+    
+    for (const feature of features) {
+      const cleaned = this.cleanFeatureName(feature);
+      if (this.isValidFeature(cleaned)) {
+        const normalized = cleaned.toLowerCase();
+        if (!seenFeatures.has(normalized)) {
+          seenFeatures.add(normalized);
+          cleanFeatures.push(cleaned);
+        }
+      }
+    }
+    
+    return cleanFeatures;
+  }
+  
+  private cleanProductName(product: string): string {
+    return product
+      .replace(/^\s+|\s+$/g, '') // trim whitespace
+      .replace(/\s+/g, ' ') // normalize spaces
+      .replace(/[^\w\s\.\-]/g, '') // remove special chars except dots and dashes
+      .trim();
+  }
+  
+  private normalizeProductName(product: string): string {
+    // Handle common variations and misspellings
+    const normalizations: Record<string, string> = {
+      'salesforce': 'Salesforce',
+      'sales force': 'Salesforce',
+      'microsoft teams': 'Microsoft Teams',
+      'ms teams': 'Microsoft Teams',
+      'teams': 'Microsoft Teams',
+      'slack': 'Slack',
+      'monday.com': 'Monday.com',
+      'monday': 'Monday.com',
+      'clickup': 'ClickUp',
+      'click up': 'ClickUp',
+      'asana': 'Asana',
+      'trello': 'Trello',
+      'notion': 'Notion',
+      'airtable': 'Airtable',
+      'air table': 'Airtable'
+    };
+    
+    const lowerProduct = product.toLowerCase();
+    return normalizations[lowerProduct] || product;
+  }
+  
+  private isValidProduct(product: string): boolean {
+    if (!product || product.length < 2 || product.length > 100) return false;
+    
+    // Filter out generic text that should be ignored
+    const invalidPatterns = [
+      /^(more|other|additional|various|multiple|etc|and more|plus others)$/i,
+      /^(more products|other tools|additional features|various integrations)$/i,
+      /^(and more|plus others|etc\.|etcetera)$/i,
+      /^\d+$/, // pure numbers
+      /^[^\w\s]/, // starts with special chars
+    ];
+    
+    return !invalidPatterns.some(pattern => pattern.test(product));
+  }
+  
+  private isValidFeature(feature: string): boolean {
+    if (!feature || feature.length < 3 || feature.length > 100) return false;
+    
+    // Filter out generic text that should be ignored
+    const invalidPatterns = [
+      /^(more|other|additional|various|multiple|etc|and more|plus others)$/i,
+      /^(more features|other capabilities|additional tools|various options)$/i,
+      /^\d+$/, // pure numbers
+      /^[^\w\s]/, // starts with special chars
+    ];
+    
+    return !invalidPatterns.some(pattern => pattern.test(feature));
   }
 
   // NO FALLBACK METHODS - Real research only

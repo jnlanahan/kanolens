@@ -57,7 +57,18 @@
       "Bash(npx vitest:*)",
       "Bash(npm test:*)",
       "Bash(mkdir:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(git tag:*)",
+      "Bash(del test-phase2.js)",
+      "Bash(timeout 30 npm run dev)",
+      "Bash(ls:*)",
+      "Bash(npx vite build:*)",
+      "Bash(npx react-devtools-cli:*)",
+      "WebFetch(domain:replit.com)",
+      "Bash(true)",
+      "Bash(timeout 2 tail -f debug-server.log)",
+      "Bash(PORT=3007 npm run dev)",
+      "Bash(del nul)"
     ],
     "deny": []
   }

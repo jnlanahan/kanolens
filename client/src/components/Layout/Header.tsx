@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2, Edit, Check, X, Network } from "lucide-react";
+import { ChevronDown, Plus, Settings, User, LogOut, Wifi, WifiOff, Trash2, Edit, Check, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
@@ -275,31 +275,23 @@ export default function Header({
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Agent Architecture Button */}
-          <a href="/agent-architecture" className="inline-block">
-            <Button variant="outline" size="sm" className="flex items-center space-x-2">
-              <Network className="h-4 w-4" />
-              <span className="text-sm font-medium">Agent Architecture</span>
-            </Button>
-          </a>
-
           {/* OpenAI Status Indicator */}
           <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border ${
-            openaiStatus?.connected 
+openaiStatus && typeof openaiStatus === 'object' && 'connected' in openaiStatus && openaiStatus.connected 
               ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800" 
               : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
           }`}>
             <div className={`w-2 h-2 rounded-full ${
-              openaiStatus?.connected 
+  openaiStatus && typeof openaiStatus === 'object' && 'connected' in openaiStatus && openaiStatus.connected 
                 ? "bg-green-500 animate-pulse-gentle" 
                 : "bg-red-500"
             }`}></div>
             <span className={`text-sm font-medium ${
-              openaiStatus?.connected 
+  openaiStatus && typeof openaiStatus === 'object' && 'connected' in openaiStatus && openaiStatus.connected 
                 ? "text-green-700 dark:text-green-300" 
                 : "text-red-700 dark:text-red-300"
             }`}>
-              {openaiStatus?.connected ? "AI Ready" : "AI Offline"}
+              {openaiStatus && typeof openaiStatus === 'object' && 'connected' in openaiStatus && openaiStatus.connected ? "AI Ready" : "AI Offline"}
             </span>
           </div>
 
@@ -312,6 +304,10 @@ export default function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => window.location.href = '/account'}>
+                <Settings className="h-4 w-4 mr-2" />
+                Account Settings
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
