@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Plus, BarChart3, Calendar, Users, Trash2, CheckSquare, Square, Settings, Network, LogOut } from "lucide-react";
 import PageLayout from "@/components/Layout/PageLayout";
 import StandardHeader from "@/components/Layout/StandardHeader";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 import type { AnalysisSession, AnalysisLimits } from "@shared/schema";
 
 export default function Dashboard() {
@@ -253,20 +254,7 @@ export default function Dashboard() {
 
         {/* Sessions Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardHeader>
-                  <div className="h-4 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-1/2"></div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-full mb-2"></div>
-                  <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-2/3"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <LoadingSkeleton variant="dashboard" />
         ) : sessions && sessions.length > 0 ? (
           <>
             <div className="mb-6 flex items-center justify-between">

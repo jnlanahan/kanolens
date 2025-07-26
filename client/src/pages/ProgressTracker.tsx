@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Clock, Zap, BarChart3, Lightbulb, ArrowRight, Wifi } from "lucide-react";
+import { Check, Clock, Zap, BarChart3, Lightbulb, ArrowRight, Wifi, Pause, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePolling } from "@/hooks/usePolling";
+import { useCleanup } from "@/hooks/useCleanup";
 
 interface ProgressStep {
   id: string;
@@ -21,6 +22,8 @@ export default function ProgressTracker() {
   const [currentStep, setCurrentStep] = useState(0);
   const [startTime] = useState(Date.now());
   const [currentMessage, setCurrentMessage] = useState('Starting analysis...');
+  const [isPaused, setIsPaused] = useState(false);
+  const { addCleanup } = useCleanup();
 
   const sessionIdNum = sessionId ? parseInt(sessionId) : null;
 
@@ -62,7 +65,7 @@ export default function ProgressTracker() {
   // Use polling for progress updates
   const { data: progressData, isConnected, connectionError, refetch } = usePolling({
     sessionId: sessionIdNum,
-    enabled: !!sessionIdNum,
+    enabled: !!sessionIdNum && !isPaused,
     interval: 2000
   });
 
@@ -100,6 +103,8 @@ export default function ProgressTracker() {
 
   // Check for completion every 5 seconds as backup
   useEffect(() => {
+    if (isPaused) return;
+    
     const interval = setInterval(() => {
       if (sessionIdNum && progressData?.status !== 'completed') {
         console.log('[ProgressTracker] Checking completion status...');
@@ -107,8 +112,9 @@ export default function ProgressTracker() {
       }
     }, 5000);
 
+    addCleanup(() => clearInterval(interval));
     return () => clearInterval(interval);
-  }, [sessionIdNum, progressData?.status]);
+  }, [sessionIdNum, progressData?.status, isPaused, addCleanup]);
 
   const getElapsedTime = () => {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -267,9 +273,20 @@ export default function ProgressTracker() {
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                   Debug Information
                 </h3>
-                <Button onClick={forceRefresh} variant="outline" size="sm">
-                  Refresh Progress
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => setIsPaused(!isPaused)} 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                    {isPaused ? 'Resume' : 'Pause'}
+                  </Button>
+                  <Button onClick={forceRefresh} variant="outline" size="sm">
+                    Refresh Progress
+                  </Button>
+                </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
