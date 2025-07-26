@@ -1,6 +1,9 @@
 // REAL RESEARCH ONLY - No fake content generation
 
-// Simple rate limiter to avoid 429 errors
+import { enhancedRateLimiter } from './enhanced-rate-limiter';
+import { parallelResearchOptimizer, ResearchProgress } from './parallel-research-optimizer';
+
+// Legacy rate limiter for backwards compatibility
 class RateLimiter {
   private requests: number[] = [];
   private readonly maxRequests: number;
@@ -32,13 +35,25 @@ class RateLimiter {
 
 const rateLimiter = new RateLimiter();
 
-// Perplexity API integration for real research
-async function searchWithPerplexity(query: string): Promise<{content: string, sources: string[]}> {
-  console.log(`[Perplexity] Searching for: ${query}`);
+// Enhanced Perplexity API integration with optimized rate limiting
+async function searchWithPerplexity(query: string, priority: 'high' | 'normal' | 'low' = 'normal'): Promise<{content: string, sources: string[]}> {
+  console.log(`[Perplexity] Searching for: ${query} (priority: ${priority})`);
   
-  // Wait if rate limit would be exceeded
-  await rateLimiter.waitIfNeeded();
-  
+  return enhancedRateLimiter.executeRequest(
+    async () => {
+      return performPerplexitySearch(query);
+    },
+    {
+      priority,
+      retryAttempts: 3,
+      timeout: 30000,
+      metadata: { query: query.substring(0, 100) }
+    }
+  );
+}
+
+// Separated actual API call for better error handling and monitoring
+async function performPerplexitySearch(query: string): Promise<{content: string, sources: string[]}> {
   try {
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
@@ -66,13 +81,11 @@ async function searchWithPerplexity(query: string): Promise<{content: string, so
     });
 
     if (!response.ok) {
-      // Handle rate limit specifically
+      // Let the enhanced rate limiter handle retries instead of manual retry
       if (response.status === 429) {
-        console.log(`[Perplexity] Rate limit hit. Waiting before retry...`);
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
-        return searchWithPerplexity(query); // Retry
+        throw new Error(`Rate limit exceeded (429) - will be retried by enhanced rate limiter`);
       }
-      throw new Error(`Perplexity API error: ${response.status}`);
+      throw new Error(`Perplexity API error: ${response.status} - ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -82,11 +95,10 @@ async function searchWithPerplexity(query: string): Promise<{content: string, so
     console.log(`[Perplexity] Search completed: ${content.length} chars, ${sources.length} sources`);
     return { content, sources };
   } catch (error) {
-    console.error(`[Perplexity] Search failed for ${query}:`, error);
+    console.error(`[Perplexity] Search failed for query: ${query.substring(0, 100)}...`);
     
-    // FAIL - No fallback to fake content. Require real research.
-    console.error(`[Research] FAILED - Perplexity API not configured or failed for: ${query}`);
-    throw new Error(`Real research failed for "${query}". Please configure PERPLEXITY_API_KEY for actual internet research. No fallback content available.`);
+    // Let enhanced rate limiter handle retries
+    throw error;
   }
 }
 
@@ -147,7 +159,7 @@ export class ResearcherAgent {
     
     try {
       console.log(`[Researcher] Searching for competitor suggestions: ${searchQuery}`);
-      const searchResults = await searchWithPerplexity(searchQuery);
+      const searchResults = await searchWithPerplexity(searchQuery, 'high');
       
       // Parse search results to extract competitor suggestions
       const suggestions = this.parseCompetitorSuggestions(searchResults.content, request);
@@ -171,12 +183,22 @@ export class ResearcherAgent {
     const originalFeatures = request.originallyAgreedFeatures ? this.interpretAndCleanFeatures(request.originallyAgreedFeatures) : [];
     console.log(`[Researcher] Original agreed features: ${originalFeatures.join(', ')}`);
     
-    const products = await Promise.all(
-      cleanProducts.map(product => this.researchSingleProduct(product, { 
+    // Enhanced parallel processing with optimization
+    parallelResearchOptimizer.reset();
+    
+    const products = await parallelResearchOptimizer.optimizeResearchFlow(
+      cleanProducts,
+      (product: string) => this.researchSingleProduct(product, { 
         ...request, 
         featuresToResearch: cleanFeatures,
         originallyAgreedFeatures: originalFeatures 
-      }))
+      }),
+      (progress: ResearchProgress) => {
+        console.log(`[Researcher] Progress: ${progress.completed}/${progress.total} products completed, throughput: ${progress.throughput.toFixed(2)} products/min`);
+        if (progress.currentProducts.length > 0) {
+          console.log(`[Researcher] Currently researching: ${progress.currentProducts.join(', ')}`);
+        }
+      }
     );
 
     // Analyze features across all products
@@ -265,7 +287,7 @@ Focus on current 2024-2025 features and capabilities. Target customer: ${request
       console.log(`[Researcher] Performing single Kano research query for ${productName}`);
       
       // Single Perplexity call - exactly like manual approach
-      const result = await searchWithPerplexity(researchQueries[0]);
+      const result = await searchWithPerplexity(researchQueries[0], 'high');
       
       console.log(`[Researcher] Research completed for ${productName}: ${result.content.length} chars, ${result.sources.length} sources`);
       
@@ -306,7 +328,7 @@ Focus on current 2024-2025 features and capabilities. Target customer: ${request
         const featureResults = [];
         for (const query of featureQueries) {
           try {
-            const result = await searchWithPerplexity(query);
+            const result = await searchWithPerplexity(query, 'normal');
             featureResults.push(result);
           } catch (error) {
             console.error(`[Researcher] Feature search failed for query: ${query}`, error);
@@ -1080,6 +1102,35 @@ Focus on current 2024-2025 features and capabilities. Target customer: ${request
   }
 
   // NO FALLBACK METHODS - Real research only
+
+  /**
+   * Get performance statistics for parallel processing optimization
+   */
+  getPerformanceStats() {
+    const optimizerStats = parallelResearchOptimizer.getPerformanceStats();
+    return {
+      ...optimizerStats,
+      researcher: {
+        version: 'enhanced-parallel-v1.0',
+        features: [
+          'enhanced-rate-limiting',
+          'parallel-optimization',
+          'request-prioritization',
+          'exponential-backoff-retry',
+          'batch-processing',
+          'performance-monitoring'
+        ]
+      }
+    };
+  }
+
+  /**
+   * Reset performance state for new research session
+   */
+  resetPerformanceState() {
+    parallelResearchOptimizer.reset();
+    console.log('[Researcher] Performance state reset for new session');
+  }
 }
 
 export const researcherAgent = new ResearcherAgent();
