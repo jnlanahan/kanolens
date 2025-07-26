@@ -8,8 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, BarChart3, Calendar, Users, Bug, Trash2, CheckSquare, Square } from "lucide-react";
-import type { AnalysisSession } from "@shared/schema";
+import { Plus, BarChart3, Calendar, Users, Trash2, CheckSquare, Square, Settings, Network, LogOut } from "lucide-react";
+import PageLayout from "@/components/Layout/PageLayout";
+import StandardHeader from "@/components/Layout/StandardHeader";
+import type { AnalysisSession, AnalysisLimits } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -20,8 +22,14 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
 
   // Fetch user sessions
-  const { data: sessions, isLoading } = useQuery({
+  const { data: sessions, isLoading } = useQuery<AnalysisSession[]>({
     queryKey: ["/api/analysis/sessions"],
+    retry: false,
+  });
+
+  // Fetch user analysis limits
+  const { data: analysisLimits } = useQuery<AnalysisLimits>({
+    queryKey: ["/api/analysis/limits"],
     retry: false,
   });
 
@@ -43,6 +51,7 @@ export default function Dashboard() {
     },
     onSuccess: (_, deletedIds) => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analysis/limits"] });
       const deletedCount = deletedIds.length;
       setSelectedSessions(new Set());
       toast({
@@ -61,6 +70,14 @@ export default function Dashboard() {
   });
 
   const handleCreateNew = () => {
+    if (analysisLimits && !analysisLimits.canCreateMore) {
+      toast({
+        title: "Analysis Limit Reached",
+        description: "You have used your free analysis. Delete your current analysis to create a new one, or upgrade to a paid plan (coming soon).",
+        variant: "destructive",
+      });
+      return;
+    }
     setLocation("/analysis/setup");
   };
 
@@ -124,62 +141,117 @@ export default function Dashboard() {
     );
   };
 
+  const headerActions = (
+    <>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => setLocation("/agent-architecture")}
+        className="flex items-center gap-2"
+      >
+        <Network className="w-4 h-4" />
+        Agent Architecture
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => setLocation("/account")}
+        className="flex items-center gap-2"
+      >
+        <Settings className="w-4 h-4" />
+        Account
+      </Button>
+      {selectedSessions.size > 0 && (
+        <>
+          <Button 
+            onClick={handleDeleteSelected}
+            variant="destructive" 
+            size="sm" 
+            className="flex items-center gap-2"
+            disabled={deleteSessionsMutation.isPending}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete Selected ({selectedSessions.size})
+          </Button>
+          <Button 
+            onClick={() => setSelectedSessions(new Set())}
+            variant="outline" 
+            size="sm"
+          >
+            Clear Selection
+          </Button>
+        </>
+      )}
+      <Button 
+        variant="ghost" 
+        size="sm"
+        onClick={() => window.location.href = "/api/logout"}
+        className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
+      >
+        <LogOut className="w-4 h-4" />
+        Sign Out
+      </Button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                KanoLens Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Welcome back, {user?.firstName || 'User'}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {selectedSessions.size > 0 && (
-                <>
-                  <Button 
-                    onClick={handleDeleteSelected}
-                    variant="destructive" 
-                    size="sm" 
-                    className="flex items-center gap-2"
-                    disabled={deleteSessionsMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete Selected ({selectedSessions.size})
-                  </Button>
-                  <Button 
-                    onClick={() => setSelectedSessions(new Set())}
-                    variant="outline" 
-                    size="sm"
-                  >
-                    Clear Selection
-                  </Button>
-                </>
-              )}
-              <Button 
-                onClick={() => setLocation("/debug")} 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-2"
-              >
-                <Bug className="w-4 h-4" />
-                Debug Console
-              </Button>
-              <Button onClick={handleCreateNew} size="lg" className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Create New Analysis
-              </Button>
+    <PageLayout variant="dashboard">
+      <StandardHeader 
+        title="kanolens" 
+        subtitle={`Dashboard - Welcome back, ${user?.firstName || 'User'}`}
+        actions={headerActions}
+      />
+      
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Your Analyses
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage and track your competitive analysis projects
+            </p>
+          </div>
+          <Button 
+            onClick={handleCreateNew} 
+            size="lg" 
+            className="flex items-center gap-2"
+            disabled={analysisLimits && !analysisLimits.canCreateMore}
+          >
+            <Plus className="w-4 h-4" />
+            Create New Analysis
+          </Button>
+        </div>
+
+        {/* Analysis Limits Banner */}
+        {analysisLimits && !analysisLimits.isUnlimited && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="font-medium">
+                    Analysis Usage: {analysisLimits.current} / {analysisLimits.max}
+                  </span>
+                </div>
+                {!analysisLimits.canCreateMore && (
+                  <Badge variant="destructive" className="text-xs">
+                    Limit Reached
+                  </Badge>
+                )}
+              </div>
+              <div className="text-sm text-blue-600 dark:text-blue-400">
+                {analysisLimits.canCreateMore ? (
+                  `${analysisLimits.remainingAnalyses} analysis remaining`
+                ) : (
+                  "Delete an analysis to create a new one • Paid accounts coming soon!"
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Sessions Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
@@ -315,7 +387,12 @@ export default function Dashboard() {
             <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
               Get started by creating your first competitive analysis. Compare products using the Kano Model framework.
             </p>
-            <Button onClick={handleCreateNew} size="lg" className="flex items-center gap-2 mx-auto">
+            <Button 
+              onClick={handleCreateNew} 
+              size="lg" 
+              className="flex items-center gap-2 mx-auto"
+              disabled={analysisLimits && !analysisLimits.canCreateMore}
+            >
               <Plus className="w-4 h-4" />
               Create Your First Analysis
             </Button>
@@ -366,7 +443,7 @@ export default function Dashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </div>
+      </main>
+    </PageLayout>
   );
 }
