@@ -1,6 +1,5 @@
 // Central route registry - combines all route modules
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { setupAuth, setupLoginRoute } from "../simpleAuth";
 import { storage } from "../storage";
 
@@ -12,7 +11,9 @@ import { setupAnalysisRoutes } from "./analysis";
 import { setupExportRoutes } from "./export";
 import { setupHealthRoutes } from "./health";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Express> {
+  console.log('[Routes] Starting route registration...');
+  
   // Setup authentication middleware first
   await setupAuth(app);
   
@@ -39,11 +40,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupHealthRoutes(app);
 
   // Register all other route modules
-  console.log('[Routes] Registering auth routes...');
-  setupAuthRoutes(app);
-  
-  console.log('[Routes] Registering session routes...');
-  setupSessionRoutes(app);
+  try {
+    console.log('[Routes] Registering auth routes...');
+    setupAuthRoutes(app);
+    
+    console.log('[Routes] Registering session routes...');
+    setupSessionRoutes(app);
+  } catch (error) {
+    console.error('[Routes] Error during route registration:', error);
+    throw error;
+  }
   
   console.log('[Routes] Registering message routes...');
   setupMessageRoutes(app);
@@ -57,11 +63,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // TODO: Add remaining route modules as they are extracted:
   // setupDebugRoutes(app);
   
+  // Add middleware to log all requests
+  app.use((req, res, next) => {
+    console.log(`🌐 ${req.method} ${req.path}`);
+    next();
+  });
+  
+  // Add a simple test route
+  app.get('/api/test', (req, res) => {
+    console.log('✅ Test route hit!');
+    res.json({ message: 'Routes are working!' });
+  });
+  
   console.log('[Routes] All routes registered successfully');
 
-  // Create HTTP server
-  const server = createServer(app);
-  return server;
+  // Return the Express app with routes registered
+  return app;
 }
 
 // Export all route setup functions for testing

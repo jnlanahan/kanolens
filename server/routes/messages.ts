@@ -1,16 +1,16 @@
 // Chat message routes
 import type { Express } from "express";
 import { storage } from "../storage";
-import { isAuthenticated } from "../simpleAuth";
+import { jwtAuthMiddleware } from "../middleware/jwt-auth";
 import { processChatMessage } from "../openai";
 
 export function setupMessageRoutes(app: Express): void {
   // Send new chat message
-  app.post('/api/analysis/sessions/:id/messages', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/messages', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log("[Routes] Processing chat message...");
       const sessionId = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       console.log(`[Routes] Session ID: ${sessionId}, User ID: ${userId}`);
       console.log(`[Routes] Message content: ${req.body.content}`);
@@ -132,12 +132,12 @@ export function setupMessageRoutes(app: Express): void {
   });
 
   // Get chat messages for a session
-  app.get('/api/analysis/sessions/:id/messages', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analysis/sessions/:id/messages', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 

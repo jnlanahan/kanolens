@@ -27,9 +27,7 @@ export function FeedbackButton({ sessionId, messageId, content, metadata }: Feed
       feedbackType: 'thumbs_up' | 'thumbs_down';
       feedbackText?: string;
     }) => {
-      return apiRequest('/api/feedback', {
-        method: 'POST',
-        body: JSON.stringify({
+      return apiRequest('POST', '/api/feedback', {
           sessionId,
           messageId,
           feedbackType: data.feedbackType,
@@ -39,8 +37,7 @@ export function FeedbackButton({ sessionId, messageId, content, metadata }: Feed
             metadata,
             timestamp: new Date().toISOString(),
           },
-        }),
-      });
+        });
     },
     onSuccess: () => {
       toast({

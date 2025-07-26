@@ -232,7 +232,8 @@ vi.mock('../langsmith', () => ({
     createWorkflowTrace: vi.fn().mockResolvedValue({
       id: 'mock-trace-id',
       url: 'https://mock-langsmith-url'
-    })
+    }),
+    completeWorkflowTrace: vi.fn().mockResolvedValue(undefined)
   },
   withLangSmithTrace: vi.fn().mockImplementation((name, fn) => fn)
 }));
@@ -286,6 +287,13 @@ vi.mock('../agents/validator', () => ({
     })
   })),
   validatorAgent: {
+    validateResearch: vi.fn().mockResolvedValue({
+      isValid: true,
+      message: 'Research data is valid',
+      validatedData: {
+        products: []
+      }
+    }),
     categorizeFeatures: vi.fn().mockResolvedValue({
       categorizedFeatures: [
         {

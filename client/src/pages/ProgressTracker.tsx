@@ -39,7 +39,7 @@ export default function ProgressTracker() {
       description: 'AI agents are gathering detailed information about each product',
       icon: <Zap className="w-6 h-6" />,
       estimatedTime: '2-3 minutes',
-      status: currentStep >= 1 ? 'in_progress' : 'pending'
+      status: currentStep >= 2 ? 'completed' : (currentStep === 1 ? 'in_progress' : 'pending')
     },
     {
       id: 'categorization',
@@ -225,8 +225,9 @@ export default function ProgressTracker() {
                             </span>
                           )}
                           {step.status === 'in_progress' && (
-                            <span className="ml-2 text-blue-600 dark:text-blue-400">
-                              • In progress...
+                            <span className="ml-2 text-blue-600 dark:text-blue-400 flex items-center">
+                              <div className="w-2 h-2 bg-blue-600 rounded-full mr-1 animate-pulse"></div>
+                              In progress...
                             </span>
                           )}
                         </div>

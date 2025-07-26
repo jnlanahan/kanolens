@@ -30,12 +30,19 @@ import {
   ANALYSIS_STEPS
 } from "@shared/schema";
 import { db, dbManager } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations - mandatory for Replit Auth
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getUserAnalysisLimit(userId: string): Promise<{ current: number; max: number; canCreateNew: boolean }>;
+  incrementUserAnalysisCount(userId: string): Promise<User>;
+  decrementUserAnalysisCount(userId: string): Promise<User>;
+  setUserAnalysisLimit(userId: string, maxAnalyses: number): Promise<User>;
   
   // Analysis session operations
   createAnalysisSession(session: InsertAnalysisSession): Promise<AnalysisSession>;
@@ -129,6 +136,50 @@ export class DatabaseStorage implements IStorage {
     }, 3, 'getUser');
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return await this.executeWithRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user;
+    }, 3, 'getUserByEmail');
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
+    return await this.executeWithTransaction(async (tx) => {
+      // Generate a unique ID for the user
+      const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
+      const [user] = await tx
+        .insert(users)
+        .values({
+          ...userData,
+          id: userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+      return user;
+    });
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    return await this.executeWithTransaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, id))
+        .returning();
+      
+      if (!user) {
+        throw new Error(`User ${id} not found`);
+      }
+      
+      return user;
+    });
+  }
+
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
@@ -142,6 +193,69 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async getUserAnalysisLimit(userId: string): Promise<{ current: number; max: number; canCreateNew: boolean }> {
+    return await this.executeWithRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (!user) {
+        throw new Error(`User ${userId} not found`);
+      }
+      
+      const current = user.analysisCount || 0;
+      const max = user.maxAnalyses || 1;
+      
+      // Check if user is admin by email (unlimited access)
+      const isAdmin = user.email?.toLowerCase() === 'jnlanahan@gmail.com';
+      
+      return {
+        current,
+        max: isAdmin ? -1 : max, // -1 means unlimited for admin
+        canCreateNew: isAdmin || current < max
+      };
+    }, 3, 'getUserAnalysisLimit');
+  }
+
+  async incrementUserAnalysisCount(userId: string): Promise<User> {
+    return await this.executeWithTransaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({ 
+          analysisCount: sql`${users.analysisCount} + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return user;
+    }, 3, 'incrementUserAnalysisCount');
+  }
+
+  async decrementUserAnalysisCount(userId: string): Promise<User> {
+    return await this.executeWithTransaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({ 
+          analysisCount: sql`GREATEST(${users.analysisCount} - 1, 0)`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return user;
+    }, 3, 'decrementUserAnalysisCount');
+  }
+
+  async setUserAnalysisLimit(userId: string, maxAnalyses: number): Promise<User> {
+    return await this.executeWithTransaction(async (tx) => {
+      const [user] = await tx
+        .update(users)
+        .set({ 
+          maxAnalyses,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return user;
+    }, 3, 'setUserAnalysisLimit');
   }
 
   // Analysis session operations
@@ -201,14 +315,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAnalysisSession(id: number): Promise<void> {
-    // Delete associated chat messages first (due to foreign key constraint)
-    await db.delete(chatMessages).where(eq(chatMessages.sessionId, id));
-    
-    // Delete associated documents
-    await db.delete(documents).where(eq(documents.sessionId, id));
-    
-    // Finally delete the session
-    await db.delete(analysisSessions).where(eq(analysisSessions.id, id));
+    return await this.executeWithTransaction(async (tx) => {
+      // Get the session to find the user ID
+      const [session] = await tx
+        .select()
+        .from(analysisSessions)
+        .where(eq(analysisSessions.id, id));
+      
+      if (!session) {
+        throw new Error(`Analysis session ${id} not found`);
+      }
+
+      // Delete associated chat messages first (due to foreign key constraint)
+      await tx.delete(chatMessages).where(eq(chatMessages.sessionId, id));
+      
+      // Delete associated documents
+      await tx.delete(documents).where(eq(documents.sessionId, id));
+      
+      // Delete associated shared analyses
+      await tx.delete(sharedAnalyses).where(eq(sharedAnalyses.sessionId, id));
+      
+      // Finally delete the session
+      await tx.delete(analysisSessions).where(eq(analysisSessions.id, id));
+      
+      // Decrement user's analysis count
+      await tx
+        .update(users)
+        .set({ 
+          analysisCount: sql`GREATEST(${users.analysisCount} - 1, 0)`,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, session.userId));
+    }, 3, 'deleteAnalysisSession');
   }
 
   // Chat message operations
@@ -412,7 +550,7 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(sharedAnalyses)
       .set({ 
-        viewCount: db.sql`${sharedAnalyses.viewCount} + 1`,
+        viewCount: sql`${sharedAnalyses.viewCount} + 1`,
         updatedAt: new Date()
       })
       .where(eq(sharedAnalyses.shareId, shareId));

@@ -23,15 +23,30 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table - mandatory for Replit Auth
+// User storage table - updated for JWT authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  password: varchar("password"), // Hashed password (null for OAuth users)
+  authProvider: varchar("auth_provider").default("email"), // 'email' or 'google'
+  emailVerified: boolean("email_verified").default(false),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  analysisCount: integer("analysis_count").default(0),
+  maxAnalyses: integer("max_analyses").default(1),
+  lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token").unique().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Analysis sessions to store ongoing competitive analysis
@@ -75,6 +90,9 @@ export const documents = pgTable("documents", {
 // Schema types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
 export type InsertAnalysisSession = typeof analysisSessions.$inferInsert;
 export type AnalysisSession = typeof analysisSessions.$inferSelect;
@@ -255,3 +273,12 @@ export const ANALYSIS_STATUS = {
 
 export type AnalysisStep = typeof ANALYSIS_STEPS[keyof typeof ANALYSIS_STEPS];
 export type AnalysisStatus = typeof ANALYSIS_STATUS[keyof typeof ANALYSIS_STATUS];
+
+// Analysis limits types
+export interface AnalysisLimits {
+  current: number;
+  max: number;
+  isUnlimited: boolean;
+  canCreateMore: boolean;
+  remainingAnalyses: number;
+}

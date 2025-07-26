@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ProgressData {
   currentStep: string;
@@ -23,14 +24,15 @@ export function usePolling({
     queryFn: async (): Promise<ProgressData> => {
       if (!sessionId) throw new Error('No session ID');
       
-      const response = await fetch(`/api/analysis/sessions/${sessionId}/progress`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        const response = await apiRequest("GET", `/api/analysis/sessions/${sessionId}/progress`);
+        const data = await response.json();
+        console.log('[Polling] Progress update:', data);
+        return data;
+      } catch (error) {
+        console.error('[Polling] Error:', error);
+        throw error;
       }
-      
-      const data = await response.json();
-      console.log('[Polling] Progress update:', data);
-      return data;
     },
     enabled: enabled && !!sessionId,
     refetchInterval: interval,
@@ -42,7 +44,7 @@ export function usePolling({
     data,
     error,
     isLoading,
-    isConnected: true, // Always connected with HTTP
+    isConnected: !error,
     connectionError: error?.message || null,
     refetch,
   };

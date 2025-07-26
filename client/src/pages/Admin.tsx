@@ -26,6 +26,20 @@ import {
 } from "lucide-react";
 import type { AgentEvaluation, PromptVersion } from "@shared/schema";
 
+interface EvaluationData {
+  score: number;
+  qualityMetrics?: {
+    accuracy: number;
+    completeness: number;
+    relevance: number;
+    clarity: number;
+  };
+  strengths?: string[];
+  weaknesses?: string[];
+  suggestions?: string[];
+  promptImprovements?: string;
+}
+
 interface EvaluationSummary {
   agentName: string;
   averageScore: number;
@@ -73,7 +87,7 @@ export default function Admin() {
   // Fetch evaluations for selected agent
   const { data: evaluations, isLoading: evaluationsLoading } = useQuery<AgentEvaluation[]>({
     queryKey: ['/api/admin/evaluations', selectedAgent],
-    queryFn: () => apiRequest(`/api/admin/evaluations?agentName=${selectedAgent}`),
+    queryFn: () => apiRequest('GET', `/api/admin/evaluations?agentName=${selectedAgent}`).then(res => res.json()),
   });
 
   // Fetch prompt versions for selected agent
@@ -92,10 +106,7 @@ export default function Admin() {
       prompt: string;
       changeReason: string;
     }) => {
-      return apiRequest('/api/admin/prompt-versions', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return apiRequest('POST', '/api/admin/prompt-versions', data);
     },
     onSuccess: () => {
       toast({
@@ -119,10 +130,7 @@ export default function Admin() {
   // Test evaluation mutation
   const testEvaluationMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/admin/test-evaluation', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      return apiRequest('POST', '/api/admin/test-evaluation', {});
     },
     onSuccess: () => {
       toast({
@@ -152,16 +160,25 @@ export default function Admin() {
       };
     }
 
-    const scores = evals.map(e => e.evaluation.score);
+    const scores = evals.map(e => {
+      const evalData = e.evaluation as EvaluationData;
+      return evalData?.score || 0;
+    });
     const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
     // Collect all strengths and weaknesses
-    const allStrengths = evals.flatMap(e => e.evaluation.strengths || []);
-    const allWeaknesses = evals.flatMap(e => e.evaluation.weaknesses || []);
+    const allStrengths = evals.flatMap(e => {
+      const evalData = e.evaluation as EvaluationData;
+      return evalData?.strengths || [];
+    });
+    const allWeaknesses = evals.flatMap(e => {
+      const evalData = e.evaluation as EvaluationData;
+      return evalData?.weaknesses || [];
+    });
 
     // Find common patterns (simplified)
-    const commonStrengths = [...new Set(allStrengths)].slice(0, 3);
-    const commonWeaknesses = [...new Set(allWeaknesses)].slice(0, 3);
+    const commonStrengths = Array.from(new Set(allStrengths)).slice(0, 3);
+    const commonWeaknesses = Array.from(new Set(allWeaknesses)).slice(0, 3);
 
     // Calculate trend (simplified - compare recent vs older)
     const recentScores = scores.slice(-5);
@@ -344,9 +361,9 @@ export default function Admin() {
                         Evaluation #{evaluation.id}
                       </CardTitle>
                       <div className="flex items-center gap-2">
-                        <Badge>{evaluation.evaluation.score}/100</Badge>
+                        <Badge>{(evaluation.evaluation as EvaluationData).score}/100</Badge>
                         <span className="text-sm text-gray-500">
-                          {new Date(evaluation.createdAt).toLocaleDateString()}
+                          {evaluation.createdAt ? new Date(evaluation.createdAt).toLocaleDateString() : 'N/A'}
                         </span>
                       </div>
                     </div>
@@ -355,41 +372,41 @@ export default function Admin() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Accuracy</p>
-                        <p className="font-medium">{evaluation.evaluation.qualityMetrics?.accuracy || 0}%</p>
+                        <p className="font-medium">{(evaluation.evaluation as EvaluationData).qualityMetrics?.accuracy || 0}%</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Completeness</p>
-                        <p className="font-medium">{evaluation.evaluation.qualityMetrics?.completeness || 0}%</p>
+                        <p className="font-medium">{(evaluation.evaluation as EvaluationData).qualityMetrics?.completeness || 0}%</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Relevance</p>
-                        <p className="font-medium">{evaluation.evaluation.qualityMetrics?.relevance || 0}%</p>
+                        <p className="font-medium">{(evaluation.evaluation as EvaluationData).qualityMetrics?.relevance || 0}%</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Clarity</p>
-                        <p className="font-medium">{evaluation.evaluation.qualityMetrics?.clarity || 0}%</p>
+                        <p className="font-medium">{(evaluation.evaluation as EvaluationData).qualityMetrics?.clarity || 0}%</p>
                       </div>
                     </div>
 
-                    {evaluation.evaluation.suggestions && evaluation.evaluation.suggestions.length > 0 && (
+                    {(evaluation.evaluation as EvaluationData).suggestions && (evaluation.evaluation as EvaluationData).suggestions!.length > 0 && (
                       <div className="mt-4">
                         <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
                           <AlertCircle className="h-4 w-4" />
                           Suggestions for Improvement
                         </h4>
                         <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                          {evaluation.evaluation.suggestions.slice(0, 3).map((suggestion, sIdx) => (
+                          {(evaluation.evaluation as EvaluationData).suggestions!.slice(0, 3).map((suggestion: string, sIdx: number) => (
                             <li key={sIdx}>• {suggestion}</li>
                           ))}
                         </ul>
                       </div>
                     )}
 
-                    {evaluation.evaluation.promptImprovements && (
+                    {(evaluation.evaluation as EvaluationData).promptImprovements && (
                       <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                         <p className="text-sm font-medium mb-1">Suggested Prompt Improvement:</p>
                         <p className="text-sm text-gray-700 dark:text-gray-300">
-                          {evaluation.evaluation.promptImprovements}
+                          {(evaluation.evaluation as EvaluationData).promptImprovements}
                         </p>
                       </div>
                     )}
@@ -506,7 +523,7 @@ export default function Admin() {
                             )}
                           </div>
                           <span className="text-sm text-gray-500">
-                            {new Date(version.createdAt).toLocaleDateString()}
+                            {version.createdAt ? new Date(version.createdAt).toLocaleDateString() : 'N/A'}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">

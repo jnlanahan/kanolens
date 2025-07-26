@@ -110,34 +110,34 @@ export default function ChatMessage({ message, isTyping = false }: ChatMessagePr
           </div>
           
           {/* Progress indicator for AI messages */}
-          {!isUser && message.metadata && 'progress' in message.metadata && message.metadata.progress !== undefined && (
+          {(!isUser && message.metadata && typeof message.metadata === 'object' && 'progress' in message.metadata && typeof message.metadata.progress === 'number') ? (
             <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <div className="flex items-center justify-between text-xs text-blue-700 dark:text-blue-300 mb-1">
                 <span>Researching competitive features...</span>
-                <span>{message.metadata.progress}%</span>
+                <span>{typeof message.metadata === 'object' && 'progress' in message.metadata && typeof message.metadata.progress === 'number' ? message.metadata.progress : 0}%</span>
               </div>
-              <Progress value={message.metadata.progress} className="h-1" />
+              <Progress value={typeof message.metadata === 'object' && 'progress' in message.metadata && typeof message.metadata.progress === 'number' ? message.metadata.progress : 0} className="h-1" />
             </div>
-          )}
+          ) : null}
           
           {/* Document upload indicator */}
-          {message.metadata && 'uploadedFiles' in message.metadata && message.metadata.uploadedFiles && (
+          {(message.metadata && typeof message.metadata === 'object' && 'uploadedFiles' in message.metadata && Array.isArray(message.metadata.uploadedFiles)) ? (
             <div className="mt-2 space-y-1">
-              {message.metadata.uploadedFiles.map((file: string, index: number) => (
+              {Array.isArray(message.metadata.uploadedFiles) ? message.metadata.uploadedFiles.map((file: string, index: number) => (
                 <Badge key={index} variant="outline" className="text-xs">
                   📄 {file}
                 </Badge>
-              ))}
+              )) : null}
             </div>
-          )}
+          ) : null}
         </Card>
         
         {/* Only show timestamp if message has a valid createdAt */}
         {message.createdAt && (
           <div className="flex items-center justify-between mt-1 ml-3 text-xs text-gray-500 dark:text-gray-400">
-            {message.metadata && 'step' in message.metadata && message.metadata.step && (
-              <span>{message.metadata.step}</span>
-            )}
+            {(message.metadata && typeof message.metadata === 'object' && 'step' in message.metadata && message.metadata.step) ? (
+              <span>{typeof message.metadata === 'object' && message.metadata && 'step' in message.metadata ? String(message.metadata.step) : ''}</span>
+            ) : null}
             <div className="flex items-center space-x-1">
               <Clock className="h-3 w-3" />
               <span>{new Date(message.createdAt).toLocaleTimeString()}</span>
@@ -146,7 +146,7 @@ export default function ChatMessage({ message, isTyping = false }: ChatMessagePr
         )}
         
         {/* Add feedback buttons for assistant messages */}
-        {!isUser && !isSystem && message.id !== "typing" && (
+        {!isUser && !isSystem && String(message.id) !== "typing" && message.id !== 0 && (
           <div className="mt-2 ml-3">
             <FeedbackButton
               sessionId={message.sessionId}

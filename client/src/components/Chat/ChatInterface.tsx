@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import AnalysisForm, { type AnalysisFormData } from "./AnalysisForm";
 import ConfirmationPanel from "./ConfirmationPanel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,31 +38,6 @@ export default function ChatInterface({
     scrollToBottom();
   }, [messages]);
 
-  const handleFormSubmit = (formData: AnalysisFormData) => {
-    // Create a comprehensive message from all form fields
-    const parts = [];
-
-    if (formData.description.trim()) {
-      parts.push(`Analysis Request: ${formData.description.trim()}`);
-    }
-
-    if (formData.products.trim()) {
-      parts.push(`Products to Compare: ${formData.products.trim()}`);
-    }
-
-    if (formData.targetCustomers.trim()) {
-      parts.push(`Target Customers: ${formData.targetCustomers.trim()}`);
-    }
-
-    if (formData.features.trim()) {
-      parts.push(`Features/Benefits to Analyze: ${formData.features.trim()}`);
-    }
-
-    if (parts.length > 0) {
-      const message = parts.join("\n\n");
-      onSendMessage(message);
-    }
-  };
 
   console.log("ChatInterface received messages:", messages);
   console.log("Valid messages count:", Array.isArray(messages) ? messages.filter(msg => msg && typeof msg === 'object' && 'content' in msg).length : 0);
@@ -73,14 +47,18 @@ export default function ChatInterface({
     typeof msg === 'object' && 
     'content' in msg &&
     !msg.content.startsWith('Table Edit Request:') && // Filter out table edit requests
-    !(msg.metadata?.isTableEditResponse) // Filter out table edit responses
+    !(msg.metadata && typeof msg.metadata === 'object' && 'isTableEditResponse' in msg.metadata) // Filter out table edit responses
   ) : [];
 
   // Check if we should show confirmation panel
   const lastMessage = validMessages[validMessages.length - 1];
   const showConfirmationPanel = lastMessage?.role === 'assistant' && 
-                                lastMessage?.metadata?.step === 'confirmation' &&
-                                lastMessage?.metadata?.confirmationData;
+                                lastMessage?.metadata &&
+                                typeof lastMessage.metadata === 'object' &&
+                                'step' in lastMessage.metadata &&
+                                lastMessage.metadata.step === 'confirmation' &&
+                                'confirmationData' in lastMessage.metadata &&
+                                lastMessage.metadata.confirmationData;
 
   const handleConfirmAnalysis = () => {
     onSendMessage("Yes, looks good! Proceed with the analysis.");
@@ -105,7 +83,7 @@ export default function ChatInterface({
     );
   }
 
-  // Show form if no messages exist yet
+  // Show empty state if no messages exist yet
   if (validMessages.length === 0) {
     return (
       <div className="flex flex-col h-full">
@@ -114,10 +92,10 @@ export default function ChatInterface({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-mono-heading text-lg font-semibold text-gray-900 dark:text-white">
-                Analysis Setup
+                Analysis Chat
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Configure your competitive analysis parameters
+                Start your competitive analysis conversation
               </p>
             </div>
             <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
@@ -126,12 +104,16 @@ export default function ChatInterface({
           </div>
         </div>
 
-        {/* Scrollable Form Area */}
-        <div className="flex-1 overflow-y-auto p-2 pt-1">
-          <div className="flex justify-center">
-            <AnalysisForm onSubmit={handleFormSubmit} disabled={isLoading} />
-          </div>
+        {/* Empty State */}
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="p-6 text-center max-w-md">
+            <div className="text-gray-500 dark:text-gray-400">
+              <p className="mb-4">Start a conversation to begin your competitive analysis.</p>
+              <p className="text-sm">Use the input below to describe what you'd like to analyze.</p>
+            </div>
+          </Card>
         </div>
+        <ChatInput onSendMessage={onSendMessage} disabled={isLoading} />
       </div>
     );
   }
@@ -160,7 +142,7 @@ export default function ChatInterface({
         {/* Confirmation Panel */}
         <div className="flex-1 overflow-y-auto p-6">
           <ConfirmationPanel
-            data={lastMessage.metadata.confirmationData}
+            data={lastMessage?.metadata && typeof lastMessage.metadata === 'object' && 'confirmationData' in lastMessage.metadata ? lastMessage.metadata.confirmationData as any : null}
             onConfirm={handleConfirmAnalysis}
             onRequestChanges={handleRequestChanges}
             isLoading={isLoading}
@@ -209,11 +191,12 @@ export default function ChatInterface({
           <div className="animate-slide-up">
             <ChatMessage
               message={{
-                id: "typing",
+                id: 0,
                 role: "assistant",
                 content: "",
                 createdAt: new Date(),
                 sessionId: 0,
+                metadata: null,
               }}
               isTyping={true}
             />

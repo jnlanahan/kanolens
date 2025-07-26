@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated, setupLoginRoute } from "./simpleAuth";
+import { jwtAuthMiddleware } from "./middleware/jwt-auth";
+import { setupAuthRoutes } from "./routes/auth";
 import { 
   processChatMessage, 
   conductCompetitiveResearch, 
@@ -21,55 +22,14 @@ import { webSocketService } from "./websocket";
 import { langSmithService } from "./langsmith";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-  
-  // Setup login routes for development
-  setupLoginRoute(app);
+  // JWT authentication is handled per-route by jwtAuthMiddleware
 
-  // Ensure dev user exists in development mode
-  if (process.env.NODE_ENV === 'development') {
-    try {
-      await storage.upsertUser({
-        id: 'dev-user-123',
-        email: 'dev@example.com',
-        firstName: 'Development',
-        lastName: 'User'
-      });
-      console.log('[Routes] Development user created/updated');
-    } catch (error) {
-      console.error('[Routes] Failed to create dev user:', error);
-    }
-  }
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      
-      // For development mode, return mock user
-      if (userId === 'dev-user-123') {
-        return res.json({
-          id: 'dev-user-123',
-          email: 'dev@example.com',
-          firstName: 'Development',
-          lastName: 'User',
-          profileImageUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-      }
-      
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Setup auth routes first
+  console.log('[Routes] Setting up authentication routes...');
+  setupAuthRoutes(app);
 
   // OpenAI connection test
-  app.get('/api/openai/test', isAuthenticated, async (req, res) => {
+  app.get('/api/openai/test', jwtAuthMiddleware, async (req, res) => {
     try {
       const isConnected = await testOpenAIConnection();
       res.json({ 
@@ -87,10 +47,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analysis session routes
-  app.post('/api/analysis/sessions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log("[Routes] Creating analysis session...");
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       console.log("[Routes] User ID:", userId);
       console.log("[Routes] Request body:", req.body);
       
@@ -113,9 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analysis/sessions', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analysis/sessions', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const sessions = await storage.getUserAnalysisSessions(userId);
       res.json(sessions);
     } catch (error) {
@@ -124,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analysis/sessions/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analysis/sessions/:id', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
@@ -134,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns this session
-      if (session.userId !== req.user.claims.sub) {
+      if (session.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -145,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/analysis/sessions/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/analysis/sessions/:id', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
@@ -155,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns this session
-      if (session.userId !== req.user.claims.sub) {
+      if (session.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -172,7 +132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/analysis/sessions/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/analysis/sessions/:id', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
@@ -182,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns this session
-      if (session.userId !== req.user.claims.sub) {
+      if (session.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -194,9 +154,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/analysis/sessions', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/analysis/sessions', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const userSessions = await storage.getUserAnalysisSessions(userId);
       
       // Delete all sessions for this user
@@ -212,11 +172,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Chat message routes
-  app.post('/api/analysis/sessions/:id/messages', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/messages', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log("[Routes] Processing chat message...");
       const sessionId = parseInt(req.params.id);
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       console.log(`[Routes] Session ID: ${sessionId}, User ID: ${userId}`);
       console.log(`[Routes] Message content: ${req.body.content}`);
@@ -335,12 +295,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analysis/sessions/:id/messages', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analysis/sessions/:id/messages', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -353,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test endpoint for multi-agent analysis
-  app.post('/api/test/multi-agent', isAuthenticated, async (req, res) => {
+  app.post('/api/test/multi-agent', jwtAuthMiddleware, async (req, res) => {
     try {
       console.log("[Test] Starting multi-agent test");
       const { products, features, targetCustomer } = req.body;
@@ -392,12 +352,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Research and table generation routes
-  app.post('/api/analysis/sessions/:id/research', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/research', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -418,12 +378,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/analysis/sessions/:id/generate-table', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/generate-table', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -445,12 +405,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document upload routes
-  app.post('/api/analysis/sessions/:id/documents', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/documents', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -471,9 +431,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // User feedback routes
-  app.post('/api/feedback', isAuthenticated, async (req: any, res) => {
+  app.post('/api/feedback', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { sessionId, messageId, feedbackType, feedbackText, context } = req.body;
       
       // Validate feedback type
@@ -501,12 +461,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/feedback/session/:sessionId', isAuthenticated, async (req: any, res) => {
+  app.get('/api/feedback/session/:sessionId', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.sessionId);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: 'Session not found' });
       }
       
@@ -519,10 +479,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Admin routes (protected)
-  app.get('/api/admin/evaluations', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/evaluations', jwtAuthMiddleware, async (req: any, res) => {
     try {
       // Check if user is admin (you might want to implement proper admin check)
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       // For now, let's allow all authenticated users to see evaluations for demo purposes
       // In production, you'd check against adminUsers table
       
@@ -545,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/admin/prompt-versions/:agentName', isAuthenticated, async (req: any, res) => {
+  app.get('/api/admin/prompt-versions/:agentName', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const agentName = req.params.agentName;
       const versions = await storage.getPromptVersionHistory(agentName);
@@ -561,9 +521,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/admin/prompt-versions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/prompt-versions', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { agentName, version, prompt, changeReason } = req.body;
       
       // Create new prompt version
@@ -587,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test endpoint to manually trigger an evaluation (for development/testing)
-  app.post('/api/admin/test-evaluation', isAuthenticated, async (req: any, res) => {
+  app.post('/api/admin/test-evaluation', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const { evaluatorAgent } = await import('./agents/evaluator');
       
@@ -639,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint for generating suggestions (simplified workflow)
-  app.post('/api/chat/suggestions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/chat/suggestions', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const { orchestratorAgent } = await import('./agents/orchestrator');
       
@@ -664,7 +624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API endpoint for validating manual inputs (simplified workflow)
-  app.post('/api/chat/validate-inputs', isAuthenticated, async (req: any, res) => {
+  app.post('/api/chat/validate-inputs', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const { orchestratorAgent } = await import('./agents/orchestrator');
       
@@ -691,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // WebSocket debug endpoint
-  app.get('/api/debug/websocket-status', isAuthenticated, async (req: any, res) => {
+  app.get('/api/debug/websocket-status', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const status = webSocketService.getConnectionStatus();
       res.json(status);
@@ -702,7 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // LangSmith test endpoint
-  app.post('/api/debug/test-langsmith', isAuthenticated, async (req: any, res) => {
+  app.post('/api/debug/test-langsmith', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log('[LangSmith Test] Starting test trace...');
       
@@ -775,12 +735,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export and sharing endpoints
-  app.post('/api/analysis/sessions/:id/export/pdf', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/export/pdf', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -801,12 +761,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/analysis/sessions/:id/export/powerpoint', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/export/powerpoint', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -827,12 +787,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/analysis/sessions/:id/share', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/share', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
 
@@ -874,12 +834,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Force regeneration of existing session with fresh analysis
-  app.post('/api/analysis/sessions/:id/regenerate', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/regenerate', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
       
-      if (!session || session.userId !== req.user.claims.sub) {
+      if (!session || session.userId !== req.user.id) {
         return res.status(404).json({ message: "Session not found" });
       }
       
@@ -987,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // New linear flow API endpoints
-  app.post('/api/analysis/suggestions', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/suggestions', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const { orchestratorAgent } = await import('./agents/orchestrator');
       
@@ -1010,9 +970,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/analysis/start', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/start', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       
       // Create a new analysis session
       const session = await storage.createAnalysisSession({
@@ -1154,7 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/analysis/sessions/:id/progress', isAuthenticated, async (req: any, res) => {
+  app.get('/api/analysis/sessions/:id/progress', jwtAuthMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
       const session = await storage.getAnalysisSession(sessionId);
@@ -1163,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Session not found" });
       }
       
-      if (session.userId !== req.user.claims.sub) {
+      if (session.userId !== req.user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
 
@@ -1221,9 +1181,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Debug endpoint for agent flow analysis
-  app.post('/api/analysis/debug', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/debug', jwtAuthMiddleware, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { products, targetCustomer } = req.body;
 
       if (!products || !targetCustomer) {
@@ -1341,7 +1301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comprehensive agent testing endpoint
-  app.post('/api/analysis/test', isAuthenticated, async (req: any, res) => {
+  app.post('/api/analysis/test', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log('[Test] Starting comprehensive agent testing...');
       
@@ -1457,7 +1417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comprehensive Perplexity API connection test
-  app.post('/api/debug/test-perplexity', isAuthenticated, async (req: any, res) => {
+  app.post('/api/debug/test-perplexity', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log('[Debug] Testing Perplexity API connection and configuration...');
       
@@ -1585,7 +1545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Simple Perplexity test endpoint - bypass all agent complexity (legacy endpoint)
-  app.post('/api/perplexity-simple', isAuthenticated, async (req: any, res) => {
+  app.post('/api/perplexity-simple', jwtAuthMiddleware, async (req: any, res) => {
     try {
       console.log('[Perplexity-Simple] Testing direct Perplexity API call...');
       
@@ -1666,7 +1626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add debug endpoint to test orchestrator
-  app.post('/api/debug/test-orchestrator', isAuthenticated, async (req, res) => {
+  app.post('/api/debug/test-orchestrator', jwtAuthMiddleware, async (req, res) => {
     try {
       console.log('[Debug] Testing orchestrator directly...');
       

@@ -3,7 +3,7 @@
 
 import { Express, Request, Response } from 'express';
 import { performance } from 'perf_hooks';
-import { DatabaseManager } from '../storage';
+import { storage } from '../storage';
 
 // Safely import webSocketService for testing environments
 function getWebSocketService() {
@@ -95,7 +95,7 @@ export function setupHealthRoutes(app: Express): void {
       // Database health check
       const dbStart = performance.now();
       try {
-        const dbManager = new DatabaseManager();
+        const dbManager = storage;
         await dbManager.getUserById('health-check-test');
         
         result.checks.database = {
@@ -280,8 +280,8 @@ export function setupHealthRoutes(app: Express): void {
   app.get('/api/health/ready', async (req: Request, res: Response) => {
     try {
       // Quick checks for readiness
-      const dbManager = new DatabaseManager();
-      await dbManager.getUserById('readiness-check');
+      const dbManager = storage;
+      await dbManager.getUser('readiness-check');
       
       res.status(200).json({
         status: 'ready',
@@ -319,7 +319,7 @@ export function setupHealthRoutes(app: Express): void {
 
       // Database startup check
       try {
-        const dbManager = new DatabaseManager();
+        const dbManager = storage;
         await dbManager.getUserById('startup-check');
         startupChecks.database = true;
       } catch (error) {
