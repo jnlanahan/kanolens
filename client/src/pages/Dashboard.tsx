@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ export default function Dashboard() {
     setLocation(`/analysis/${sessionId}/results`);
   };
 
-  const handleSelectSession = (sessionId: number, checked: boolean) => {
+  const handleSelectSession = useCallback((sessionId: number, checked: boolean) => {
     const newSelected = new Set(selectedSessions);
     if (checked) {
       newSelected.add(sessionId);
@@ -94,17 +94,17 @@ export default function Dashboard() {
       newSelected.delete(sessionId);
     }
     setSelectedSessions(newSelected);
-  };
+  }, [selectedSessions]);
 
-  const handleSelectAll = () => {
+  const handleSelectAll = useCallback(() => {
     if (selectedSessions.size === sessions?.length) {
       setSelectedSessions(new Set());
     } else {
       setSelectedSessions(new Set(sessions?.map(s => s.id) || []));
     }
-  };
+  }, [selectedSessions, sessions]);
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = useCallback(() => {
     if (selectedSessions.size === 0) {
       toast({
         title: "No Sessions Selected",
@@ -114,7 +114,7 @@ export default function Dashboard() {
       return;
     }
     setShowDeleteDialog(true);
-  };
+  }, [selectedSessions, toast]);
 
   const confirmDelete = () => {
     deleteSessionsMutation.mutate(Array.from(selectedSessions));
@@ -142,7 +142,7 @@ export default function Dashboard() {
     );
   };
 
-  const headerActions = (
+  const headerActions = useMemo(() => (
     <>
       <Button 
         variant="outline" 
@@ -193,7 +193,7 @@ export default function Dashboard() {
         Sign Out
       </Button>
     </>
-  );
+  ), [selectedSessions, handleDeleteSelected, deleteSessionsMutation.isPending, setLocation]);
 
   return (
     <PageLayout variant="dashboard">
