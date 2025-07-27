@@ -146,75 +146,19 @@ export function setupAnalysisRoutes(app: Express): void {
       };
       
       const suggestions = await orchestratorAgent.processSuggestions(input);
-      res.json(suggestions);
+      
+      res.json({
+        productInterpretation: suggestions.productInterpretation,
+        suggestedProducts: suggestions.suggestedProducts,
+        suggestedFeatures: suggestions.suggestedFeatures
+      });
     } catch (error) {
       console.error("Suggestions error:", error);
       res.status(500).json({ message: "Failed to generate suggestions" });
     }
   });
 
-  // Start new analysis (linear flow)
-  app.post('/api/analysis/start', jwtAuthMiddleware, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      
-      // Create a new analysis session
-      const session = await storage.createAnalysisSession({
-        userId,
-        title: `Analysis ${new Date().toLocaleDateString()}`,
-        status: ANALYSIS_STATUS.IN_PROGRESS,
-        currentStep: ANALYSIS_STEPS.DISCOVERY,
-        products: req.body.products || [],
-        features: req.body.features || [],
-        targetCustomer: req.body.targetCustomer || 'Product Managers',
-        userProduct: req.body.userProduct || 'Your Product'
-      });
-
-      // Start analysis using orchestrator
-      const progressCallback = async (update: any) => {
-        console.log(`[Analysis] Progress update for session ${session.id}:`, update);
-        // Update session with progress
-        await storage.updateAnalysisSession(session.id, {
-          currentStep: update.step,
-          status: 'in_progress'
-        });
-      };
-
-      const result = await orchestratorAgent.coordinateFullAnalysis(
-        session.products,
-        session.features,
-        session.targetCustomer,
-        progressCallback,
-        session.id
-      );
-
-      if (result.success) {
-        // Update session with results
-        await storage.updateAnalysisSession(session.id, {
-          tableData: result.data.kanoTableData,
-          researchData: result.data.researchData,
-          validationResults: result.data.validationResults,
-          currentStep: ANALYSIS_STEPS.TABLE_CREATION,
-          status: ANALYSIS_STATUS.COMPLETED,
-        });
-
-        res.json({
-          session,
-          analysis: result.data,
-          success: true
-        });
-      } else {
-        res.status(500).json({
-          session,
-          error: result.error,
-          success: false
-        });
-      }
-    } catch (error) {
-      console.error("Start analysis error:", error);
-      res.status(500).json({ message: "Failed to start analysis" });
-    }
-  });
+  // Note: /api/analysis/start endpoint moved to routes.ts for better validation
 
   // Debug analysis endpoint
   app.post('/api/analysis/debug', jwtAuthMiddleware, async (req: any, res) => {

@@ -8,7 +8,22 @@ import KanoTable from "@/components/KanoTable/KanoTable";
 import PageLayout from "@/components/Layout/PageLayout";
 import StandardHeader from "@/components/Layout/StandardHeader";
 import { ArrowLeft, Download, Share, BarChart3, Users, Calendar, FileText, ChevronDown, FileSpreadsheet } from "lucide-react";
-import type { AnalysisSession } from "@shared/schema";
+import type { AnalysisSession, KanoTableData } from "@shared/schema";
+
+// Type guard to check if tableData is valid KanoTableData
+function isValidKanoTableData(data: unknown): data is KanoTableData {
+  return (
+    data !== null &&
+    typeof data === 'object' &&
+    'products' in data &&
+    'features' in data &&
+    'ratings' in data &&
+    'justifications' in data &&
+    'sources' in data &&
+    Array.isArray((data as any).products) &&
+    Array.isArray((data as any).features)
+  );
+}
 
 export default function Results() {
   const { sessionId } = useParams();
@@ -32,7 +47,7 @@ export default function Results() {
   }, [showExportMenu]);
 
   // Fetch session details
-  const { data: session, isLoading, error } = useQuery({
+  const { data: session, isLoading, error } = useQuery<AnalysisSession>({
     queryKey: [`/api/analysis/sessions/${sessionId}`],
     enabled: !!sessionId,
     retry: false,
@@ -78,7 +93,7 @@ export default function Results() {
     setShowExportMenu(false);
     try {
       // Phase 4: Call KanoTable Excel export functionality
-      if (session?.tableData) {
+      if (session?.tableData && isValidKanoTableData(session.tableData)) {
         const { exportToExcel } = await import('@/components/KanoTable/KanoTable');
         await exportToExcel(session.tableData, session.title || 'Analysis');
       } else {
@@ -92,8 +107,9 @@ export default function Results() {
 
 
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return "Unknown date";
+    return new Date(date).toLocaleDateString("en-US", {
       month: "long",
       day: "numeric",
       year: "numeric",
@@ -174,13 +190,10 @@ export default function Results() {
     );
   }
 
-  const hasTableData = session.tableData && 
-    session.tableData.products && 
-    session.tableData.features && 
-    Array.isArray(session.tableData.products) &&
-    Array.isArray(session.tableData.features) &&
-    session.tableData.products.length > 0 &&
-    session.tableData.features.length > 0;
+  const validTableData = session?.tableData && isValidKanoTableData(session.tableData) ? session.tableData : null;
+  const hasTableData = validTableData && 
+    validTableData.products.length > 0 &&
+    validTableData.features.length > 0;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
@@ -259,16 +272,16 @@ export default function Results() {
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-6 text-sm">
               {/* Products */}
-              {session.products && Array.isArray(session.products) && session.products.length > 0 && (
+              {Array.isArray(session.products) && session.products.length > 0 ? (
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-blue-600" />
                   <span className="font-medium text-gray-900 dark:text-white">Products:</span>
                   <span className="text-gray-600 dark:text-gray-400">
-                    {session.products.slice(0, 3).join(', ')}
-                    {session.products.length > 3 && ` +${session.products.length - 3} more`}
+                    {(session.products as string[]).slice(0, 3).join(', ')}
+                    {(session.products as string[]).length > 3 && ` +${(session.products as string[]).length - 3} more`}
                   </span>
                 </div>
-              )}
+              ) : null}
 
               {/* Target Customer */}
               {session.targetCustomer && (
@@ -285,7 +298,7 @@ export default function Results() {
                   <Calendar className="w-4 h-4 text-purple-600" />
                   <span className="font-medium text-gray-900 dark:text-white">Analysis:</span>
                   <span className="text-gray-600 dark:text-gray-400">
-                    {session.tableData.products.length} products, {session.tableData.features.length} features
+                    {validTableData?.products.length} products, {validTableData?.features.length} features
                   </span>
                 </div>
               )}
@@ -303,7 +316,7 @@ export default function Results() {
           {hasTableData ? (
             <div className="min-h-[600px] max-h-[85vh] overflow-auto">
               <KanoTable
-                tableData={session.tableData}
+                tableData={validTableData}
                 isLoading={false}
                 sessionId={sessionId ? parseInt(sessionId) : null}
                 onEditTable={handleEditTable}

@@ -68,7 +68,11 @@
       "Bash(true)",
       "Bash(timeout 2 tail -f debug-server.log)",
       "Bash(PORT=3007 npm run dev)",
-      "Bash(del nul)"
+      "Bash(del nul)",
+      "Bash(echo $PORT)",
+      "Bash(timeout:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git pull:*)"
     ],
     "deny": []
   }

@@ -29,7 +29,8 @@ This is a comprehensive enhancement project for an AI-powered analysis applicati
 - Validate that each agent is performing its intended function effectively
 - Adjust prompts based on testing results
 - Update Agent Architecture diagram and documentation to reflect optimizations
-- Ensure outputs align with quality standards described in the reference file: `S:\Nicks Old Desktop\Side Projects`
+- Ensure outputs align with quality standards described in the reference file: 
+[text](<../../../Nicks Old Desktop/Side Projects/Kano Model Instructions.pdf>)
 
 **Quality Standards**:
 - High-quality, coherent outputs

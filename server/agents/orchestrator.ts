@@ -51,19 +51,37 @@ export interface ProgressUpdate {
 }
 
 export class OrchestratorAgent {
-  private systemPrompt = `You are the Orchestrator agent for KanoLens, an AI-powered competitive analysis platform that uses the Kano Model framework. You receive structured form data from users and coordinate the multi-agent analysis process.
+  private systemPrompt = `You are the Orchestrator agent for KanoLens, an AI-powered competitive analysis platform using the Kano Model framework. You coordinate a multi-agent analysis system with 5 specialized agents working in documented sequence.
 
-Key responsibilities:
-1. Parse and clean form input (remove "etc", "more", "others")
-2. Validate products are real and comparable
-3. Generate suggestions for additional products and features
-4. Coordinate other agents during full analysis
-5. Track progress and update user
+INTELLIGENCE REQUIREMENTS:
+You must understand user intent, not just literal input. When users type ambiguous words, interpret what they actually mean:
+- "more", "others", "etc.", "additional" = user wants you to suggest more items
+- Abbreviations like "MS Teams" = standardize to "Microsoft Teams"  
+- Categories like "CRM tools" = understand they want specific CRM products
+- Misspellings = intelligently correct based on context
+- Non-specific words = interpret based on surrounding context
 
-When suggesting products, ensure they are:
-- Real, existing products in the market
-- Direct competitors serving the same target customer
-- Relevant to the analysis context`;
+CONTEXTUAL AWARENESS:
+Always use ALL available context to make suggestions:
+- Description: Primary source for understanding business domain and priorities
+- Target Customers: Determines what features matter most
+- Existing Products: Shows competitive landscape and market segment
+- User Role: Influences what features are most relevant
+- Industry patterns: Apply domain knowledge
+
+SUGGESTION QUALITY:
+- Products must be real, existing, and directly competitive
+- Features must be specific (not generic categories)
+- Prioritize suggestions based on relevance to provided context
+- Balance market leaders with emerging competitors
+- Consider Kano model distribution in feature suggestions
+
+WORKFLOW COORDINATION:
+- Researcher: Gathers product data and features
+- Validator: Categorizes features into Kano model (Must-Have, Performance, Delighter)
+- Analyst: Generates strategic insights and recommendations
+- Evaluator: Assesses agent performance and accuracy
+- Ensure Kano model rule compliance: 100% of user-approved features (not original), max 50 in final table`;
 
   async processSuggestions(input: OrchestratorInput): Promise<SuggestionResponse> {
     console.log("[Orchestrator] Processing suggestions for form data");
@@ -72,24 +90,59 @@ When suggesting products, ensure they are:
     const cleanedProducts = this.cleanProductList(input.formData!.products);
     
     // Build the prompt for suggestions
-    const prompt = `User submitted a competitive analysis request:
-Description: ${input.formData!.description || 'Not provided'}
-Products: ${cleanedProducts.join(', ')}
-Target Customers: ${input.formData!.targetCustomers}
-Initial Features: ${input.formData!.features || 'Not provided'}
+    const prompt = `You are helping create a competitive analysis. Analyze this user input with intelligence and context awareness:
 
-Your task:
-1. Identify any product name corrections needed (typos, variations)
-2. Suggest 3-5 additional competitive products
-3. Generate 8-12 key features/benefits to analyze
-4. Ensure mix of must-have, performance, and delighter features
+USER INPUT ANALYSIS:
+Description: "${input.formData!.description || 'Not provided'}"
+Target Customers: "${input.formData!.targetCustomers}"
+Products Listed: "${cleanedProducts.join(', ')}"
+Features Listed: "${input.formData!.features || 'Not provided'}"
 
-Return in this exact format:
-PRODUCT_INTERPRETATION: [Any corrections made]
+INTELLIGENT INPUT INTERPRETATION:
+1. UNDERSTAND USER INTENT:
+   - If user wrote "more", "others", "etc.", "additional" - they want you to suggest more items
+   - If they listed categories (e.g., "CRM tools") - suggest specific products in that category
+   - If they used abbreviations (e.g., "MS Teams", "AWS") - standardize to full names
+   - If they misspelled products - correct them based on context
+   - If they listed non-products - understand what they actually meant
+
+2. PRODUCT NAME STANDARDIZATION:
+   - Expand abbreviations: "MS Teams" → "Microsoft Teams", "AWS" → "Amazon Web Services"
+   - Correct obvious misspellings using context clues
+   - Remove words that aren't products but understand their intent
+   - Standardize corporate naming conventions
+
+3. CONTEXT-DRIVEN SUGGESTIONS:
+   - Use the DESCRIPTION as primary guide for domain and priorities
+   - Adapt suggestions to TARGET CUSTOMERS' specific needs
+   - Consider what the existing PRODUCTS tell you about market segment
+   - Build on existing FEATURES but don't just duplicate them
+
+4. PRODUCT SUGGESTIONS (3-5 products):
+   - Must be real, existing products currently available
+   - Direct competitors serving the same target customer segment
+   - Mix of established market leaders and emerging players
+   - Highly relevant to the business context described
+   - Consider company size implications from description
+
+5. FEATURE SUGGESTIONS (8-12 features):
+   - Prioritize features mentioned in or implied by description
+   - Focus on capabilities that matter to the target customers
+   - Include competitive differentiators from suggested products
+   - Balance across Kano categories:
+     * Must-Have (core functionality): 40%
+     * Performance (efficiency/effectiveness): 40% 
+     * Delighter (innovative/surprising): 20%
+   - Use specific, clear feature names (not vague categories)
+
+REQUIRED OUTPUT FORMAT:
+PRODUCT_INTERPRETATION: [Explain any corrections, standardizations, or interpretations made]
 SUGGESTED_PRODUCTS:
-- [Product Name] | [Brief reason for inclusion]
+- [Exact Product Name] | [Specific reason based on context and target customer needs]
 SUGGESTED_FEATURES:
-- [Feature name] | [Generic description]`;
+- [Specific Feature Name] | [Brief description of why relevant to this analysis]
+
+Remember: Be intelligent about user input. Don't just take words literally - understand what the user actually wants and provide contextually relevant, high-quality suggestions.`;
 
     const messages: ChatCompletionMessageParam[] = [
       { role: "system", content: this.systemPrompt },
@@ -111,23 +164,48 @@ SUGGESTED_FEATURES:
   async validateManualInput(input: OrchestratorInput): Promise<ValidationResponse> {
     console.log("[Orchestrator] Validating manual input:", input.product);
     
-    const prompt = `A user is manually adding a product to their competitive analysis:
-Product Name: "${input.product}"
-Key Benefit: "${input.benefit || 'Not provided'}"
-Existing Products: ${input.existingData?.products?.join(', ') || 'None'}
+    const prompt = `INTELLIGENT INPUT VALIDATION
+
+USER IS MANUALLY ADDING:
+Product: "${input.product}"
+Benefit: "${input.benefit || 'Not provided'}"
+
+EXISTING ANALYSIS CONTEXT:
+Products: ${input.existingData?.products?.join(', ') || 'None'}
 Target Customer: ${input.existingData?.targetCustomer || 'Not specified'}
+Description: ${input.existingData?.description || 'Not provided'}
 
-Your task:
-1. Validate if this is a real, existing product
-2. Check spelling and suggest corrections if needed
-3. Verify it's a relevant competitor for the analysis
-4. Provide suggestions for improvement if needed
+INTELLIGENT VALIDATION TASKS:
 
-Return in this exact format:
-VALIDATION: [VALID/INVALID]
-CORRECTED_PRODUCT: [Corrected name if needed, or original if valid]
-MESSAGE: [Brief explanation of validation result]
-SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
+1. UNDERSTAND USER INTENT:
+   - Is this a real product name or did they abbreviate/misspell?
+   - Are they referring to a well-known product with a shortened name?
+   - Did they input a category when they meant a specific product?
+
+2. SMART CORRECTIONS:
+   - Expand abbreviations: "Teams" → "Microsoft Teams", "Sheets" → "Google Sheets"
+   - Fix obvious typos based on context and similar product names
+   - Standardize corporate naming conventions
+   - If they input a category, suggest the most relevant specific product
+
+3. RELEVANCE ANALYSIS:
+   - Does this product compete with the existing products?
+   - Does it serve the same target customer segment?
+   - Is it appropriate for the business context described?
+   - Would it add value to this competitive analysis?
+
+4. INTELLIGENT SUGGESTIONS:
+   - If invalid, suggest similar products that would be relevant
+   - If it's a category, suggest specific products in that category
+   - Consider the competitive landscape already established
+
+OUTPUT FORMAT:
+VALIDATION: [VALID/NEEDS_CORRECTION/INVALID]
+CORRECTED_PRODUCT: [Standardized name, or original if already correct]
+MESSAGE: [Explain your reasoning and any changes made]
+SUGGESTIONS: [If invalid/corrected, provide alternatives that would fit better]
+
+Be intelligent: Don't just check if words exist - understand what the user meant and help them get the best result for their analysis.`;
 
     const messages: ChatCompletionMessageParam[] = [
       { role: "system", content: this.systemPrompt },
@@ -711,12 +789,8 @@ SUGGESTIONS: [Optional suggestions, one per line starting with "-"]`;
   }
 
   private cleanProductList(productsString: string): string[] {
-    const products = productsString.split(',').map(p => p.trim());
-    const filterWords = ['etc', 'more', 'others', 'additional', 'similar'];
-    
-    return products.filter(product => 
-      product && !filterWords.includes(product.toLowerCase())
-    );
+    // Simply split by comma and trim - let the LLM handle intelligent interpretation
+    return productsString.split(',').map(p => p.trim()).filter(p => p.length > 0);
   }
 
   private parseSuggestionResponse(content: string): SuggestionResponse {

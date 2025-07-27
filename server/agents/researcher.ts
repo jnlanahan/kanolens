@@ -260,18 +260,16 @@ DESCRIPTION GUIDELINES:
 - Keep descriptions 1-2 sentences, clear and concise
 - Focus on the actual functionality, not benefits
 
-FEATURE LIMITS:
-- Limit analysis to maximum 50 features in the main table
-- Prioritize features most relevant to the user's context: ${request.products}, ${request.targetCustomer}, ${request.marketCategory || 'general'}
-- Group similar features under broader benefit categories when appropriate
-- If more than 50 features are discovered, select the 50 most relevant and note others for "Additional Features" section
-
-FEATURE PRESERVATION:
-- CRITICAL: Include 100% of features that were agreed upon with the user in the initial conversation
-- Mark any new features discovered during research with "*new based on research not included in original search criteria"
-- Original agreed features MUST appear in the final analysis and take priority in top 50 selection
-- Never drop, replace, or modify originally requested features
-- If original + new features exceed 50, prioritize all original features first
+FEATURE LIMITS & PRIORITY RULES:
+- MAXIMUM 50 features in the final Kano Model table
+- MANDATORY: 100% of user-approved features from initial conversation MUST be included
+- User-approved features take absolute priority in the top 50 selection
+- Never drop, replace, or modify originally user-approved features
+- Mark new research-discovered features with "*new research finding"
+- If user-approved + new features exceed 50, include ALL user-approved features first
+- Fill remaining slots (up to 50 total) with highest-value new research findings
+- Group similar features under broader benefit categories when space is limited
+- Prioritize features most relevant to: ${request.products}, ${request.targetCustomer}, ${request.marketCategory || 'general'}
 
 Must-Have Benefits of a Product: Aspects of a Product that customers require and expect in your Product. You cannot avoid adding these, and they should be a top priority if they are not already part of your Product.
 

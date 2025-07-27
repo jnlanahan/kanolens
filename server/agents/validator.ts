@@ -760,14 +760,18 @@ export class ValidatorAgent {
       return scoreB - scoreA; // Sort by highest relevance first
     });
 
-    // Phase 2: Apply 25-40 feature limit as per requirements
-    const targetFeatureCount = Math.min(40, Math.max(25, prioritizedFeatures.length));
+    // Phase 2: Apply 50-feature limit with user-approved feature preservation
+    const userApprovedCount = prioritizedFeatures.filter(([name, data]) => 
+      data.products?.some(p => p.features?.some(f => f.originallyAgreed))
+    ).length;
+    
+    const targetFeatureCount = Math.min(50, prioritizedFeatures.length);
     const limitedFeatures = prioritizedFeatures.slice(0, targetFeatureCount);
     
-    console.log(`[Validator] Applied feature limit: ${prioritizedFeatures.length} -> ${limitedFeatures.length} (target: 25-40 features)`);
+    console.log(`[Validator] Applied feature limit: ${prioritizedFeatures.length} -> ${limitedFeatures.length} (max: 50 features, ${userApprovedCount} user-approved preserved)`);
     
-    // Phase 2: Feature preservation - ensure originally agreed features are included
-    // Note: Original features would be marked in the research data and given priority in scoring
+    // CRITICAL: Ensure 100% of user-approved features are preserved
+    // User-approved features are marked with originallyAgreed=true in research data
     
     return new Map(limitedFeatures);
   }

@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest } from "@/lib/queryClient";
 import { Plus, BarChart3, Calendar, Users, Trash2, CheckSquare, Square, Settings, Network, LogOut } from "lucide-react";
 import PageLayout from "@/components/Layout/PageLayout";
 import StandardHeader from "@/components/Layout/StandardHeader";
@@ -37,36 +38,59 @@ export default function Dashboard() {
   // Delete sessions mutation
   const deleteSessionsMutation = useMutation({
     mutationFn: async (sessionIds: number[]) => {
-      const promises = sessionIds.map(id => 
-        fetch(`/api/analysis/sessions/${id}`, { method: 'DELETE' })
-      );
-      const responses = await Promise.all(promises);
+      const results = [];
+      let successCount = 0;
+      let lastError = null;
       
-      // Check if all deletions were successful
-      const failedDeletions = responses.filter(r => !r.ok);
-      if (failedDeletions.length > 0) {
-        throw new Error(`Failed to delete ${failedDeletions.length} sessions`);
+      // Delete sessions one by one to handle individual failures
+      for (const id of sessionIds) {
+        try {
+          const response = await apiRequest("DELETE", `/api/analysis/sessions/${id}`);
+          results.push({ id, success: true });
+          successCount++;
+        } catch (error) {
+          results.push({ id, success: false, error });
+          lastError = error;
+          console.error(`Failed to delete session ${id}:`, error);
+        }
       }
       
-      return responses;
+      // If all deletions failed, throw the last error
+      if (successCount === 0 && lastError) {
+        throw lastError;
+      }
+      
+      return { results, successCount, totalCount: sessionIds.length };
     },
-    onSuccess: (_, deletedIds) => {
+    onSuccess: (data, deletedIds) => {
       queryClient.invalidateQueries({ queryKey: ["/api/analysis/sessions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analysis/limits"] });
-      const deletedCount = deletedIds.length;
       setSelectedSessions(new Set());
-      toast({
-        title: "Sessions Deleted",
-        description: `Successfully deleted ${deletedCount} analysis session${deletedCount === 1 ? '' : 's'}.`,
-      });
+      
+      const { successCount, totalCount } = data;
+      
+      if (successCount === totalCount) {
+        toast({
+          title: "Sessions Deleted",
+          description: `Successfully deleted ${successCount} analysis session${successCount === 1 ? '' : 's'}.`,
+        });
+      } else if (successCount > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Deleted ${successCount} of ${totalCount} sessions. Some deletions failed.`,
+          variant: "destructive",
+        });
+      }
+      
       setShowDeleteDialog(false);
     },
     onError: (error: Error) => {
       toast({
         title: "Delete Failed", 
-        description: error.message,
+        description: error.message || "Failed to delete sessions",
         variant: "destructive",
       });
+      setShowDeleteDialog(false);
     }
   });
 
@@ -86,7 +110,31 @@ export default function Dashboard() {
     setLocation(`/analysis/${sessionId}/results`);
   };
 
+<<<<<<< Updated upstream
   const handleSelectSession = useCallback((sessionId: number, checked: boolean) => {
+=======
+  const handleSignOut = async () => {
+    try {
+      // Call the JWT logout endpoint
+      await apiRequest("POST", "/api/auth/logout");
+      
+      // Clear local authentication state
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      
+      // Redirect to home page
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Even if the API call fails, clear local storage and redirect
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      window.location.href = "/";
+    }
+  };
+
+  const handleSelectSession = (sessionId: number, checked: boolean) => {
+>>>>>>> Stashed changes
     const newSelected = new Set(selectedSessions);
     if (checked) {
       newSelected.add(sessionId);
@@ -120,8 +168,9 @@ export default function Dashboard() {
     deleteSessionsMutation.mutate(Array.from(selectedSessions));
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (date: string | Date | null) => {
+    if (!date) return "Unknown date";
+    return new Date(date).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -186,7 +235,7 @@ export default function Dashboard() {
       <Button 
         variant="ghost" 
         size="sm"
-        onClick={() => window.location.href = "/api/logout"}
+        onClick={handleSignOut}
         className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
       >
         <LogOut className="w-4 h-4" />
@@ -338,12 +387,12 @@ export default function Dashboard() {
                       </div>
                     )}
                     
-                    {session.products && Array.isArray(session.products) && session.products.length > 0 && (
+                    {Array.isArray(session.products) && session.products.length > 0 ? (
                       <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <BarChart3 className="w-4 h-4" />
                         {session.products.length} products
                       </div>
-                    )}
+                    ) : null}
                     
                     <div className="pt-2">
                       <Button 

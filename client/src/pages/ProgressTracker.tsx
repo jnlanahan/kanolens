@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useParams } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Clock, Zap, BarChart3, Lightbulb, ArrowRight, Wifi, Pause, Play } from "lucide-react";
+import { Check, Clock, Zap, BarChart3, Lightbulb, ArrowRight, Wifi, Pause, Play, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePolling } from "@/hooks/usePolling";
 import { useCleanup } from "@/hooks/useCleanup";
+import PageLayout from "@/components/Layout/PageLayout";
+import StandardHeader from "@/components/Layout/StandardHeader";
 
 interface ProgressStep {
   id: string;
@@ -147,19 +149,46 @@ export default function ProgressTracker() {
     return Math.min(25 + (currentStep * 25), 100);
   };
 
+  const headerActions = (
+    <>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => setLocation("/dashboard")}
+        className="flex items-center gap-2"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Dashboard
+      </Button>
+      <Button 
+        variant="outline" 
+        size="sm"
+        onClick={() => setIsPaused(!isPaused)}
+        className="flex items-center gap-2"
+      >
+        {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+        {isPaused ? 'Resume' : 'Pause'}
+      </Button>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-              Analysis in Progress
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-              Our AI agents are working on your competitive analysis
-            </p>
+    <PageLayout>
+      <StandardHeader 
+        title="kanolens" 
+        subtitle="Analysis in Progress"
+        actions={headerActions}
+      />
+      
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            AI Analysis in Progress
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+            Our AI agents are working on your competitive analysis
+          </p>
             
             <div className="flex justify-center items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-2">
@@ -366,8 +395,7 @@ export default function ProgressTracker() {
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </div>
+      </main>
+    </PageLayout>
   );
 }
