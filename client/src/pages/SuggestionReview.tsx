@@ -4,9 +4,11 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Check, X, Plus } from "lucide-react";
+import { ArrowRight, Check, X, Plus, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import PageLayout from "@/components/Layout/PageLayout";
+import StandardHeader from "@/components/Layout/StandardHeader";
 
 interface SuggestionData {
   productInterpretation: string;
@@ -138,9 +140,28 @@ export default function SuggestionReview() {
 
   const originalProducts = originalData.products.split(',').map(p => p.trim()).filter(Boolean);
 
+  const headerActions = (
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => setLocation("/analysis/setup")}
+      className="flex items-center gap-2"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to Setup
+    </Button>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-6">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <PageLayout>
+      <StandardHeader 
+        title="kanolens" 
+        subtitle="Review AI Suggestions"
+        actions={headerActions}
+      />
+      
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Products to Compare */}
         <div>
@@ -265,32 +286,33 @@ export default function SuggestionReview() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Bottom Status and Action */}
-      <div className="max-w-6xl mx-auto mt-8 flex justify-between items-center">
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-          {selectedProducts.length} products • {selectedFeatures.length} features selected
         </div>
-        <Button 
-          onClick={handleProceed}
-          size="lg"
-          disabled={selectedProducts.length < 2 || proceedMutation.isPending}
-          className="flex items-center gap-2"
-        >
-          {proceedMutation.isPending ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Starting Analysis...
-            </>
-          ) : (
-            <>
-              Start Analysis
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </Button>
-      </div>
-    </div>
+
+        {/* Bottom Status and Action */}
+        <div className="mt-8 flex justify-between items-center">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {selectedProducts.length} products • {selectedFeatures.length} features selected
+          </div>
+          <Button 
+            onClick={handleProceed}
+            size="lg"
+            disabled={selectedProducts.length < 2 || proceedMutation.isPending}
+            className="flex items-center gap-2"
+          >
+            {proceedMutation.isPending ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Starting Analysis...
+              </>
+            ) : (
+              <>
+                Start Analysis
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      </main>
+    </PageLayout>
   );
 }

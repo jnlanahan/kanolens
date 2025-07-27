@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRight, Lightbulb } from "lucide-react";
+import { ArrowRight, Lightbulb, ArrowLeft } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import PageLayout from "@/components/Layout/PageLayout";
+import StandardHeader from "@/components/Layout/StandardHeader";
 import type { AnalysisLimits } from "@shared/schema";
 
 interface AnalysisFormData {
@@ -80,15 +82,33 @@ export default function AnalysisSetup() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const headerActions = (
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => setLocation("/dashboard")}
+      className="flex items-center gap-2"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to Dashboard
+    </Button>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-6">
-      <div className="max-w-4xl mx-auto">
+    <PageLayout>
+      <StandardHeader 
+        title="kanolens" 
+        subtitle="Analysis Setup"
+        actions={headerActions}
+      />
+      
+      <main className="max-w-4xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
+          {/* Title Section */}
           <div className="flex items-center gap-2 mb-6">
             <Lightbulb className="w-5 h-5 text-blue-600" />
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Analysis Setup
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Set Up Your Analysis
             </h1>
           </div>
 
@@ -202,7 +222,7 @@ export default function AnalysisSetup() {
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </main>
+    </PageLayout>
   );
 }

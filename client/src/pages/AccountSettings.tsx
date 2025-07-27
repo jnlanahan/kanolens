@@ -7,6 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, User, BarChart3, Crown, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import PageLayout from "@/components/Layout/PageLayout";
+import StandardHeader from "@/components/Layout/StandardHeader";
 import type { AnalysisLimits } from "@shared/schema";
 
 export default function AccountSettings() {
@@ -23,35 +25,27 @@ export default function AccountSettings() {
     ? Math.round((analysisLimits.current / analysisLimits.max) * 100)
     : 0;
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setLocation("/dashboard")}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Dashboard
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Account Settings
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Manage your account and usage limits
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+  const headerActions = (
+    <Button 
+      variant="outline" 
+      size="sm"
+      onClick={() => setLocation("/dashboard")}
+      className="flex items-center gap-2"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to Dashboard
+    </Button>
+  );
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+  return (
+    <PageLayout>
+      <StandardHeader 
+        title="kanolens" 
+        subtitle="Account Settings"
+        actions={headerActions}
+      />
+      
+      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Profile Information */}
         <Card>
           <CardHeader>
@@ -223,7 +217,7 @@ export default function AccountSettings() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </main>
+    </PageLayout>
   );
 }

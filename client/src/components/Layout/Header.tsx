@@ -38,8 +38,24 @@ export default function Header({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState("");
 
-  const handleSignOut = () => {
-    window.location.href = "/api/logout";
+  const handleSignOut = async () => {
+    try {
+      // Call the JWT logout endpoint
+      await apiRequest("POST", "/api/auth/logout");
+      
+      // Clear local authentication state
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      
+      // Redirect to home page
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Even if the API call fails, clear local storage and redirect
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      window.location.href = "/";
+    }
   };
 
   const queryClient = useQueryClient();

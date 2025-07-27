@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 interface LoginFormData {
   email: string;
@@ -174,6 +175,11 @@ const Login: React.FC = () => {
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
+            
+            {/* Google Sign In Button */}
+            <div className="mt-4">
+              <GoogleSignInButton className="w-full" />
+            </div>
             
             {/* Development Login Button */}
             <div className="mt-4">

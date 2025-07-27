@@ -33,7 +33,7 @@ import { db, dbManager } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations - mandatory for Replit Auth
+  // User operations - JWT authentication
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: UpsertUser): Promise<User>;
@@ -128,7 +128,7 @@ export class DatabaseStorage implements IStorage {
     }, maxRetries);
   }
 
-  // User operations - mandatory for Replit Auth
+  // User operations - JWT authentication
   async getUser(id: string): Promise<User | undefined> {
     return await this.executeWithRetry(async () => {
       const [user] = await db.select().from(users).where(eq(users.id, id));

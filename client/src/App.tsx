@@ -10,7 +10,6 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
-import Home from "@/pages/Home";
 import Dashboard from "@/pages/Dashboard";
 import AnalysisSetup from "@/pages/AnalysisSetup";
 import SuggestionReview from "@/pages/SuggestionReview";
@@ -33,41 +32,32 @@ function Router() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route component={() => <Landing />} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {!isAuthenticated ? (
-        // Unauthenticated routes
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/login" component={Login} />
-          <Route path="/register" component={Register} />
-          <Route component={() => <Landing />} /> {/* Fallback to landing for unauth users */}
-        </>
-      ) : (
-        // Authenticated routes
-        <>
-          <Route path="/" component={Dashboard} />
-          <Route path="/login" component={() => <Dashboard />} /> {/* Redirect logged-in users to dashboard */}
-          <Route path="/register" component={() => <Dashboard />} /> {/* Redirect logged-in users to dashboard */}
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/analysis/setup" component={AnalysisSetup} />
-          <Route path="/analysis/suggestions" component={SuggestionReview} />
-          <Route path="/analysis/:sessionId/progress" component={ProgressTracker} />
-          <Route path="/analysis/:sessionId/results" component={Results} />
-          <Route path="/agent-architecture" component={AgentArchitecture} />
-          <Route path="/debug" component={Debug} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/account" component={AccountSettings} />
-          <Route path="/analysis/:id">{(params) => {
-            // Only render Home for numeric IDs, not for strings like "setup"
-            if (/^\d+$/.test(params.id)) {
-              return <Home />;
-            }
-            return <NotFound />;
-          }}</Route>
-          <Route component={NotFound} />
-        </>
-      )}
+      <Route path="/" component={Dashboard} />
+      <Route path="/login" component={() => <Dashboard />} />
+      <Route path="/register" component={() => <Dashboard />} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/analysis/setup" component={AnalysisSetup} />
+      <Route path="/analysis/suggestions" component={SuggestionReview} />
+      <Route path="/analysis/:sessionId/progress" component={ProgressTracker} />
+      <Route path="/analysis/:sessionId/results" component={Results} />
+      <Route path="/agent-architecture" component={AgentArchitecture} />
+      <Route path="/debug" component={Debug} />
+      <Route path="/admin" component={Admin} />
+      <Route path="/account" component={AccountSettings} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
