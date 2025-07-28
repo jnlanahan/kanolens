@@ -1,0 +1,223 @@
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .layer-header { fill: white; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+      .component-text { fill: #374151; font-family: Arial, sans-serif; font-size: 12px; }
+      .endpoint-text { fill: #1f2937; font-family: Arial, sans-serif; font-size: 11px; }
+      .flow-arrow { stroke: #6366f1; stroke-width: 2; fill: none; }
+      .flow-arrow-marker { fill: #6366f1; }
+    </style>
+    <marker id="flow-arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" class="flow-arrow-marker"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#f8fafc"/>
+  
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" fill="#1f2937" font-family="Arial, sans-serif" font-size="24" font-weight="bold">KanoLens API Architecture</text>
+  
+  <!-- Frontend Layer -->
+  <g transform="translate(50, 70)">
+    <rect width="1100" height="120" fill="#3b82f6" rx="8" stroke="#2563eb" stroke-width="2"/>
+    <text x="550" y="25" text-anchor="middle" class="layer-header">Frontend Layer (React + TypeScript)</text>
+    
+    <!-- Frontend Components -->
+    <rect x="20" y="40" width="150" height="60" fill="#60a5fa" rx="4"/>
+    <text x="95" y="60" text-anchor="middle" class="component-text">Dashboard</text>
+    <text x="95" y="75" text-anchor="middle" class="component-text">Analysis Setup</text>
+    <text x="95" y="90" text-anchor="middle" class="component-text">Results View</text>
+    
+    <rect x="190" y="40" width="150" height="60" fill="#60a5fa" rx="4"/>
+    <text x="265" y="60" text-anchor="middle" class="component-text">Chat Interface</text>
+    <text x="265" y="75" text-anchor="middle" class="component-text">Progress Tracker</text>
+    <text x="265" y="90" text-anchor="middle" class="component-text">Kano Table</text>
+    
+    <rect x="360" y="40" width="150" height="60" fill="#60a5fa" rx="4"/>
+    <text x="435" y="60" text-anchor="middle" class="component-text">Authentication</text>
+    <text x="435" y="75" text-anchor="middle" class="component-text">Google OAuth</text>
+    <text x="435" y="90" text-anchor="middle" class="component-text">User Management</text>
+    
+    <rect x="530" y="40" width="150" height="60" fill="#60a5fa" rx="4"/>
+    <text x="605" y="60" text-anchor="middle" class="component-text">Export Features</text>
+    <text x="605" y="75" text-anchor="middle" class="component-text">PDF/PowerPoint</text>
+    <text x="605" y="90" text-anchor="middle" class="component-text">Share Analysis</text>
+    
+    <rect x="700" y="40" width="150" height="60" fill="#60a5fa" rx="4"/>
+    <text x="775" y="60" text-anchor="middle" class="component-text">Agent Architecture</text>
+    <text x="775" y="75" text-anchor="middle" class="component-text">Diagram View</text>
+    <text x="775" y="90" text-anchor="middle" class="component-text">System Monitoring</text>
+    
+    <rect x="870" y="40" width="150" height="60" fill="#60a5fa" rx="4"/>
+    <text x="945" y="60" text-anchor="middle" class="component-text">WebSocket Client</text>
+    <text x="945" y="75" text-anchor="middle" class="component-text">Real-time Updates</text>
+    <text x="945" y="90" text-anchor="middle" class="component-text">Progress Streaming</text>
+  </g>
+  
+  <!-- API Gateway Layer -->
+  <g transform="translate(50, 220)">
+    <rect width="1100" height="80" fill="#10b981" rx="8" stroke="#059669" stroke-width="2"/>
+    <text x="550" y="25" text-anchor="middle" class="layer-header">API Gateway Layer (Express.js)</text>
+    
+    <rect x="50" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="110" y="50" text-anchor="middle" class="component-text">Rate Limiting</text>
+    <text x="110" y="62" text-anchor="middle" class="component-text">CORS</text>
+    
+    <rect x="190" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="250" y="50" text-anchor="middle" class="component-text">JWT Auth</text>
+    <text x="250" y="62" text-anchor="middle" class="component-text">Middleware</text>
+    
+    <rect x="330" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="390" y="50" text-anchor="middle" class="component-text">Request</text>
+    <text x="390" y="62" text-anchor="middle" class="component-text">Validation</text>
+    
+    <rect x="470" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="530" y="50" text-anchor="middle" class="component-text">Error</text>
+    <text x="530" y="62" text-anchor="middle" class="component-text">Handling</text>
+    
+    <rect x="610" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="670" y="50" text-anchor="middle" class="component-text">Session</text>
+    <text x="670" y="62" text-anchor="middle" class="component-text">Management</text>
+    
+    <rect x="750" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="810" y="50" text-anchor="middle" class="component-text">WebSocket</text>
+    <text x="810" y="62" text-anchor="middle" class="component-text">Handler</text>
+    
+    <rect x="890" y="35" width="120" height="35" fill="#34d399" rx="4"/>
+    <text x="950" y="50" text-anchor="middle" class="component-text">Health</text>
+    <text x="950" y="62" text-anchor="middle" class="component-text">Checks</text>
+  </g>
+  
+  <!-- API Routes Layer -->
+  <g transform="translate(50, 330)">
+    <rect width="1100" height="120" fill="#f59e0b" rx="8" stroke="#d97706" stroke-width="2"/>
+    <text x="550" y="25" text-anchor="middle" class="layer-header">API Routes Layer</text>
+    
+    <!-- Authentication Routes -->
+    <rect x="20" y="40" width="160" height="70" fill="#fbbf24" rx="4"/>
+    <text x="100" y="55" text-anchor="middle" class="component-text" font-weight="bold">Auth Routes</text>
+    <text x="100" y="70" text-anchor="middle" class="endpoint-text">POST /api/auth/register</text>
+    <text x="100" y="82" text-anchor="middle" class="endpoint-text">POST /api/auth/login</text>
+    <text x="100" y="94" text-anchor="middle" class="endpoint-text">POST /api/auth/google</text>
+    <text x="100" y="106" text-anchor="middle" class="endpoint-text">GET /api/auth/user</text>
+    
+    <!-- Analysis Routes -->
+    <rect x="200" y="40" width="160" height="70" fill="#fbbf24" rx="4"/>
+    <text x="280" y="55" text-anchor="middle" class="component-text" font-weight="bold">Analysis Routes</text>
+    <text x="280" y="70" text-anchor="middle" class="endpoint-text">POST /api/analysis/start</text>
+    <text x="280" y="82" text-anchor="middle" class="endpoint-text">POST /api/analysis/suggestions</text>
+    <text x="280" y="94" text-anchor="middle" class="endpoint-text">POST /api/analysis/:id/regenerate</text>
+    <text x="280" y="106" text-anchor="middle" class="endpoint-text">POST /api/analysis/debug</text>
+    
+    <!-- Session Routes -->
+    <rect x="380" y="40" width="160" height="70" fill="#fbbf24" rx="4"/>
+    <text x="460" y="55" text-anchor="middle" class="component-text" font-weight="bold">Session Routes</text>
+    <text x="460" y="70" text-anchor="middle" class="endpoint-text">GET /api/sessions</text>
+    <text x="460" y="82" text-anchor="middle" class="endpoint-text">GET /api/sessions/:id</text>
+    <text x="460" y="94" text-anchor="middle" class="endpoint-text">PUT /api/sessions/:id</text>
+    <text x="460" y="106" text-anchor="middle" class="endpoint-text">DELETE /api/sessions/:id</text>
+    
+    <!-- Message Routes -->
+    <rect x="560" y="40" width="160" height="70" fill="#fbbf24" rx="4"/>
+    <text x="640" y="55" text-anchor="middle" class="component-text" font-weight="bold">Message Routes</text>
+    <text x="640" y="70" text-anchor="middle" class="endpoint-text">GET /api/messages/:sessionId</text>
+    <text x="640" y="82" text-anchor="middle" class="endpoint-text">POST /api/messages</text>
+    <text x="640" y="94" text-anchor="middle" class="endpoint-text">PUT /api/messages/:id</text>
+    <text x="640" y="106" text-anchor="middle" class="endpoint-text">DELETE /api/messages/:id</text>
+    
+    <!-- Export Routes -->
+    <rect x="740" y="40" width="160" height="70" fill="#fbbf24" rx="4"/>
+    <text x="820" y="55" text-anchor="middle" class="component-text" font-weight="bold">Export Routes</text>
+    <text x="820" y="70" text-anchor="middle" class="endpoint-text">POST /api/export/pdf</text>
+    <text x="820" y="82" text-anchor="middle" class="endpoint-text">POST /api/export/powerpoint</text>
+    <text x="820" y="94" text-anchor="middle" class="endpoint-text">GET /api/export/share/:id</text>
+    <text x="820" y="106" text-anchor="middle" class="endpoint-text">POST /api/export/share</text>
+    
+    <!-- Health Routes -->
+    <rect x="920" y="40" width="160" height="70" fill="#fbbf24" rx="4"/>
+    <text x="1000" y="55" text-anchor="middle" class="component-text" font-weight="bold">Health Routes</text>
+    <text x="1000" y="70" text-anchor="middle" class="endpoint-text">GET /api/health</text>
+    <text x="1000" y="82" text-anchor="middle" class="endpoint-text">GET /api/debug/websocket</text>
+    <text x="1000" y="94" text-anchor="middle" class="endpoint-text">GET /api/openai/test</text>
+    <text x="1000" y="106" text-anchor="middle" class="endpoint-text">GET /api/status</text>
+  </g>
+  
+  <!-- Service Layer -->
+  <g transform="translate(50, 480)">
+    <rect width="1100" height="100" fill="#8b5cf6" rx="8" stroke="#7c3aed" stroke-width="2"/>
+    <text x="550" y="25" text-anchor="middle" class="layer-header">Service Layer</text>
+    
+    <rect x="30" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="95" y="60" text-anchor="middle" class="component-text">Auth Service</text>
+    <text x="95" y="75" text-anchor="middle" class="component-text">JWT/OAuth</text>
+    
+    <rect x="180" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="245" y="60" text-anchor="middle" class="component-text">AI Service</text>
+    <text x="245" y="75" text-anchor="middle" class="component-text">OpenAI/Claude</text>
+    
+    <rect x="330" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="395" y="60" text-anchor="middle" class="component-text">Repository</text>
+    <text x="395" y="75" text-anchor="middle" class="component-text">Service</text>
+    
+    <rect x="480" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="545" y="60" text-anchor="middle" class="component-text">Cache Service</text>
+    <text x="545" y="75" text-anchor="middle" class="component-text">Redis/Memory</text>
+    
+    <rect x="630" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="695" y="60" text-anchor="middle" class="component-text">WebSocket</text>
+    <text x="695" y="75" text-anchor="middle" class="component-text">Service</text>
+    
+    <rect x="780" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="845" y="60" text-anchor="middle" class="component-text">Title Generator</text>
+    <text x="845" y="75" text-anchor="middle" class="component-text">Service</text>
+    
+    <rect x="930" y="40" width="130" height="50" fill="#a78bfa" rx="4"/>
+    <text x="995" y="60" text-anchor="middle" class="component-text">Monitoring</text>
+    <text x="995" y="75" text-anchor="middle" class="component-text">Service</text>
+  </g>
+  
+  <!-- Data Layer -->
+  <g transform="translate(50, 610)">
+    <rect width="1100" height="100" fill="#ef4444" rx="8" stroke="#dc2626" stroke-width="2"/>
+    <text x="550" y="25" text-anchor="middle" class="layer-header">Data Layer</text>
+    
+    <rect x="100" y="40" width="200" height="50" fill="#f87171" rx="4"/>
+    <text x="200" y="60" text-anchor="middle" class="component-text">PostgreSQL Database</text>
+    <text x="200" y="75" text-anchor="middle" class="component-text">Drizzle ORM</text>
+    
+    <rect x="350" y="40" width="200" height="50" fill="#f87171" rx="4"/>
+    <text x="450" y="60" text-anchor="middle" class="component-text">Storage Service</text>
+    <text x="450" y="75" text-anchor="middle" class="component-text">Database Operations</text>
+    
+    <rect x="600" y="40" width="200" height="50" fill="#f87171" rx="4"/>
+    <text x="700" y="60" text-anchor="middle" class="component-text">External APIs</text>
+    <text x="700" y="75" text-anchor="middle" class="component-text">OpenAI, Claude, Perplexity</text>
+    
+    <rect x="850" y="40" width="200" height="50" fill="#f87171" rx="4"/>
+    <text x="950" y="60" text-anchor="middle" class="component-text">File Storage</text>
+    <text x="950" y="75" text-anchor="middle" class="component-text">Documents & Exports</text>
+  </g>
+  
+  <!-- Flow Arrows -->
+  <!-- Frontend to API Gateway -->
+  <path d="M 600 190 L 600 220" class="flow-arrow" marker-end="url(#flow-arrow)"/>
+  
+  <!-- API Gateway to Routes -->
+  <path d="M 600 300 L 600 330" class="flow-arrow" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Routes to Services -->
+  <path d="M 600 450 L 600 480" class="flow-arrow" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Services to Data -->
+  <path d="M 600 580 L 600 610" class="flow-arrow" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 740)">
+    <text x="0" y="0" fill="#1f2937" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Data Flow:</text>
+    <path d="M 100 -5 L 140 -5" class="flow-arrow" marker-end="url(#flow-arrow)"/>
+    <text x="150" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Request/Response Flow</text>
+    
+    <text x="300" y="0" fill="#1f2937" font-family="Arial, sans-serif" font-size="12">• JWT Authentication • Rate Limiting • Real-time WebSocket • Multi-Agent AI Processing</text>
+  </g>
+</svg>

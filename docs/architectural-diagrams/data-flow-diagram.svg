@@ -1,0 +1,269 @@
+<svg viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title-text { fill: #1e293b; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; }
+      .step-header { fill: white; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+      .agent-text { fill: white; font-family: Arial, sans-serif; font-size: 12px; }
+      .flow-line { stroke: #6366f1; stroke-width: 3; fill: none; }
+      .feedback-line { stroke: #f59e0b; stroke-width: 2; fill: none; stroke-dasharray: 5,5; }
+    </style>
+    <marker id="flow-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L0,10 L10,5 z" fill="#6366f1"/>
+    </marker>
+    <marker id="data-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L0,10 L10,5 z" fill="#10b981"/>
+    </marker>
+    <marker id="feedback-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L0,10 L10,5 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1400" height="1000" fill="#f8fafc"/>
+  
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" class="title-text">KanoLens Data Flow & Analysis Workflow</text>
+  
+  <!-- Step 1: User Input -->
+  <g transform="translate(50, 80)">
+    <rect width="250" height="120" fill="#3b82f6" rx="8" stroke="#2563eb" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">1. User Input</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">Analysis Setup Form</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Product List</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Target Customer</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Initial Features</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Analysis Context</text>
+  </g>
+  
+  <!-- Step 2: Orchestrator Processing -->
+  <g transform="translate(350, 80)">
+    <rect width="250" height="120" fill="#10b981" rx="8" stroke="#059669" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">2. Orchestrator Agent</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">OpenAI GPT-4o</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Parse Form Data</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Generate Suggestions</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Coordinate Workflow</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Manage Progress</text>
+  </g>
+  
+  <!-- Step 3: Research Phase -->
+  <g transform="translate(650, 80)">
+    <rect width="250" height="120" fill="#8b5cf6" rx="8" stroke="#7c3aed" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">3. Research Agent</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">Perplexity AI</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Product Research</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Feature Discovery</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Citation Collection</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Market Analysis</text>
+  </g>
+  
+  <!-- Step 4: Validation Phase -->
+  <g transform="translate(950, 80)">
+    <rect width="250" height="120" fill="#f59e0b" rx="8" stroke="#d97706" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">4. Validator Agent</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">Claude (Anthropic)</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Kano Categorization</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Quality Control</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Accuracy Validation</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Feature Rating</text>
+  </g>
+  
+  <!-- Step 5: Analysis Phase -->
+  <g transform="translate(200, 250)">
+    <rect width="250" height="120" fill="#ef4444" rx="8" stroke="#dc2626" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">5. Analyst Agent</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">OpenAI o1</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Strategic Analysis</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Gap Identification</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Recommendations</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Competitive Insights</text>
+  </g>
+  
+  <!-- Step 6: Evaluation Phase -->
+  <g transform="translate(500, 250)">
+    <rect width="250" height="120" fill="#be185d" rx="8" stroke="#9d174d" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">6. Evaluator Agent</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">OpenAI GPT-4o</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Performance Evaluation</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Quality Assessment</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Improvement Areas</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Prompt Optimization</text>
+  </g>
+  
+  <!-- Step 7: Final Output -->
+  <g transform="translate(800, 250)">
+    <rect width="250" height="120" fill="#06b6d4" rx="8" stroke="#0891b2" stroke-width="2"/>
+    <text x="125" y="25" text-anchor="middle" class="step-header">7. Final Output</text>
+    <text x="125" y="50" text-anchor="middle" class="agent-text">Kano Model Analysis</text>
+    <text x="125" y="70" text-anchor="middle" class="agent-text">• Interactive Table</text>
+    <text x="125" y="85" text-anchor="middle" class="agent-text">• Strategic Insights</text>
+    <text x="125" y="100" text-anchor="middle" class="agent-text">• Export Options</text>
+    <text x="125" y="115" text-anchor="middle" class="agent-text">• Share Functionality</text>
+  </g>
+  
+  <!-- Database Layer -->
+  <g transform="translate(50, 420)">
+    <rect width="1300" height="150" fill="#1f2937" rx="12" stroke="#374151" stroke-width="3"/>
+    <text x="650" y="25" text-anchor="middle" class="step-header">Database Layer - Real-time Data Storage</text>
+    
+    <!-- Analysis Sessions -->
+    <rect x="50" y="50" width="180" height="80" fill="#374151" rx="6"/>
+    <text x="140" y="70" text-anchor="middle" class="agent-text">Analysis Sessions</text>
+    <text x="140" y="85" text-anchor="middle" class="agent-text">• Session State</text>
+    <text x="140" y="100" text-anchor="middle" class="agent-text">• Progress Tracking</text>
+    <text x="140" y="115" text-anchor="middle" class="agent-text">• Table Data</text>
+    
+    <!-- Chat Messages -->
+    <rect x="260" y="50" width="180" height="80" fill="#374151" rx="6"/>
+    <text x="350" y="70" text-anchor="middle" class="agent-text">Chat Messages</text>
+    <text x="350" y="85" text-anchor="middle" class="agent-text">• User Interactions</text>
+    <text x="350" y="100" text-anchor="middle" class="agent-text">• Agent Responses</text>
+    <text x="350" y="115" text-anchor="middle" class="agent-text">• Progress Updates</text>
+    
+    <!-- Agent Evaluations -->
+    <rect x="470" y="50" width="180" height="80" fill="#374151" rx="6"/>
+    <text x="560" y="70" text-anchor="middle" class="agent-text">Agent Evaluations</text>
+    <text x="560" y="85" text-anchor="middle" class="agent-text">• Performance Data</text>
+    <text x="560" y="100" text-anchor="middle" class="agent-text">• Quality Metrics</text>
+    <text x="560" y="115" text-anchor="middle" class="agent-text">• Optimization</text>
+    
+    <!-- User Feedback -->
+    <rect x="680" y="50" width="180" height="80" fill="#374151" rx="6"/>
+    <text x="770" y="70" text-anchor="middle" class="agent-text">User Feedback</text>
+    <text x="770" y="85" text-anchor="middle" class="agent-text">• Thumbs Up/Down</text>
+    <text x="770" y="100" text-anchor="middle" class="agent-text">• Detailed Comments</text>
+    <text x="770" y="115" text-anchor="middle" class="agent-text">• Context Data</text>
+    
+    <!-- Documents -->
+    <rect x="890" y="50" width="180" height="80" fill="#374151" rx="6"/>
+    <text x="980" y="70" text-anchor="middle" class="agent-text">Documents</text>
+    <text x="980" y="85" text-anchor="middle" class="agent-text">• File Uploads</text>
+    <text x="980" y="100" text-anchor="middle" class="agent-text">• Content Extraction</text>
+    <text x="980" y="115" text-anchor="middle" class="agent-text">• Source Citations</text>
+    
+    <!-- Shared Analyses -->
+    <rect x="1100" y="50" width="180" height="80" fill="#374151" rx="6"/>
+    <text x="1190" y="70" text-anchor="middle" class="agent-text">Shared Analyses</text>
+    <text x="1190" y="85" text-anchor="middle" class="agent-text">• Public Links</text>
+    <text x="1190" y="100" text-anchor="middle" class="agent-text">• Export Data</text>
+    <text x="1190" y="115" text-anchor="middle" class="agent-text">• View Tracking</text>
+  </g>
+  
+  <!-- WebSocket Layer -->
+  <g transform="translate(50, 600)">
+    <rect width="1300" height="100" fill="#7c3aed" rx="12" stroke="#6d28d9" stroke-width="3"/>
+    <text x="650" y="25" text-anchor="middle" class="step-header">Real-time Communication Layer</text>
+    
+    <!-- WebSocket Server -->
+    <rect x="200" y="40" width="200" height="50" fill="#8b5cf6" rx="6"/>
+    <text x="300" y="60" text-anchor="middle" class="agent-text">WebSocket Server</text>
+    <text x="300" y="75" text-anchor="middle" class="agent-text">• Progress Updates</text>
+    
+    <!-- Progress Tracker -->
+    <rect x="450" y="40" width="200" height="50" fill="#8b5cf6" rx="6"/>
+    <text x="550" y="60" text-anchor="middle" class="agent-text">Progress Tracker</text>
+    <text x="550" y="75" text-anchor="middle" class="agent-text">• Step Notifications</text>
+    
+    <!-- Live Chat -->
+    <rect x="700" y="40" width="200" height="50" fill="#8b5cf6" rx="6"/>
+    <text x="800" y="60" text-anchor="middle" class="agent-text">Live Chat Interface</text>
+    <text x="800" y="75" text-anchor="middle" class="agent-text">• Real-time Messages</text>
+    
+    <!-- Status Updates -->
+    <rect x="950" y="40" width="200" height="50" fill="#8b5cf6" rx="6"/>
+    <text x="1050" y="60" text-anchor="middle" class="agent-text">Status Updates</text>
+    <text x="1050" y="75" text-anchor="middle" class="agent-text">• Agent Activity</text>
+  </g>
+  
+  <!-- External APIs -->
+  <g transform="translate(50, 730)">
+    <rect width="1300" height="100" fill="#f59e0b" rx="12" stroke="#d97706" stroke-width="3"/>
+    <text x="650" y="25" text-anchor="middle" class="step-header">External AI Services Integration</text>
+    
+    <!-- OpenAI -->
+    <rect x="100" y="40" width="200" height="50" fill="#fbbf24" rx="6"/>
+    <text x="200" y="60" text-anchor="middle" class="agent-text">OpenAI API</text>
+    <text x="200" y="75" text-anchor="middle" class="agent-text">• GPT-4o, o1 Models</text>
+    
+    <!-- Claude -->
+    <rect x="350" y="40" width="200" height="50" fill="#fbbf24" rx="6"/>
+    <text x="450" y="60" text-anchor="middle" class="agent-text">Claude API</text>
+    <text x="450" y="75" text-anchor="middle" class="agent-text">• Anthropic Validation</text>
+    
+    <!-- Perplexity -->
+    <rect x="600" y="40" width="200" height="50" fill="#fbbf24" rx="6"/>
+    <text x="700" y="60" text-anchor="middle" class="agent-text">Perplexity API</text>
+    <text x="700" y="75" text-anchor="middle" class="agent-text">• Research & Citations</text>
+    
+    <!-- Google OAuth -->
+    <rect x="850" y="40" width="200" height="50" fill="#fbbf24" rx="6"/>
+    <text x="950" y="60" text-anchor="middle" class="agent-text">Google OAuth</text>
+    <text x="950" y="75" text-anchor="middle" class="agent-text">• Authentication</text>
+    
+    <!-- Export Services -->
+    <rect x="1100" y="40" width="200" height="50" fill="#fbbf24" rx="6"/>
+    <text x="1200" y="60" text-anchor="middle" class="agent-text">Export Services</text>
+    <text x="1200" y="75" text-anchor="middle" class="agent-text">• PDF, PowerPoint</text>
+  </g>
+  
+  <!-- Flow Arrows -->
+  <!-- User Input to Orchestrator -->
+  <path d="M 300 140 L 350 140" class="flow-line" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Orchestrator to Research -->
+  <path d="M 600 140 L 650 140" class="flow-line" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Research to Validator -->
+  <path d="M 900 140 L 950 140" class="flow-line" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Validator back to Orchestrator -->
+  <path d="M 1075 200 Q 1075 220 475 220 Q 475 200 475 200" class="feedback-line" marker-end="url(#feedback-arrow)"/>
+  
+  <!-- Orchestrator to Analyst -->
+  <path d="M 475 200 L 325 250" class="flow-line" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Analyst to Evaluator -->
+  <path d="M 450 310 L 500 310" class="flow-line" marker-end="url(#flow-arrow)"/>
+  
+  <!-- Evaluator to Final Output -->
+  <path d="M 750 310 L 800 310" class="flow-line" marker-end="url(#flow-arrow)"/>
+  
+  <!-- All agents to Database -->
+  <path d="M 175 200 L 175 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  <path d="M 475 200 L 475 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  <path d="M 775 200 L 775 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  <path d="M 1075 200 L 1075 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  <path d="M 325 370 L 325 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  <path d="M 625 370 L 625 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  <path d="M 925 370 L 925 420" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+  
+  <!-- Database to WebSocket -->
+  <path d="M 700 570 L 700 600" stroke="#7c3aed" stroke-width="2" marker-end="url(#data-arrow)"/>
+  
+  <!-- Agents to External APIs -->
+  <path d="M 475 200 L 475 730" stroke="#f59e0b" stroke-width="2" marker-end="url(#feedback-arrow)" stroke-dasharray="3,3"/>
+  <path d="M 775 200 L 775 730" stroke="#f59e0b" stroke-width="2" marker-end="url(#feedback-arrow)" stroke-dasharray="3,3"/>
+  <path d="M 1075 200 L 1075 730" stroke="#f59e0b" stroke-width="2" marker-end="url(#feedback-arrow)" stroke-dasharray="3,3"/>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 860)">
+    <text x="0" y="0" fill="#1e293b" font-family="Arial, sans-serif" font-size="16" font-weight="bold">Data Flow Legend:</text>
+    <path d="M 150 -5 L 190 -5" class="flow-line" marker-end="url(#flow-arrow)"/>
+    <text x="200" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Primary Workflow</text>
+    
+    <path d="M 320 -5 L 360 -5" class="feedback-line" marker-end="url(#feedback-arrow)"/>
+    <text x="370" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Feedback Loop</text>
+    
+    <path d="M 480 -5 L 520 -5" stroke="#10b981" stroke-width="2" marker-end="url(#data-arrow)"/>
+    <text x="530" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Database Storage</text>
+    
+    <path d="M 650 -5 L 690 -5" stroke="#f59e0b" stroke-width="2" marker-end="url(#feedback-arrow)" stroke-dasharray="3,3"/>
+    <text x="700" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">External API Calls</text>
+  </g>
+  
+  <!-- Progress Indicators -->
+  <g transform="translate(50, 900)">
+    <text x="0" y="0" fill="#1e293b" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Analysis Progress Steps:</text>
+    <text x="200" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Discovery (20%) → Research (40%) → Categorization (60%) → Table Creation (80%) → Analysis (100%)</text>
+  </g>
+</svg>
