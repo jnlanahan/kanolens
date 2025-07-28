@@ -1,0 +1,226 @@
+<svg viewBox="0 0 1200 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .env-header { fill: white; font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; }
+      .component-text { fill: #374151; font-family: Arial, sans-serif; font-size: 14px; }
+      .service-text { fill: #6b7280; font-family: Arial, sans-serif; font-size: 11px; }
+      .connection-line { stroke: #6366f1; stroke-width: 2; fill: none; }
+      .connection-arrow { fill: #6366f1; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#6366f1"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#f1f5f9"/>
+  
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" fill="#1e293b" font-family="Arial, sans-serif" font-size="24" font-weight="bold">KanoLens System Deployment Architecture</text>
+  
+  <!-- Production Environment -->
+  <g transform="translate(50, 70)">
+    <rect width="500" height="350" fill="#1e40af" rx="12" stroke="#1d4ed8" stroke-width="3"/>
+    <text x="250" y="25" text-anchor="middle" class="env-header">Production Environment</text>
+    
+    <!-- Frontend Deployment -->
+    <rect x="20" y="50" width="200" height="120" fill="#3b82f6" rx="8"/>
+    <text x="120" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Frontend (React)</text>
+    <text x="120" y="95" text-anchor="middle" class="service-text" fill="white">• Vite Build</text>
+    <text x="120" y="110" text-anchor="middle" class="service-text" fill="white">• Static Assets</text>
+    <text x="120" y="125" text-anchor="middle" class="service-text" fill="white">• CDN Distribution</text>
+    <text x="120" y="140" text-anchor="middle" class="service-text" fill="white">• HTTPS/SSL</text>
+    <text x="120" y="155" text-anchor="middle" class="service-text" fill="white">• Domain: kanolens.com</text>
+    
+    <!-- Backend Deployment -->
+    <rect x="260" y="50" width="200" height="120" fill="#1d4ed8" rx="8"/>
+    <text x="360" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Backend (Express.js)</text>
+    <text x="360" y="95" text-anchor="middle" class="service-text" fill="white">• Node.js Runtime</text>
+    <text x="360" y="110" text-anchor="middle" class="service-text" fill="white">• PM2 Process Manager</text>
+    <text x="360" y="125" text-anchor="middle" class="service-text" fill="white">• Load Balancer</text>
+    <text x="360" y="140" text-anchor="middle" class="service-text" fill="white">• Auto-scaling</text>
+    <text x="360" y="155" text-anchor="middle" class="service-text" fill="white">• API: api.kanolens.com</text>
+    
+    <!-- Database -->
+    <rect x="20" y="200" width="200" height="120" fill="#0f172a" rx="8"/>
+    <text x="120" y="225" text-anchor="middle" class="component-text" fill="white" font-weight="bold">PostgreSQL Database</text>
+    <text x="120" y="245" text-anchor="middle" class="service-text" fill="white">• Managed Database</text>
+    <text x="120" y="260" text-anchor="middle" class="service-text" fill="white">• Automated Backups</text>
+    <text x="120" y="275" text-anchor="middle" class="service-text" fill="white">• Connection Pooling</text>
+    <text x="120" y="290" text-anchor="middle" class="service-text" fill="white">• SSL Encryption</text>
+    <text x="120" y="305" text-anchor="middle" class="service-text" fill="white">• High Availability</text>
+    
+    <!-- Redis Cache -->
+    <rect x="260" y="200" width="200" height="120" fill="#dc2626" rx="8"/>
+    <text x="360" y="225" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Redis Cache</text>
+    <text x="360" y="245" text-anchor="middle" class="service-text" fill="white">• Session Storage</text>
+    <text x="360" y="260" text-anchor="middle" class="service-text" fill="white">• API Response Cache</text>
+    <text x="360" y="275" text-anchor="middle" class="service-text" fill="white">• Rate Limiting</text>
+    <text x="360" y="290" text-anchor="middle" class="service-text" fill="white">• WebSocket State</text>
+    <text x="360" y="305" text-anchor="middle" class="service-text" fill="white">• Memory Optimization</text>
+  </g>
+  
+  <!-- Development Environment -->
+  <g transform="translate(650, 70)">
+    <rect width="500" height="350" fill="#059669" rx="12" stroke="#047857" stroke-width="3"/>
+    <text x="250" y="25" text-anchor="middle" class="env-header">Development Environment</text>
+    
+    <!-- Local Development -->
+    <rect x="20" y="50" width="200" height="120" fill="#10b981" rx="8"/>
+    <text x="120" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Local Development</text>
+    <text x="120" y="95" text-anchor="middle" class="service-text" fill="white">• Vite Dev Server</text>
+    <text x="120" y="110" text-anchor="middle" class="service-text" fill="white">• Hot Module Reload</text>
+    <text x="120" y="125" text-anchor="middle" class="service-text" fill="white">• TypeScript Checking</text>
+    <text x="120" y="140" text-anchor="middle" class="service-text" fill="white">• ESLint/Prettier</text>
+    <text x="120" y="155" text-anchor="middle" class="service-text" fill="white">• localhost:5173</text>
+    
+    <!-- Local Backend -->
+    <rect x="260" y="50" width="200" height="120" fill="#047857" rx="8"/>
+    <text x="360" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Local Backend</text>
+    <text x="360" y="95" text-anchor="middle" class="service-text" fill="white">• tsx Development</text>
+    <text x="360" y="110" text-anchor="middle" class="service-text" fill="white">• Auto-restart</text>
+    <text x="360" y="125" text-anchor="middle" class="service-text" fill="white">• Debug Mode</text>
+    <text x="360" y="140" text-anchor="middle" class="service-text" fill="white">• Environment Variables</text>
+    <text x="360" y="155" text-anchor="middle" class="service-text" fill="white">• localhost:3006</text>
+    
+    <!-- Test Database -->
+    <rect x="20" y="200" width="200" height="120" fill="#065f46" rx="8"/>
+    <text x="120" y="225" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Test Database</text>
+    <text x="120" y="245" text-anchor="middle" class="service-text" fill="white">• Local PostgreSQL</text>
+    <text x="120" y="260" text-anchor="middle" class="service-text" fill="white">• Drizzle Migrations</text>
+    <text x="120" y="275" text-anchor="middle" class="service-text" fill="white">• Seed Data</text>
+    <text x="120" y="290" text-anchor="middle" class="service-text" fill="white">• Test Fixtures</text>
+    <text x="120" y="305" text-anchor="middle" class="service-text" fill="white">• localhost:5432</text>
+    
+    <!-- Testing Suite -->
+    <rect x="260" y="200" width="200" height="120" fill="#064e3b" rx="8"/>
+    <text x="360" y="225" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Testing Suite</text>
+    <text x="360" y="245" text-anchor="middle" class="service-text" fill="white">• Vitest Framework</text>
+    <text x="360" y="260" text-anchor="middle" class="service-text" fill="white">• Unit Tests</text>
+    <text x="360" y="275" text-anchor="middle" class="service-text" fill="white">• Integration Tests</text>
+    <text x="360" y="290" text-anchor="middle" class="service-text" fill="white">• E2E Tests</text>
+    <text x="360" y="305" text-anchor="middle" class="service-text" fill="white">• Coverage Reports</text>
+  </g>
+  
+  <!-- External Services -->
+  <g transform="translate(300, 450)">
+    <rect width="600" height="200" fill="#f59e0b" rx="12" stroke="#d97706" stroke-width="3"/>
+    <text x="300" y="25" text-anchor="middle" class="env-header">External AI Services</text>
+    
+    <!-- OpenAI -->
+    <rect x="30" y="50" width="120" height="120" fill="#fbbf24" rx="8"/>
+    <text x="90" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">OpenAI</text>
+    <text x="90" y="95" text-anchor="middle" class="service-text" fill="white">• GPT-4o</text>
+    <text x="90" y="110" text-anchor="middle" class="service-text" fill="white">• o1 Model</text>
+    <text x="90" y="125" text-anchor="middle" class="service-text" fill="white">• Orchestrator</text>
+    <text x="90" y="140" text-anchor="middle" class="service-text" fill="white">• Analyst</text>
+    <text x="90" y="155" text-anchor="middle" class="service-text" fill="white">• Evaluator</text>
+    
+    <!-- Claude/Anthropic -->
+    <rect x="170" y="50" width="120" height="120" fill="#f59e0b" rx="8"/>
+    <text x="230" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Claude</text>
+    <text x="230" y="95" text-anchor="middle" class="service-text" fill="white">• Anthropic</text>
+    <text x="230" y="110" text-anchor="middle" class="service-text" fill="white">• Validator</text>
+    <text x="230" y="125" text-anchor="middle" class="service-text" fill="white">• Quality Control</text>
+    <text x="230" y="140" text-anchor="middle" class="service-text" fill="white">• Accuracy Check</text>
+    <text x="230" y="155" text-anchor="middle" class="service-text" fill="white">• Bias Detection</text>
+    
+    <!-- Perplexity -->
+    <rect x="310" y="50" width="120" height="120" fill="#d97706" rx="8"/>
+    <text x="370" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Perplexity</text>
+    <text x="370" y="95" text-anchor="middle" class="service-text" fill="white">• Research Agent</text>
+    <text x="370" y="110" text-anchor="middle" class="service-text" fill="white">• Web Search</text>
+    <text x="370" y="125" text-anchor="middle" class="service-text" fill="white">• Citations</text>
+    <text x="370" y="140" text-anchor="middle" class="service-text" fill="white">• Real-time Data</text>
+    <text x="370" y="155" text-anchor="middle" class="service-text" fill="white">• Source Validation</text>
+    
+    <!-- Google OAuth -->
+    <rect x="450" y="50" width="120" height="120" fill="#ea580c" rx="8"/>
+    <text x="510" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Google OAuth</text>
+    <text x="510" y="95" text-anchor="middle" class="service-text" fill="white">• Authentication</text>
+    <text x="510" y="110" text-anchor="middle" class="service-text" fill="white">• User Profiles</text>
+    <text x="510" y="125" text-anchor="middle" class="service-text" fill="white">• Secure Login</text>
+    <text x="510" y="140" text-anchor="middle" class="service-text" fill="white">• Token Management</text>
+    <text x="510" y="155" text-anchor="middle" class="service-text" fill="white">• Session Handling</text>
+  </g>
+  
+  <!-- CI/CD Pipeline -->
+  <g transform="translate(50, 680)">
+    <rect width="1100" height="120" fill="#8b5cf6" rx="12" stroke="#7c3aed" stroke-width="3"/>
+    <text x="550" y="25" text-anchor="middle" class="env-header">CI/CD Pipeline</text>
+    
+    <!-- GitHub Actions -->
+    <rect x="50" y="50" width="150" height="60" fill="#a78bfa" rx="8"/>
+    <text x="125" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">GitHub Actions</text>
+    <text x="125" y="90" text-anchor="middle" class="service-text" fill="white">• Automated Testing</text>
+    <text x="125" y="105" text-anchor="middle" class="service-text" fill="white">• Build Pipeline</text>
+    
+    <!-- Testing -->
+    <rect x="220" y="50" width="150" height="60" fill="#9333ea" rx="8"/>
+    <text x="295" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Testing</text>
+    <text x="295" y="90" text-anchor="middle" class="service-text" fill="white">• Unit Tests</text>
+    <text x="295" y="105" text-anchor="middle" class="service-text" fill="white">• Integration Tests</text>
+    
+    <!-- Build -->
+    <rect x="390" y="50" width="150" height="60" fill="#7c3aed" rx="8"/>
+    <text x="465" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Build</text>
+    <text x="465" y="90" text-anchor="middle" class="service-text" fill="white">• TypeScript Compile</text>
+    <text x="465" y="105" text-anchor="middle" class="service-text" fill="white">• Asset Bundling</text>
+    
+    <!-- Deploy -->
+    <rect x="560" y="50" width="150" height="60" fill="#6d28d9" rx="8"/>
+    <text x="635" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Deploy</text>
+    <text x="635" y="90" text-anchor="middle" class="service-text" fill="white">• Production Deploy</text>
+    <text x="635" y="105" text-anchor="middle" class="service-text" fill="white">• Environment Config</text>
+    
+    <!-- Monitoring -->
+    <rect x="730" y="50" width="150" height="60" fill="#581c87" rx="8"/>
+    <text x="805" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Monitoring</text>
+    <text x="805" y="90" text-anchor="middle" class="service-text" fill="white">• Health Checks</text>
+    <text x="805" y="105" text-anchor="middle" class="service-text" fill="white">• Performance</text>
+    
+    <!-- Rollback -->
+    <rect x="900" y="50" width="150" height="60" fill="#4c1d95" rx="8"/>
+    <text x="975" y="75" text-anchor="middle" class="component-text" fill="white" font-weight="bold">Rollback</text>
+    <text x="975" y="90" text-anchor="middle" class="service-text" fill="white">• Automated Rollback</text>
+    <text x="975" y="105" text-anchor="middle" class="service-text" fill="white">• Version Control</text>
+  </g>
+  
+  <!-- Connection Lines -->
+  <!-- Frontend to Backend -->
+  <path d="M 270 170 L 310 170" class="connection-line" marker-end="url(#arrow)"/>
+  
+  <!-- Backend to Database -->
+  <path d="M 360 270 L 220 270" class="connection-line" marker-end="url(#arrow)"/>
+  
+  <!-- Backend to External Services -->
+  <path d="M 360 320 L 360 450" class="connection-line" marker-end="url(#arrow-orange)"/>
+  
+  <!-- Dev to Prod -->
+  <path d="M 650 245 L 550 245" class="connection-line" marker-end="url(#arrow)" stroke-dasharray="5,5"/>
+  
+  <!-- CI/CD Flow -->
+  <path d="M 125 680 L 295 680" class="connection-line" marker-end="url(#arrow)"/>
+  <path d="M 295 680 L 465 680" class="connection-line" marker-end="url(#arrow)"/>
+  <path d="M 465 680 L 635 680" class="connection-line" marker-end="url(#arrow)"/>
+  <path d="M 635 680 L 805 680" class="connection-line" marker-end="url(#arrow)"/>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 830)">
+    <text x="0" y="0" fill="#1e293b" font-family="Arial, sans-serif" font-size="14" font-weight="bold">Legend:</text>
+    <path d="M 80 -5 L 120 -5" class="connection-line" marker-end="url(#arrow)"/>
+    <text x="130" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Production Flow</text>
+    
+    <path d="M 250 -5 L 290 -5" class="connection-line" marker-end="url(#arrow-orange)"/>
+    <text x="300" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">External API Calls</text>
+    
+    <path d="M 450 -5 L 490 -5" class="connection-line" marker-end="url(#arrow)" stroke-dasharray="5,5"/>
+    <text x="500" y="0" fill="#374151" font-family="Arial, sans-serif" font-size="12">Development to Production</text>
+  </g>
+</svg>

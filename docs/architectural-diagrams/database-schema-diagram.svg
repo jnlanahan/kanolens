@@ -1,0 +1,205 @@
+<svg viewBox="0 0 1400 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .table-header { fill: #2563eb; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .table-name { fill: white; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+      .field-text { fill: #374151; font-family: Arial, sans-serif; font-size: 12px; }
+      .pk-field { fill: #dc2626; font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; }
+      .fk-field { fill: #059669; font-family: Arial, sans-serif; font-size: 12px; font-style: italic; }
+      .relationship-line { stroke: #6b7280; stroke-width: 2; fill: none; }
+      .relationship-arrow { fill: #6b7280; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" class="relationship-arrow"/>
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1400" height="1000" fill="#f9fafb"/>
+  
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" class="table-header" font-size="24">KanoLens Database Schema</text>
+  
+  <!-- Users Table -->
+  <g transform="translate(50, 80)">
+    <rect width="280" height="320" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">users</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="field-text">email (UNIQUE)</text>
+    <text x="10" y="100" class="field-text">password</text>
+    <text x="10" y="120" class="field-text">authProvider</text>
+    <text x="10" y="140" class="field-text">emailVerified</text>
+    <text x="10" y="160" class="field-text">firstName</text>
+    <text x="10" y="180" class="field-text">lastName</text>
+    <text x="10" y="200" class="field-text">profileImageUrl</text>
+    <text x="10" y="220" class="field-text">analysisCount</text>
+    <text x="10" y="240" class="field-text">maxAnalyses</text>
+    <text x="10" y="260" class="field-text">lastLogin</text>
+    <text x="10" y="280" class="field-text">createdAt</text>
+    <text x="10" y="300" class="field-text">updatedAt</text>
+  </g>
+  
+  <!-- Analysis Sessions Table -->
+  <g transform="translate(400, 80)">
+    <rect width="300" height="280" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="300" height="40" fill="#2563eb" rx="8"/>
+    <rect width="300" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="150" y="25" text-anchor="middle" class="table-name">analysis_sessions</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="fk-field">userId (FK → users.id)</text>
+    <text x="10" y="100" class="field-text">title</text>
+    <text x="10" y="120" class="field-text">products (JSONB)</text>
+    <text x="10" y="140" class="field-text">targetCustomer</text>
+    <text x="10" y="160" class="field-text">features (JSONB)</text>
+    <text x="10" y="180" class="field-text">status</text>
+    <text x="10" y="200" class="field-text">currentStep</text>
+    <text x="10" y="220" class="field-text">chatHistory (JSONB)</text>
+    <text x="10" y="240" class="field-text">tableData (JSONB)</text>
+    <text x="10" y="260" class="field-text">sourceDocumentation (JSONB)</text>
+  </g>
+  
+  <!-- Chat Messages Table -->
+  <g transform="translate(750, 80)">
+    <rect width="280" height="180" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">chat_messages</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="fk-field">sessionId (FK → analysis_sessions.id)</text>
+    <text x="10" y="100" class="field-text">role</text>
+    <text x="10" y="120" class="field-text">content</text>
+    <text x="10" y="140" class="field-text">metadata (JSONB)</text>
+    <text x="10" y="160" class="field-text">createdAt</text>
+  </g>
+  
+  <!-- Documents Table -->
+  <g transform="translate(1070, 80)">
+    <rect width="280" height="200" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">documents</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="fk-field">sessionId (FK → analysis_sessions.id)</text>
+    <text x="10" y="100" class="field-text">fileName</text>
+    <text x="10" y="120" class="field-text">fileType</text>
+    <text x="10" y="140" class="field-text">fileSize</text>
+    <text x="10" y="160" class="field-text">content</text>
+    <text x="10" y="180" class="field-text">uploadedAt</text>
+  </g>
+  
+  <!-- Agent Evaluations Table -->
+  <g transform="translate(50, 450)">
+    <rect width="280" height="200" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">agent_evaluations</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="fk-field">sessionId (FK → analysis_sessions.id)</text>
+    <text x="10" y="100" class="field-text">agentName</text>
+    <text x="10" y="120" class="field-text">inputData (JSONB)</text>
+    <text x="10" y="140" class="field-text">outputData (JSONB)</text>
+    <text x="10" y="160" class="field-text">evaluation (JSONB)</text>
+    <text x="10" y="180" class="field-text">promptVersion</text>
+  </g>
+  
+  <!-- User Feedback Table -->
+  <g transform="translate(400, 450)">
+    <rect width="280" height="200" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">user_feedback</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="fk-field">userId (FK → users.id)</text>
+    <text x="10" y="100" class="fk-field">sessionId (FK → analysis_sessions.id)</text>
+    <text x="10" y="120" class="fk-field">messageId (FK → chat_messages.id)</text>
+    <text x="10" y="140" class="field-text">feedbackType</text>
+    <text x="10" y="160" class="field-text">feedbackText</text>
+    <text x="10" y="180" class="field-text">context (JSONB)</text>
+  </g>
+  
+  <!-- Shared Analyses Table -->
+  <g transform="translate(750, 320)">
+    <rect width="280" height="240" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">shared_analyses</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="field-text">shareId (UNIQUE)</text>
+    <text x="10" y="100" class="fk-field">sessionId (FK → analysis_sessions.id)</text>
+    <text x="10" y="120" class="fk-field">userId (FK → users.id)</text>
+    <text x="10" y="140" class="field-text">title</text>
+    <text x="10" y="160" class="field-text">products (JSONB)</text>
+    <text x="10" y="180" class="field-text">targetCustomer</text>
+    <text x="10" y="200" class="field-text">tableData (JSONB)</text>
+    <text x="10" y="220" class="field-text">expiresAt</text>
+  </g>
+  
+  <!-- Password Reset Tokens Table -->
+  <g transform="translate(1070, 320)">
+    <rect width="280" height="160" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">password_reset_tokens</text>
+    <text x="10" y="60" class="pk-field">id (PK)</text>
+    <text x="10" y="80" class="fk-field">userId (FK → users.id)</text>
+    <text x="10" y="100" class="field-text">token (UNIQUE)</text>
+    <text x="10" y="120" class="field-text">expiresAt</text>
+    <text x="10" y="140" class="field-text">createdAt</text>
+  </g>
+  
+  <!-- Sessions Table -->
+  <g transform="translate(400, 720)">
+    <rect width="280" height="140" fill="white" stroke="#e5e7eb" stroke-width="2" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="8"/>
+    <rect width="280" height="40" fill="#2563eb" rx="0 0 8 8"/>
+    <text x="140" y="25" text-anchor="middle" class="table-name">sessions</text>
+    <text x="10" y="60" class="pk-field">sid (PK)</text>
+    <text x="10" y="80" class="field-text">sess (JSONB)</text>
+    <text x="10" y="100" class="field-text">expire</text>
+    <text x="10" y="120" class="field-text">IDX_session_expire</text>
+  </g>
+  
+  <!-- Relationships -->
+  <!-- Users to Analysis Sessions -->
+  <path d="M 330 200 L 400 200" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Analysis Sessions to Chat Messages -->
+  <path d="M 700 180 L 750 180" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Analysis Sessions to Documents -->
+  <path d="M 700 160 L 1070 160" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Analysis Sessions to Agent Evaluations -->
+  <path d="M 550 360 L 550 450 L 190 450" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Users to User Feedback -->
+  <path d="M 190 400 L 190 450 L 400 450" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Analysis Sessions to User Feedback -->
+  <path d="M 550 360 L 550 520" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Chat Messages to User Feedback -->
+  <path d="M 890 260 L 890 300 L 540 300 L 540 450" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Users to Shared Analyses -->
+  <path d="M 330 240 L 750 240 L 750 360" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Analysis Sessions to Shared Analyses -->
+  <path d="M 700 240 L 750 240 L 750 360" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Users to Password Reset Tokens -->
+  <path d="M 330 160 L 1070 160 L 1070 360" class="relationship-line" marker-end="url(#arrow)"/>
+  
+  <!-- Legend -->
+  <g transform="translate(50, 900)">
+    <text x="0" y="0" class="table-header" font-size="16">Legend:</text>
+    <rect x="0" y="10" width="20" height="15" fill="#dc2626"/>
+    <text x="30" y="22" class="field-text">Primary Key (PK)</text>
+    <rect x="150" y="10" width="20" height="15" fill="#059669"/>
+    <text x="180" y="22" class="field-text">Foreign Key (FK)</text>
+    <line x1="300" y1="17" x2="340" y2="17" class="relationship-line" marker-end="url(#arrow)"/>
+    <text x="350" y="22" class="field-text">Relationship</text>
+  </g>
+</svg>
