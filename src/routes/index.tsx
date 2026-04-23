@@ -3,12 +3,16 @@ import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useCurrentUser } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   component: Landing,
 });
 
 function Landing() {
+  const me = useCurrentUser();
+  const ctaHref = me.data ? "/new" : "/api/auth/google";
+
   return (
     <div className="container py-16 md:py-24">
       <section className="mx-auto max-w-3xl text-center space-y-6">
@@ -23,18 +27,26 @@ function Landing() {
           comparison — Must-Haves, Performance Benefits, Delighters — in under a minute.
         </p>
         <div className="pt-2">
-          <Button asChild size="lg" variant="brand">
-            <Link to="/">
-              Start an analysis <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          {me.data ? (
+            <Button asChild size="lg" variant="brand">
+              <Link to="/new">
+                Start an analysis <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild size="lg" variant="brand">
+              <a href={ctaHref}>
+                Sign in to start <ArrowRight className="h-4 w-4" />
+              </a>
+            </Button>
+          )}
         </div>
       </section>
 
       <section className="mt-20 grid gap-4 md:grid-cols-3">
         <FeatureCard
           title="Cited, not guessed"
-          body="Every Yes/Maybe/No carries a source URL and access date. Unsupported claims are marked Cannot Verify."
+          body="Every Yes/Maybe/No carries a source URL. Unsupported claims are marked Cannot Verify."
         />
         <FeatureCard
           title="Benefits over features"

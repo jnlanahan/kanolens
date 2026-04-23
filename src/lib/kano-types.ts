@@ -28,6 +28,7 @@ export interface KanoTableData {
   ratings: Record<string, Record<string, Rating>>;
   justifications?: Record<string, Record<string, string>>;
   sources: Record<string, string[]>;
+  summary?: string;
 }
 
 export const CATEGORY_ORDER: KanoCategory[] = ["must-have", "performance", "delighter"];
