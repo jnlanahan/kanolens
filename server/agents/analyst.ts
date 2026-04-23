@@ -6,7 +6,7 @@ import { buildAnalystKickoff, buildSystemBlocks } from "./prompts";
 import { verifySource } from "./verifier";
 
 export interface AnalystScope {
-  userProductName: string;
+  userProductName: string | null;
   products: string[];
   targetCustomer: string;
   features: {
@@ -208,7 +208,7 @@ async function handleUpsert(args: {
         const v = await verifySource({
           claim: s.claim,
           url: s.url,
-          product: scope.userProductName,
+          product: scope.userProductName ?? "(market analysis)",
         });
         return { url: s.url, ...v };
       } catch {
@@ -221,7 +221,10 @@ async function handleUpsert(args: {
 
   const ratings: Record<string, string> = {};
   const justifications: Record<string, string> = {};
-  for (const product of scope.products.concat(scope.userProductName)) {
+  const allProducts = scope.userProductName
+    ? [...scope.products, scope.userProductName]
+    : scope.products;
+  for (const product of allProducts) {
     const row = input.per_product[product];
     if (!row) {
       ratings[product] = "Cannot Verify";

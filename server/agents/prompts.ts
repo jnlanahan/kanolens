@@ -47,21 +47,26 @@ export function buildSystemBlocks(): Anthropic.TextBlockParam[] {
 }
 
 export interface ScopeProposalContext {
-  userProductName?: string;
+  userProductName?: string | null;
   userProductDescription: string;
   targetCustomerHint?: string;
   competitorHints?: string[];
 }
 
 export function buildScopeProposalPrompt(ctx: ScopeProposalContext): string {
-  return `The user has submitted the following context. Propose an initial analysis scope.
+  const hasUserProduct = Boolean(ctx.userProductName && ctx.userProductName.trim().length > 0);
+  const framing = hasUserProduct
+    ? `The user is analyzing how their own product stacks up against competitors. Propose a scope that compares their product against 3 to 5 competitors.`
+    : `The user does NOT yet have their own product — they are scoping a market/opportunity. Propose a scope that compares 3 to 5 leading products in the space (no "user's own product" column). Their description below describes the market, problem space, or opportunity — not a specific existing product.`;
+
+  return `${framing}
 
 <user_input>
-${ctx.userProductName ? `<product_name>${ctx.userProductName}</product_name>\n` : ""}<product_description>${ctx.userProductDescription}</product_description>
+${hasUserProduct ? `<product_name>${ctx.userProductName}</product_name>\n` : "<no_existing_product />\n"}<description>${ctx.userProductDescription}</description>
 ${ctx.targetCustomerHint ? `<target_customer>${ctx.targetCustomerHint}</target_customer>\n` : ""}${ctx.competitorHints?.length ? `<competitor_hints>${ctx.competitorHints.join(", ")}</competitor_hints>\n` : ""}</user_input>
 
 Return a proposed scope with:
-- 3 to 5 directly comparable competitor products (include emerging alternatives)
+- 3 to 5 directly comparable products (include emerging alternatives)
 - 8 to 12 features/benefits spanning all three Kano categories
 - The target customer segment (infer if not given)
 
@@ -71,16 +76,23 @@ You are NOT building the full table yet. This is just the scope for user review.
 }
 
 export function buildAnalystKickoff(scope: {
-  userProductName: string;
+  userProductName: string | null;
   products: string[];
   features: { id: string; name: string; description: string; customerBenefit: string; category: string }[];
   targetCustomer: string;
 }): string {
+  const userColumn = scope.userProductName
+    ? `<user_product>${scope.userProductName}</user_product>`
+    : `<no_user_product note="This analysis is market-scoping only. Do NOT include a user-product column in the table." />`;
+  const productsList = scope.userProductName
+    ? [...scope.products, scope.userProductName]
+    : scope.products;
+
   return `Build the Kano Model competitive analysis table for this scope.
 
 <scope>
-<user_product>${scope.userProductName}</user_product>
-<products>${scope.products.join(" | ")}</products>
+${userColumn}
+<products_to_rate>${productsList.join(" | ")}</products_to_rate>
 <target_customer>${scope.targetCustomer}</target_customer>
 <features>
 ${scope.features.map((f) => `<feature id="${f.id}" category="${f.category}"><name>${f.name}</name><benefit>${f.customerBenefit}</benefit><desc>${f.description}</desc></feature>`).join("\n")}
@@ -88,12 +100,13 @@ ${scope.features.map((f) => `<feature id="${f.id}" category="${f.category}"><nam
 </scope>
 
 Workflow:
-1. For each feature/benefit, research every product in <products> against it using web_search and web_fetch on primary sources only (see House Rules §5).
+1. For each feature/benefit, research every product in <products_to_rate> against it using web_search and web_fetch on primary sources only (see House Rules §5).
 2. As you finish researching each feature/benefit, call the upsert_feature_row tool with the ratings, justifications, and sources. Do NOT batch — call it one feature at a time so the user sees live progress.
 3. After all features have been upserted, call finalize_table with a one-paragraph summary of the analysis.
 
 Remember:
 - Every rating must cite a source URL + access date, or be "Cannot Verify".
 - Describe customer benefits, not raw features.
-- Performance Benefits take High/Medium/Low ratings; Must-Haves and Delighters take Yes/Maybe/No/Cannot Verify.`;
+- Performance Benefits take High/Medium/Low ratings; Must-Haves and Delighters take Yes/Maybe/No/Cannot Verify.
+${scope.userProductName ? "" : "- Do NOT include a column for the user's product — they don't have one yet.\n"}`;
 }

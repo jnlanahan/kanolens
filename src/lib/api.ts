@@ -26,7 +26,7 @@ export interface ApiScopeFeature {
 }
 
 export interface ApiScope {
-  userProductName: string;
+  userProductName: string | null;
   userProductDescription: string;
   targetCustomer: string;
   products: string[];
@@ -45,6 +45,18 @@ export interface ApiAnalysis {
 class ApiError extends Error {
   constructor(public readonly status: number, message: string, public readonly detail?: unknown) {
     super(message);
+  }
+
+  get detailMessage(): string {
+    if (this.detail && typeof this.detail === "object" && "message" in this.detail) {
+      const m = (this.detail as { message?: unknown }).message;
+      if (typeof m === "string" && m.length > 0) return m;
+    }
+    if (this.detail && typeof this.detail === "object" && "error" in this.detail) {
+      const e = (this.detail as { error?: unknown }).error;
+      if (typeof e === "string" && e.length > 0) return e;
+    }
+    return this.message;
   }
 }
 
@@ -88,7 +100,7 @@ export const api = {
     request<{ ok: true }>(`/api/sessions/${id}`, { method: "DELETE" }),
 
   proposeScope: (id: string, body: {
-    userProductName: string;
+    userProductName?: string | null;
     userProductDescription: string;
     targetCustomerHint?: string;
     competitorHints?: string[];
