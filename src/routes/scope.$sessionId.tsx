@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { api, type ApiScope, type ApiScopeFeature } from "@/lib/api";
+import { ApiError, api, type ApiScope, type ApiScopeFeature } from "@/lib/api";
 import type { KanoCategory } from "@/lib/kano-types";
 
 export const Route = createFileRoute("/scope/$sessionId")({
@@ -53,7 +53,11 @@ function ScopeReview() {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       navigate({ to: "/run/$sessionId", params: { sessionId } });
     },
-    onError: (err) => toast.error("Couldn't start analysis", { description: String(err) }),
+    onError: (err) => {
+      const description =
+        err instanceof ApiError ? err.detailMessage : err instanceof Error ? err.message : String(err);
+      toast.error("Couldn't start analysis", { description });
+    },
   });
 
   if (sessionQuery.isLoading || !scope) {
@@ -87,15 +91,38 @@ function ScopeReview() {
       </header>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Your product</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">
+            {scope.userProductName === null ? "Market scope" : "Your product"}
+          </h2>
+          {scope.userProductName === null ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => update((s) => ({ ...s, userProductName: "My product" }))}
+            >
+              Add my product to this analysis
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => update((s) => ({ ...s, userProductName: null }))}
+            >
+              Remove my product
+            </Button>
+          )}
+        </div>
         <Card className="p-4 space-y-3">
-          <div className="space-y-1.5">
-            <Label>Name</Label>
-            <Input
-              value={scope.userProductName}
-              onChange={(e) => update((s) => ({ ...s, userProductName: e.target.value }))}
-            />
-          </div>
+          {scope.userProductName !== null ? (
+            <div className="space-y-1.5">
+              <Label>Name</Label>
+              <Input
+                value={scope.userProductName}
+                onChange={(e) => update((s) => ({ ...s, userProductName: e.target.value }))}
+              />
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             <Label>Target customer</Label>
             <Input

@@ -97,11 +97,11 @@ function StatusLine({
 
 function buildTableFromEvents(
   events: StreamEvent[],
-  scope: { products: string[]; userProductName: string; features: KanoFeature[] } | null | undefined,
+  scope: { products: string[]; userProductName: string | null; features: KanoFeature[] } | null | undefined,
 ): { table: KanoTableData | undefined; statusText: string } {
   if (!scope) return { table: undefined, statusText: "Connecting…" };
 
-  const products = [...scope.products, scope.userProductName];
+  const products = scope.userProductName ? [...scope.products, scope.userProductName] : [...scope.products];
   const featuresOrdered: KanoFeature[] = [];
   const ratings: Record<string, Record<string, Rating>> = {};
   const justifications: Record<string, Record<string, string>> = {};

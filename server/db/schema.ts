@@ -44,7 +44,7 @@ export const sessions = pgTable(
 );
 
 export interface ScopeJson {
-  userProductName: string;
+  userProductName: string | null;
   userProductDescription: string;
   targetCustomer: string;
   products: string[];

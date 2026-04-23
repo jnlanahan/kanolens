@@ -8,13 +8,14 @@ import { clearStream, publish, subscribe } from "../agents/event-bus";
 import { proposeScope } from "../agents/scope-proposer";
 import { getDb, schema } from "../db/client";
 import type { ScopeJson, SourcesJson, TableJson } from "../db/schema";
+import { mapAnthropicError } from "../lib/anthropic-errors";
 import { streamAnalysisSSE } from "../lib/sse";
 import { requireUser, type AuthContext } from "./auth";
 
 export const analysisRoutes = new Hono<AuthContext>();
 
 const ScopeInputBody = z.object({
-  userProductName: z.string().trim().min(1).max(100),
+  userProductName: z.string().trim().max(100).nullish(),
   userProductDescription: z.string().trim().min(10).max(4000),
   targetCustomerHint: z.string().trim().max(400).optional(),
   competitorHints: z.array(z.string().trim().min(1)).max(10).optional(),
@@ -29,7 +30,7 @@ const FeatureSchema = z.object({
 });
 
 const ScopeEditBody = z.object({
-  userProductName: z.string().trim().min(1),
+  userProductName: z.string().trim().nullable(),
   userProductDescription: z.string().trim().min(1),
   targetCustomer: z.string().trim().min(1),
   products: z.array(z.string().trim().min(1)).min(1).max(10),
@@ -75,9 +76,15 @@ analysisRoutes.post("/:id/scope", async (c) => {
   await db.update(schema.sessions).set({ status: "scoping" }).where(eq(schema.sessions.id, id));
 
   try {
-    const proposal = await proposeScope(parsed.data);
+    const name = parsed.data.userProductName?.trim() ? parsed.data.userProductName.trim() : null;
+    const proposal = await proposeScope({
+      userProductName: name ?? undefined,
+      userProductDescription: parsed.data.userProductDescription,
+      targetCustomerHint: parsed.data.targetCustomerHint,
+      competitorHints: parsed.data.competitorHints,
+    });
     const scopeJson: ScopeJson = {
-      userProductName: parsed.data.userProductName,
+      userProductName: name,
       userProductDescription: parsed.data.userProductDescription,
       targetCustomer: proposal.targetCustomer,
       products: proposal.products,
@@ -90,15 +97,23 @@ analysisRoutes.post("/:id/scope", async (c) => {
       .where(eq(schema.analyses.sessionId, id));
     await db
       .update(schema.sessions)
-      .set({ status: "scoped", title: titleFor(parsed.data.userProductName) })
+      .set({ status: "scoped", title: titleFor(name) })
       .where(eq(schema.sessions.id, id));
     return c.json({ scope: scopeJson });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    console.error("[scope-proposer] failed:", error);
+    const mapped = mapAnthropicError(error);
+    const message = mapped?.userMessage ?? (error instanceof Error ? error.message : String(error));
     await db
       .update(schema.sessions)
       .set({ status: "error", errorMessage: message })
       .where(eq(schema.sessions.id, id));
+    if (mapped) {
+      return c.json(
+        { error: mapped.code, message: mapped.userMessage, detail: mapped.raw },
+        mapped.status as 400 | 401 | 402 | 403 | 429 | 500 | 503,
+      );
+    }
     return c.json({ error: "scope_proposal_failed", message }, 500);
   }
 });
@@ -144,7 +159,9 @@ analysisRoutes.post("/:id/start", async (c) => {
   publish(id, { type: "status", status: "queued" });
 
   const scope = analysis.scope;
-  const fullProducts = [...scope.products, scope.userProductName];
+  const fullProducts = scope.userProductName
+    ? [...scope.products, scope.userProductName]
+    : scope.products;
   const rowsCollected = new Map<
     string,
     {
@@ -222,6 +239,6 @@ analysisRoutes.get("/:id/stream", async (c) => {
   return streamAnalysisSSE(c, loaded.id);
 });
 
-function titleFor(userProductName: string): string {
-  return `${userProductName} vs. competitors`;
+function titleFor(userProductName: string | null): string {
+  return userProductName ? `${userProductName} vs. competitors` : "Market scan";
 }
