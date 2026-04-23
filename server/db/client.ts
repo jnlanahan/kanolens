@@ -16,7 +16,6 @@ type Db = DbPg | DbPglite;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BOOTSTRAP_SQL = fs.readFileSync(path.join(__dirname, "bootstrap.sql"), "utf8");
-const PGLITE_PATH = path.resolve(__dirname, "../../.data/pglite");
 
 let db: Db | null = null;
 let pgClient: postgres.Sql | null = null;
@@ -29,14 +28,16 @@ export async function getDbAsync(): Promise<Db> {
     db = drizzlePg(pgClient, { schema });
     console.log("[db] connected to Postgres");
   } else {
-    fs.mkdirSync(path.dirname(PGLITE_PATH), { recursive: true });
-    pgliteClient = new PGlite(PGLITE_PATH);
+    // In-memory pglite: no persistence across restarts, but no file-level
+    // corruption possible from interrupted writes (real issue on Windows).
+    // Set DATABASE_URL for a persistent Postgres.
+    pgliteClient = new PGlite();
     await pgliteClient.waitReady;
     await pgliteClient.exec(BOOTSTRAP_SQL);
     db = drizzlePglite(pgliteClient, { schema });
     console.warn(
-      `[db] DATABASE_URL not set — using pglite at ${PGLITE_PATH}. ` +
-        `Suitable for local dev only; set DATABASE_URL for real Postgres.`,
+      "[db] DATABASE_URL not set — using in-memory pglite. " +
+        "State resets on every restart. Set DATABASE_URL for persistent Postgres.",
     );
   }
   return db;
