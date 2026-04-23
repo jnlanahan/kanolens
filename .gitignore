@@ -1,22 +1,33 @@
+# deps
 node_modules
-dist
-.DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+.pnp
+.pnp.js
 
-# Environment variables
+# build
+dist
+build
+.vite
+.turbo
+
+# env
 .env
 .env.local
-.env.production
+.env.*.local
 
-# IDE
-.vscode
+# generated
+src/routeTree.gen.ts
+drizzle/meta
+coverage
+
+# editor / os
+.DS_Store
+Thumbs.db
+*.log
 .idea
 
-# Logs
-*.log
-npm-debug.log*
+# rebuild staging (local-only; files get ported then directory can be removed)
+.preserve
 
-# OS files
-Thumbs.db
+# test artifacts
+playwright-report
+test-results
