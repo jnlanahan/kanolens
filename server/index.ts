@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
+import { getDbAsync } from "./db/client";
 import { env } from "./env";
 import type { AuthContext } from "./routes/auth";
 import { authRoutes } from "./routes/auth";
@@ -42,6 +43,14 @@ app.onError((err, c) => {
   return c.json({ error: "internal server error" }, 500);
 });
 
-serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  console.log(`[kanolens] api listening on http://localhost:${info.port}`);
+async function bootstrap() {
+  await getDbAsync();
+  serve({ fetch: app.fetch, port: env.PORT }, (info) => {
+    console.log(`[kanolens] api listening on http://localhost:${info.port}`);
+  });
+}
+
+bootstrap().catch((err) => {
+  console.error("[kanolens] failed to start:", err);
+  process.exit(1);
 });

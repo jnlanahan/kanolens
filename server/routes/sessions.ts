@@ -90,7 +90,7 @@ sessionRoutes.delete("/:id", async (c) => {
   const result = await db
     .delete(schema.sessions)
     .where(and(eq(schema.sessions.id, id), eq(schema.sessions.userId, user.id)))
-    .returning({ id: schema.sessions.id });
+    .returning();
   if (result.length === 0) return c.json({ error: "not_found" }, 404);
   return c.json({ ok: true });
 });

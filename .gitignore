@@ -28,6 +28,9 @@ Thumbs.db
 # rebuild staging (local-only; files get ported then directory can be removed)
 .preserve
 
+# pglite dev data (auto-created when DATABASE_URL is unset)
+.data
+
 # test artifacts
 playwright-report
 test-results
