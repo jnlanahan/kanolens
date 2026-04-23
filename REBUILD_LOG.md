@@ -124,8 +124,15 @@ A cheap Haiku 4.5 sub-call handles per-citation source verification (`verified |
 - [x] **Phase 0.c** — Scaffold fresh stack (package.json, configs, index.html, shadcn primitives, ported KanoTable, Hono skeleton). `npm run check` clean, Vite on :5173 and Hono on :3001 both boot.
 - [x] **Phase 1** — Agent system built: `server/agents/prompts.ts` (methodology as cached system block), `verifier.ts` (Haiku source check), `scope-proposer.ts` (Sonnet + structured output via zod), `analyst.ts` (Sonnet streaming loop with 3 tools: `web_search_20250305`, custom `upsert_feature_row`, custom `finalize_table`), `event-bus.ts` (in-memory SSE event fanout). 8 vitest tests pass, including an end-to-end analyst loop test with mocked Claude. Design choices: 2-phase (scope → analyst) instead of one loop with pause; verifier runs inside `upsert_feature_row` tool handler, all-cannot-verify sources downgrade ratings automatically; `web_search` uses the standard (non-dynamic) variant since we only need search, not in-browser filtering.
 - [x] **Phase 2** — Backend plumbing complete: 3-table Drizzle schema (`users`, `sessions`, `analyses`), Postgres client via `postgres-js`, JWT auth via `jose` in HTTP-only cookie, `/api/auth/google` + `/api/auth/google/callback` + `/api/auth/dev` (dev-only bypass) + `/api/auth/logout` + `/api/auth/me`, session CRUD at `/api/sessions`, and the full analysis flow at `/api/analysis/:id/{scope,start,stream}`. SSE endpoint drains `event-bus` with 15s heartbeats. `npm run check` clean, Hono boots on `:3001`, `/api/sessions` returns 401 without auth cookie. **Migration not yet run against a live Postgres** — see Running below for `npm run db:push`.
-- [ ] **Phase 3** — Frontend wizard (`/`, `/new`, `/scope/:id`, `/run/:id`, `/report/:id`) with ported KanoTable rendering streamed rows  ← **YOU ARE HERE**
-- [ ] **Phase 4** — Polish (loading/error/empty states, a11y, responsive, Playwright e2e against mocked Anthropic SSE)
+- [x] **Phase 3** — Frontend wizard complete. Routes: `/`, `/dashboard`, `/new`, `/scope/:sessionId`, `/run/:sessionId`, `/report/:sessionId`. Auto dev-login on first load, inline full-control scope editor (add/remove competitors + benefits, pill-picker for Kano category, autosaves on every edit), live SSE-driven KanoTable on `/run`, final report with citation modals on `/report`. Vite proxy routes `/api/*` → Hono on `:3001`. **`npm run dev` starts both servers concurrently and the full flow is walkable end-to-end.**
+- [ ] **Phase 4** — Polish (loading/error/empty states, a11y, responsive, Playwright e2e against mocked Anthropic SSE)  ← **YOU ARE HERE**
+
+### What still needs your hands before the app actually analyzes anything
+
+1. **Anthropic API key** — add `ANTHROPIC_API_KEY=sk-ant-...` to `.env`. Without it, `POST /api/analysis/:id/scope` will throw.
+2. **Test the full loop** — with the key in, spin up `npm run dev`, go to `/new`, submit a product, and watch rows stream in. Real money gets spent here (~$0.20–0.50 per full analysis with Sonnet 4.6 + Haiku verifier).
+3. (Optional, later) **Real Postgres** — when you want persistence beyond local dev, set `DATABASE_URL` and run `npm run db:push`. The pglite store at `.data/pglite/` is gitignored and local-only.
+4. (Optional, later) **Google OAuth** — fill in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` and point Google Cloud's redirect URI at `http://localhost:3001/api/auth/google/callback` to enable real sign-in. Until then, dev-login handles local auth.
 
 ---
 
