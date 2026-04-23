@@ -2,21 +2,21 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { jwtAuthMiddleware } from "../middleware/jwt-auth";
+import { sessionCacheMiddleware } from "../middleware/session-cache";
 import { conductCompetitiveResearch, generateKanoTable } from "../openai";
 import { ANALYSIS_STEPS, ANALYSIS_STATUS } from "@shared/schema";
 import { orchestratorAgent } from "../agents/orchestrator";
+import { validatorAgent } from "../agents/validator";
+import { analystAgent } from "../agents/analyst";
+import { evaluatorAgent } from "../agents/evaluator";
 import { titleGeneratorService } from "../services/title-generator";
 
 export function setupAnalysisRoutes(app: Express): void {
   // Research endpoint for manual research triggering
-  app.post('/api/analysis/sessions/:id/research', jwtAuthMiddleware, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/research', jwtAuthMiddleware, sessionCacheMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
-      const session = await storage.getAnalysisSession(sessionId);
-      
-      if (!session || session.userId !== req.user.id) {
-        return res.status(404).json({ message: "Session not found" });
-      }
+      const session = req.analysisSession; // Use cached session
 
       const { products, userProduct } = req.body;
       const research = await conductCompetitiveResearch(products, userProduct);
@@ -36,14 +36,10 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Table generation endpoint
-  app.post('/api/analysis/sessions/:id/generate-table', jwtAuthMiddleware, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/generate-table', jwtAuthMiddleware, sessionCacheMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
-      const session = await storage.getAnalysisSession(sessionId);
-      
-      if (!session || session.userId !== req.user.id) {
-        return res.status(404).json({ message: "Session not found" });
-      }
+      const session = req.analysisSession; // Use cached session
 
       const { features, products, userProduct } = req.body;
       const tableData = await generateKanoTable(features, products, userProduct);
@@ -63,14 +59,10 @@ export function setupAnalysisRoutes(app: Express): void {
   });
 
   // Regenerate analysis for existing session
-  app.post('/api/analysis/sessions/:id/regenerate', jwtAuthMiddleware, async (req: any, res) => {
+  app.post('/api/analysis/sessions/:id/regenerate', jwtAuthMiddleware, sessionCacheMiddleware, async (req: any, res) => {
     try {
       const sessionId = parseInt(req.params.id);
-      const session = await storage.getAnalysisSession(sessionId);
-      
-      if (!session || session.userId !== req.user.id) {
-        return res.status(404).json({ message: "Session not found" });
-      }
+      const session = req.analysisSession; // Use cached session
       
       console.log(`[Regenerate] Starting fresh analysis for session ${sessionId}`);
       
@@ -133,6 +125,79 @@ export function setupAnalysisRoutes(app: Express): void {
     } catch (error) {
       console.error("Regenerate analysis error:", error);
       res.status(500).json({ message: "Failed to regenerate analysis" });
+    }
+  });
+
+  // Test validator agent directly
+  app.post('/api/analysis/test-validator', jwtAuthMiddleware, async (req: any, res) => {
+    try {
+      const { researchData, targetCustomer } = req.body;
+      
+      console.log('[Test] Testing validator with research data');
+      
+      const result = await validatorAgent.validateResearch(researchData || {
+        products: [
+          {
+            name: 'Slack',
+            features: [
+              {
+                name: 'Messaging',
+                description: 'Real-time chat functionality',
+                benefit: 'Team communication',
+                implementationDetails: 'WebSocket-based messaging'
+              }
+            ]
+          }
+        ]
+      });
+      
+      res.json({
+        success: true,
+        result
+      });
+    } catch (error) {
+      console.error('[Test] Validator test failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  });
+
+  // Test orchestrator directly
+  app.post('/api/analysis/test-orchestrator', jwtAuthMiddleware, async (req: any, res) => {
+    try {
+      const { products, features, targetCustomer } = req.body;
+      
+      console.log('[Test] Testing orchestrator with:', { products, features, targetCustomer });
+      
+      const progressUpdates: any[] = [];
+      const progressCallback = async (update: any) => {
+        console.log('[Test] Progress update:', update);
+        progressUpdates.push(update);
+      };
+      
+      const result = await orchestratorAgent.coordinateFullAnalysis(
+        products,
+        features || ['Test Feature'],
+        targetCustomer || 'Test Customer',
+        progressCallback,
+        999 // test session ID
+      );
+      
+      res.json({
+        success: true,
+        result,
+        progressUpdates
+      });
+    } catch (error) {
+      console.error('[Test] Orchestrator test failed:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack
+      });
     }
   });
 

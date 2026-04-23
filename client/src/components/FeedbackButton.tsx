@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -14,7 +14,7 @@ interface FeedbackButtonProps {
   metadata?: any;
 }
 
-export function FeedbackButton({ sessionId, messageId, content, metadata }: FeedbackButtonProps) {
+export const FeedbackButton = React.memo(function FeedbackButton({ sessionId, messageId, content, metadata }: FeedbackButtonProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [feedbackType, setFeedbackType] = useState<'thumbs_up' | 'thumbs_down' | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
@@ -63,7 +63,7 @@ export function FeedbackButton({ sessionId, messageId, content, metadata }: Feed
     },
   });
 
-  const handleFeedback = (type: 'thumbs_up' | 'thumbs_down') => {
+  const handleFeedback = useCallback((type: 'thumbs_up' | 'thumbs_down') => {
     setFeedbackType(type);
     
     if (type === 'thumbs_up') {
@@ -73,16 +73,16 @@ export function FeedbackButton({ sessionId, messageId, content, metadata }: Feed
       // Show dialog for negative feedback to get details
       setShowFeedbackDialog(true);
     }
-  };
+  }, [feedbackMutation]);
 
-  const submitNegativeFeedback = () => {
+  const submitNegativeFeedback = useCallback(() => {
     if (feedbackType === 'thumbs_down') {
       feedbackMutation.mutate({
         feedbackType: 'thumbs_down',
         feedbackText: feedbackText.trim(),
       });
     }
-  };
+  }, [feedbackType, feedbackText, feedbackMutation]);
 
   if (hasSubmittedFeedback) {
     return (
@@ -151,4 +151,4 @@ export function FeedbackButton({ sessionId, messageId, content, metadata }: Feed
       </Dialog>
     </>
   );
-}
+});

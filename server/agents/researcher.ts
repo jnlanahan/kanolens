@@ -153,15 +153,14 @@ export class ResearcherAgent {
   }
 
   private async findCompetitorSuggestions(request: ResearchRequest): Promise<ProductSuggestion[]> {
-    // Apply intelligent input interpretation
-    const cleanProducts = this.interpretAndCleanProducts(request.products);
-    const searchQuery = `competitive products similar to ${cleanProducts.join(', ')} for ${request.targetCustomer} ${request.marketCategory || ''} 2024 alternatives competitors market analysis`;
+    // Let LLM handle intelligent interpretation through the search query design
+    const searchQuery = `Find competitive products and alternatives similar to ${request.products.join(', ')} for ${request.targetCustomer} in ${request.marketCategory || 'this market'} - include direct competitors, alternatives, and similar tools currently available in 2024`;
     
     try {
-      console.log(`[Researcher] Searching for competitor suggestions: ${searchQuery}`);
+      console.log(`[Researcher] Searching for competitor suggestions with intelligent query: ${searchQuery}`);
       const searchResults = await searchWithPerplexity(searchQuery, 'high');
       
-      // Parse search results to extract competitor suggestions
+      // Parse search results to extract competitor suggestions using LLM-style parsing
       const suggestions = this.parseCompetitorSuggestions(searchResults.content, request);
       
       console.log(`[Researcher] Found ${suggestions.length} competitor suggestions from real research`);
@@ -175,22 +174,22 @@ export class ResearcherAgent {
   }
 
   private async performComprehensiveResearch(request: ResearchRequest): Promise<ComprehensiveResearch> {
-    // Apply intelligent input interpretation
-    const cleanProducts = this.interpretAndCleanProducts(request.products);
-    const cleanFeatures = request.featuresToResearch ? this.interpretAndCleanFeatures(request.featuresToResearch) : [];
+    // Use raw product list - let LLM handle intelligent interpretation during research
+    const productsToResearch = request.products;
+    const featuresToResearch = request.featuresToResearch || [];
     
     // Phase 2: Track originally agreed features for preservation
-    const originalFeatures = request.originallyAgreedFeatures ? this.interpretAndCleanFeatures(request.originallyAgreedFeatures) : [];
+    const originalFeatures = request.originallyAgreedFeatures || [];
     console.log(`[Researcher] Original agreed features: ${originalFeatures.join(', ')}`);
     
     // Enhanced parallel processing with optimization
     parallelResearchOptimizer.reset();
     
     const products = await parallelResearchOptimizer.optimizeResearchFlow(
-      cleanProducts,
+      productsToResearch,
       (product: string) => this.researchSingleProduct(product, { 
         ...request, 
-        featuresToResearch: cleanFeatures,
+        featuresToResearch: featuresToResearch,
         originallyAgreedFeatures: originalFeatures 
       }),
       (progress: ResearchProgress) => {
@@ -248,36 +247,59 @@ export class ResearcherAgent {
   ): Promise<ComprehensiveResearch['products'][0]> {
     console.log(`[Researcher] Researching ${productName} for ${request.targetCustomer}`);
     
-    // Use EXACT approach that works manually - single targeted query
-    const kanoPrompt = `Give me a list of features/benefits of ${productName} and categorize them using these definitions:
+    // Enhanced intelligent Kano research prompt
+    const kanoPrompt = `Research and analyze ${productName} with sophisticated understanding and intelligent interpretation for a competitive analysis targeting ${request.targetCustomer}.
 
-FEATURE DEFINITION: A feature is a specific, identifiable characteristic or functionality of a product that provides value to the user and fulfills a need or solves a problem.
+INTELLIGENT RESEARCH REQUIREMENTS:
+Apply advanced reasoning to understand what the product actually offers, not just marketing claims. Focus on real, current capabilities and features.
 
-DESCRIPTION GUIDELINES:
-- Write in plain text that clearly explains what the feature does
-- Use the user's context (products: ${request.products}, role: ${request.targetCustomer}, industry context: ${request.marketCategory || 'general'}) to make descriptions relevant
-- Avoid generic marketing language
-- Keep descriptions 1-2 sentences, clear and concise
-- Focus on the actual functionality, not benefits
+FEATURE DEFINITION & QUALITY:
+A feature is a specific, identifiable capability or functionality that provides measurable value to users and solves real problems.
 
-FEATURE LIMITS & PRIORITY RULES:
-- MAXIMUM 50 features in the final Kano Model table
-- MANDATORY: 100% of user-approved features from initial conversation MUST be included
-- User-approved features take absolute priority in the top 50 selection
-- Never drop, replace, or modify originally user-approved features
-- Mark new research-discovered features with "*new research finding"
-- If user-approved + new features exceed 50, include ALL user-approved features first
-- Fill remaining slots (up to 50 total) with highest-value new research findings
-- Group similar features under broader benefit categories when space is limited
-- Prioritize features most relevant to: ${request.products}, ${request.targetCustomer}, ${request.marketCategory || 'general'}
+INTELLIGENT ANALYSIS GUIDELINES:
+- Research current 2024-2025 capabilities, not outdated information
+- Apply context awareness: products (${request.products.join(', ')}), target customers (${request.targetCustomer}), industry (${request.marketCategory || 'general business'})
+- Distinguish between actual features and marketing language
+- Focus on functionality that matters to ${request.targetCustomer} specifically
+- Include competitive differentiators and unique capabilities
+- Consider both obvious and subtle features that create value
 
-Must-Have Benefits of a Product: Aspects of a Product that customers require and expect in your Product. You cannot avoid adding these, and they should be a top priority if they are not already part of your Product.
+KANO MODEL CATEGORIZATION (Critical - Follow These Rules):
+Apply sophisticated understanding of customer psychology and satisfaction:
 
-Performance Benefits: Features that customers use to compare different options. The better you perform, the more satisfied customers become. These are features customers openly discuss and request.
+**Must-Have Features**: Basic expectations that cause DISSATISFACTION when missing but don't increase satisfaction when present
+- Core functionality users assume will exist
+- Industry standard capabilities
+- Basic user needs that competitors already fulfill
+- Missing these creates negative customer experience
 
-Delighter Benefits: Features that customers don't expect but create positive surprise and delight when discovered. These features can differentiate your product and create competitive advantage.
+**Performance Features**: Linear satisfaction - more/better implementation increases satisfaction proportionally
+- Measurable capabilities where quantity/quality directly impacts value
+- Features customers actively compare between products
+- Speed, capacity, accuracy, efficiency metrics
+- Areas where "better" clearly means "more satisfying"
 
-Focus on current 2024-2025 features and capabilities. Target customer: ${request.targetCustomer}`;
+**Delighter Features**: Unexpected capabilities that create POSITIVE SURPRISE when discovered
+- Innovative functionality that exceeds customer expectations
+- Unique capabilities not commonly available in this market
+- Features that make customers say "wow, I didn't know it could do that"
+- Competitive differentiators that create emotional positive response
+
+FEATURE PRIORITIZATION RULES:
+- MAXIMUM 50 features in final analysis (critical constraint)
+- Prioritize features most relevant to ${request.targetCustomer} needs and use cases
+- Include mix: Must-Have (40%), Performance (40%), Delighter (20%)
+- Focus on features that differentiate in competitive landscape: ${request.products.join(', ')}
+- Balance obvious capabilities with subtle differentiators
+
+OUTPUT FORMAT:
+For each feature found, provide:
+- Feature name (specific, clear)
+- Detailed description of what it actually does
+- Kano category assignment with intelligent reasoning
+- Why this matters specifically to ${request.targetCustomer}
+
+Apply sophisticated AI reasoning to deliver high-value competitive intelligence about ${productName}.`;
     
     const researchQueries = [kanoPrompt];
     
@@ -1001,103 +1023,7 @@ Focus on current 2024-2025 features and capabilities. Target customer: ${request
     return sources;
   }
 
-  // Input interpretation methods for Phase 2
-  private interpretAndCleanProducts(products: string[]): string[] {
-    const cleanProducts: string[] = [];
-    const seenProducts = new Set<string>();
-    
-    for (const product of products) {
-      const cleaned = this.cleanProductName(product);
-      if (this.isValidProduct(cleaned)) {
-        const normalized = this.normalizeProductName(cleaned);
-        if (!seenProducts.has(normalized.toLowerCase())) {
-          seenProducts.add(normalized.toLowerCase());
-          cleanProducts.push(normalized);
-        }
-      }
-    }
-    
-    return cleanProducts;
-  }
-  
-  private interpretAndCleanFeatures(features: string[]): string[] {
-    const cleanFeatures: string[] = [];
-    const seenFeatures = new Set<string>();
-    
-    for (const feature of features) {
-      const cleaned = this.cleanFeatureName(feature);
-      if (this.isValidFeature(cleaned)) {
-        const normalized = cleaned.toLowerCase();
-        if (!seenFeatures.has(normalized)) {
-          seenFeatures.add(normalized);
-          cleanFeatures.push(cleaned);
-        }
-      }
-    }
-    
-    return cleanFeatures;
-  }
-  
-  private cleanProductName(product: string): string {
-    return product
-      .replace(/^\s+|\s+$/g, '') // trim whitespace
-      .replace(/\s+/g, ' ') // normalize spaces
-      .replace(/[^\w\s\.\-]/g, '') // remove special chars except dots and dashes
-      .trim();
-  }
-  
-  private normalizeProductName(product: string): string {
-    // Handle common variations and misspellings
-    const normalizations: Record<string, string> = {
-      'salesforce': 'Salesforce',
-      'sales force': 'Salesforce',
-      'microsoft teams': 'Microsoft Teams',
-      'ms teams': 'Microsoft Teams',
-      'teams': 'Microsoft Teams',
-      'slack': 'Slack',
-      'monday.com': 'Monday.com',
-      'monday': 'Monday.com',
-      'clickup': 'ClickUp',
-      'click up': 'ClickUp',
-      'asana': 'Asana',
-      'trello': 'Trello',
-      'notion': 'Notion',
-      'airtable': 'Airtable',
-      'air table': 'Airtable'
-    };
-    
-    const lowerProduct = product.toLowerCase();
-    return normalizations[lowerProduct] || product;
-  }
-  
-  private isValidProduct(product: string): boolean {
-    if (!product || product.length < 2 || product.length > 100) return false;
-    
-    // Filter out generic text that should be ignored
-    const invalidPatterns = [
-      /^(more|other|additional|various|multiple|etc|and more|plus others)$/i,
-      /^(more products|other tools|additional features|various integrations)$/i,
-      /^(and more|plus others|etc\.|etcetera)$/i,
-      /^\d+$/, // pure numbers
-      /^[^\w\s]/, // starts with special chars
-    ];
-    
-    return !invalidPatterns.some(pattern => pattern.test(product));
-  }
-  
-  private isValidFeature(feature: string): boolean {
-    if (!feature || feature.length < 3 || feature.length > 100) return false;
-    
-    // Filter out generic text that should be ignored
-    const invalidPatterns = [
-      /^(more|other|additional|various|multiple|etc|and more|plus others)$/i,
-      /^(more features|other capabilities|additional tools|various options)$/i,
-      /^\d+$/, // pure numbers
-      /^[^\w\s]/, // starts with special chars
-    ];
-    
-    return !invalidPatterns.some(pattern => pattern.test(feature));
-  }
+  // Removed hard-coded input interpretation methods - now using LLM intelligence
 
   // NO FALLBACK METHODS - Real research only
 

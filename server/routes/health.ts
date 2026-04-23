@@ -96,7 +96,7 @@ export function setupHealthRoutes(app: Express): void {
       const dbStart = performance.now();
       try {
         const dbManager = storage;
-        await dbManager.getUserById('health-check-test');
+        await dbManager.getUser('health-check-test');
         
         result.checks.database = {
           status: 'pass',
@@ -320,7 +320,7 @@ export function setupHealthRoutes(app: Express): void {
       // Database startup check
       try {
         const dbManager = storage;
-        await dbManager.getUserById('startup-check');
+        await dbManager.getUser('startup-check');
         startupChecks.database = true;
       } catch (error) {
         // Database not ready

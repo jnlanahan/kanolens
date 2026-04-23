@@ -53,96 +53,108 @@ export interface ProgressUpdate {
 export class OrchestratorAgent {
   private systemPrompt = `You are the Orchestrator agent for KanoLens, an AI-powered competitive analysis platform using the Kano Model framework. You coordinate a multi-agent analysis system with 5 specialized agents working in documented sequence.
 
-INTELLIGENCE REQUIREMENTS:
-You must understand user intent, not just literal input. When users type ambiguous words, interpret what they actually mean:
-- "more", "others", "etc.", "additional" = user wants you to suggest more items
-- Abbreviations like "MS Teams" = standardize to "Microsoft Teams"  
-- Categories like "CRM tools" = understand they want specific CRM products
-- Misspellings = intelligently correct based on context
-- Non-specific words = interpret based on surrounding context
+INTELLIGENCE & INTERPRETATION REQUIREMENTS:
+You are an intelligent AI that must understand user intent, not just parse literal text. Apply sophisticated reasoning to interpret what users actually mean:
 
-CONTEXTUAL AWARENESS:
-Always use ALL available context to make suggestions:
-- Description: Primary source for understanding business domain and priorities
-- Target Customers: Determines what features matter most
-- Existing Products: Shows competitive landscape and market segment
-- User Role: Influences what features are most relevant
-- Industry patterns: Apply domain knowledge
+AMBIGUOUS INPUT INTERPRETATION:
+- "more", "others", "etc.", "additional", "and more" = user wants you to suggest additional relevant items
+- Abbreviations: "MS Teams" → "Microsoft Teams", "AWS" → "Amazon Web Services"
+- Categories: "CRM tools" = understand they want specific CRM product names, not the category itself
+- Misspellings and typos: Use context to intelligently correct (e.g., "Salesforc" → "Salesforce")
+- Vague terms: "Google thing" = use context to determine which Google product they likely mean
+- Non-products: Filter out generic words like "various", "multiple", "tools" when they appear as standalone items
 
-SUGGESTION QUALITY:
-- Products must be real, existing, and directly competitive
-- Features must be specific (not generic categories)
-- Prioritize suggestions based on relevance to provided context
-- Balance market leaders with emerging competitors
-- Consider Kano model distribution in feature suggestions
+CONTEXTUAL INTELLIGENCE:
+Use ALL available context to make intelligent decisions:
+- Description: Primary source for understanding business domain, company size, and priorities
+- Target Customers: Determines what features and products are most relevant
+- Existing Products: Shows competitive landscape, market segment, and company sophistication level
+- User Role: Marketing managers need different features than developers
+- Industry patterns: Apply your knowledge of industry standards and common needs
+
+INTELLIGENT SUGGESTIONS:
+- Products must be real, existing, currently available, and directly competitive
+- Features must be specific capabilities, not vague categories or marketing terms
+- Base suggestions on deep understanding of user's business context and needs
+- Balance established market leaders with innovative emerging competitors
+- Consider Kano model principles: mix Must-Have (40%), Performance (40%), Delighter (20%) features
+
+KANO MODEL ADHERENCE:
+- Must-Have Features: Basic expectations that cause dissatisfaction if missing but don't increase satisfaction when present
+- Performance Features: Linear satisfaction - more/better implementation increases satisfaction proportionally
+- Delighter Features: Unexpected capabilities that create positive surprise and competitive advantage
+- Maximum 50 features in final analysis, with 100% of user-approved features included
 
 WORKFLOW COORDINATION:
-- Researcher: Gathers product data and features
-- Validator: Categorizes features into Kano model (Must-Have, Performance, Delighter)
-- Analyst: Generates strategic insights and recommendations
-- Evaluator: Assesses agent performance and accuracy
-- Ensure Kano model rule compliance: 100% of user-approved features (not original), max 50 in final table`;
+- Researcher: Conducts real online research to gather accurate product data and features
+- Validator: Applies Kano Model categorization rules with intelligent feature assessment
+- Analyst: Generates strategic insights and actionable competitive recommendations
+- Evaluator: Assesses agent performance and suggests improvements
+- All agents must use intelligent interpretation, not hard-coded string matching`;
 
   async processSuggestions(input: OrchestratorInput): Promise<SuggestionResponse> {
-    console.log("[Orchestrator] Processing suggestions for form data");
+    console.log("[Orchestrator] Processing suggestions for form data:", JSON.stringify(input.formData, null, 2));
     
-    // Clean product names
-    const cleanedProducts = this.cleanProductList(input.formData!.products);
+    // Let LLM intelligently interpret raw user input instead of pre-processing
+    const rawProducts = input.formData!.products.split(',').map(p => p.trim()).filter(p => p.length > 0);
     
-    // Build the prompt for suggestions
-    const prompt = `You are helping create a competitive analysis. Analyze this user input with intelligence and context awareness:
+    // Build the intelligent analysis prompt
+    const prompt = `You are helping create a competitive analysis using the Kano Model framework. Apply sophisticated AI reasoning to understand user intent and context.
 
-USER INPUT ANALYSIS:
+USER INPUT TO ANALYZE:
 Description: "${input.formData!.description || 'Not provided'}"
 Target Customers: "${input.formData!.targetCustomers}"
-Products Listed: "${cleanedProducts.join(', ')}"
+Products Listed: "${rawProducts.join(', ')}"
 Features Listed: "${input.formData!.features || 'Not provided'}"
 
-INTELLIGENT INPUT INTERPRETATION:
-1. UNDERSTAND USER INTENT:
-   - If user wrote "more", "others", "etc.", "additional" - they want you to suggest more items
-   - If they listed categories (e.g., "CRM tools") - suggest specific products in that category
-   - If they used abbreviations (e.g., "MS Teams", "AWS") - standardize to full names
-   - If they misspelled products - correct them based on context
-   - If they listed non-products - understand what they actually meant
+INTELLIGENT INTERPRETATION INSTRUCTIONS:
+Your task is to deeply understand what the user actually means, not just parse their literal text. Apply advanced reasoning:
 
-2. PRODUCT NAME STANDARDIZATION:
-   - Expand abbreviations: "MS Teams" → "Microsoft Teams", "AWS" → "Amazon Web Services"
-   - Correct obvious misspellings using context clues
-   - Remove words that aren't products but understand their intent
-   - Standardize corporate naming conventions
+1. DECODE USER INTENT AND CORRECT INPUT:
+   - Words like "more", "others", "etc.", "additional", "and more" = user wants additional relevant suggestions
+   - Product categories like "CRM tools", "project management software" = suggest specific product names in that category
+   - Abbreviations and nicknames: "MS Teams" → "Microsoft Teams", "Sheets" → "Google Sheets", "Slack" → "Slack"
+   - CRITICAL: Correct typos and misspellings: "Salesforc" → "Salesforce", "Jira" → "Jira", "Miro" → "Miro"
+   - Vague references: "Google thing for documents" = likely Google Docs or Google Workspace
+   - Generic terms: Filter out "various", "multiple", "tools" when they appear as standalone product entries
+   - When "more [category] tools" is mentioned, interpret this as a request for additional products in that category
 
-3. CONTEXT-DRIVEN SUGGESTIONS:
-   - Use the DESCRIPTION as primary guide for domain and priorities
-   - Adapt suggestions to TARGET CUSTOMERS' specific needs
-   - Consider what the existing PRODUCTS tell you about market segment
-   - Build on existing FEATURES but don't just duplicate them
+2. CONTEXTUAL INTELLIGENCE:
+   - Analyze the DESCRIPTION to understand: business domain, company size, industry, specific use cases
+   - Use TARGET CUSTOMERS to determine what matters most: technical features vs. ease of use vs. scalability
+   - Consider existing PRODUCTS to understand: market segment, sophistication level, budget implications
+   - Apply industry knowledge about competitive landscapes and customer needs
 
-4. PRODUCT SUGGESTIONS (3-5 products):
-   - Must be real, existing products currently available
-   - Direct competitors serving the same target customer segment
-   - Mix of established market leaders and emerging players
-   - Highly relevant to the business context described
-   - Consider company size implications from description
+3. INTELLIGENT PRODUCT SUGGESTIONS (3-5 products):
+   - Must be real, currently available, directly competitive products
+   - Choose based on deep understanding of user's business context and target customers
+   - Mix established market leaders with innovative emerging competitors
+   - Ensure direct relevance to the business domain and customer segment described
+   - Consider pricing tier and company size implications from the description
 
-5. FEATURE SUGGESTIONS (8-12 features):
-   - Prioritize features mentioned in or implied by description
-   - Focus on capabilities that matter to the target customers
-   - Include competitive differentiators from suggested products
-   - Balance across Kano categories:
-     * Must-Have (core functionality): 40%
-     * Performance (efficiency/effectiveness): 40% 
-     * Delighter (innovative/surprising): 20%
-   - Use specific, clear feature names (not vague categories)
+4. INTELLIGENT FEATURE SUGGESTIONS (8-12 features):
+   - Base on deep analysis of what target customers actually need for this use case
+   - Include features that differentiate in this specific competitive landscape
+   - Apply Kano Model distribution principles:
+     * Must-Have features (40%): Basic expectations that cause dissatisfaction if missing
+     * Performance features (40%): Capabilities where better/more increases satisfaction linearly  
+     * Delighter features (20%): Innovative capabilities that create unexpected positive surprise
+   - Use specific, actionable feature names, not vague marketing terms
+
+5. QUALITY STANDARDS:
+   - Every suggestion must be justified by the business context provided
+   - Products must serve the same target customer segment
+   - Features must be relevant to the competitive analysis goals
+   - Maintain Kano Model principles throughout suggestions
 
 REQUIRED OUTPUT FORMAT:
-PRODUCT_INTERPRETATION: [Explain any corrections, standardizations, or interpretations made]
+PRODUCT_INTERPRETATION: [Explain your intelligent interpretation of user input, specifically mention any typos corrected, abbreviations expanded, and how you interpreted words like "more" in context]
 SUGGESTED_PRODUCTS:
-- [Exact Product Name] | [Specific reason based on context and target customer needs]
+- [Exact Product Name] | [Specific business justification based on context and target customer needs]
 SUGGESTED_FEATURES:
-- [Specific Feature Name] | [Brief description of why relevant to this analysis]
+- [Specific Feature Name] | [Clear explanation of why this feature matters for this analysis and target customers]
 
-Remember: Be intelligent about user input. Don't just take words literally - understand what the user actually wants and provide contextually relevant, high-quality suggestions.`;
+Apply sophisticated AI reasoning to provide intelligent, contextually relevant suggestions that truly serve the user's competitive analysis goals.`;
 
     const messages: ChatCompletionMessageParam[] = [
       { role: "system", content: this.systemPrompt },
@@ -158,13 +170,16 @@ Remember: Be intelligent about user input. Don't just take words literally - und
     });
 
     const content = response.choices[0].message.content || "";
-    return this.parseSuggestionResponse(content);
+    console.log("[Orchestrator] OpenAI response content:", content);
+    const parsed = this.parseSuggestionResponse(content);
+    console.log("[Orchestrator] Parsed suggestion response:", JSON.stringify(parsed, null, 2));
+    return parsed;
   }
 
   async validateManualInput(input: OrchestratorInput): Promise<ValidationResponse> {
     console.log("[Orchestrator] Validating manual input:", input.product);
     
-    const prompt = `INTELLIGENT INPUT VALIDATION
+    const prompt = `INTELLIGENT INPUT VALIDATION & INTERPRETATION
 
 USER IS MANUALLY ADDING:
 Product: "${input.product}"
@@ -175,37 +190,42 @@ Products: ${input.existingData?.products?.join(', ') || 'None'}
 Target Customer: ${input.existingData?.targetCustomer || 'Not specified'}
 Description: ${input.existingData?.description || 'Not provided'}
 
-INTELLIGENT VALIDATION TASKS:
+ADVANCED AI INTERPRETATION TASKS:
 
-1. UNDERSTAND USER INTENT:
-   - Is this a real product name or did they abbreviate/misspell?
-   - Are they referring to a well-known product with a shortened name?
-   - Did they input a category when they meant a specific product?
+1. INTELLIGENT INTENT RECOGNITION:
+   - Apply sophisticated reasoning to understand what the user actually means
+   - Is this a real product name, an abbreviation, misspelling, or category reference?
+   - Are they using a common nickname or shortened version of a well-known product?
+   - Did they input a product category when they meant a specific product name?
+   - Could this be a typo or autocorrect error that you can intelligently correct?
 
-2. SMART CORRECTIONS:
-   - Expand abbreviations: "Teams" → "Microsoft Teams", "Sheets" → "Google Sheets"
-   - Fix obvious typos based on context and similar product names
-   - Standardize corporate naming conventions
-   - If they input a category, suggest the most relevant specific product
+2. CONTEXTUAL SMART CORRECTIONS:
+   - Expand common abbreviations based on business context: "Teams" → "Microsoft Teams", "Sheets" → "Google Sheets"
+   - Apply intelligent spelling correction using product name databases and context clues
+   - Standardize corporate naming conventions: "salesforce" → "Salesforce", "monday" → "Monday.com"
+   - If they input a category ("CRM software"), suggest the most relevant specific product for their context
+   - Use existing products and target customer to guide interpretation
 
-3. RELEVANCE ANALYSIS:
-   - Does this product compete with the existing products?
-   - Does it serve the same target customer segment?
-   - Is it appropriate for the business context described?
-   - Would it add value to this competitive analysis?
+3. COMPETITIVE RELEVANCE ANALYSIS:
+   - Does this product directly compete with the existing products in the analysis?
+   - Does it serve the same target customer segment with similar value propositions?
+   - Is it appropriate for the business context and company size described?
+   - Would including this product enhance the competitive analysis value and insights?
+   - Consider pricing tier, market segment, and feature complexity alignment
 
-4. INTELLIGENT SUGGESTIONS:
-   - If invalid, suggest similar products that would be relevant
-   - If it's a category, suggest specific products in that category
-   - Consider the competitive landscape already established
+4. INTELLIGENT RECOMMENDATIONS:
+   - If the input is invalid, suggest specific products that would be more relevant
+   - If it's a category, recommend 2-3 specific leading products in that category
+   - Consider the competitive landscape already established and suggest complementary competitors
+   - Prioritize suggestions based on target customer relevance and analysis value
 
 OUTPUT FORMAT:
 VALIDATION: [VALID/NEEDS_CORRECTION/INVALID]
-CORRECTED_PRODUCT: [Standardized name, or original if already correct]
-MESSAGE: [Explain your reasoning and any changes made]
-SUGGESTIONS: [If invalid/corrected, provide alternatives that would fit better]
+CORRECTED_PRODUCT: [Intelligently standardized name, or original if already correct]
+MESSAGE: [Explain your sophisticated reasoning, interpretation process, and any intelligent corrections made]
+SUGGESTIONS: [If invalid/corrected, provide 2-3 specific alternatives that would enhance the competitive analysis]
 
-Be intelligent: Don't just check if words exist - understand what the user meant and help them get the best result for their analysis.`;
+Apply advanced AI reasoning to truly understand user intent and provide the most valuable competitive analysis experience.`;
 
     const messages: ChatCompletionMessageParam[] = [
       { role: "system", content: this.systemPrompt },
@@ -242,7 +262,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     // Create LangSmith workflow trace
     const workflowTrace = await langSmithService.createWorkflowTrace(
       sessionId || 0,
-      { products, features, targetCustomer, analysisMode }
+      { products, features, targetCustomer }
     );
     
     try {
@@ -307,14 +327,14 @@ Be intelligent: Don't just check if words exist - understand what the user meant
           await workflowTrace.patchRun();
         }
       } catch (traceError) {
-        console.error('[Orchestrator] Failed to log error trace:', traceError.message);
+        console.error('[Orchestrator] Failed to log error trace:', (traceError as Error).message);
       }
       
       onProgress({
-        step: 'error',
+        step: 'analysis',
         message: 'Analysis failed - generating fallback results',
         progress: 0,
-        data: { error: error.message }
+        data: { error: (error as Error).message }
       });
       
       // NO FALLBACK - throw the error to force real research
@@ -400,7 +420,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
       researchData: researchData,
       targetCustomer,
       products
-    };
+    } as any;
     
     const categorizedData = await validatorAgent.categorizeFeatures(validatorRequest);
 
@@ -473,9 +493,9 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     };
     
     // Create LangSmith trace for researcher agent (non-fatal)
-    let researcherTrace = null;
+    let researcherTrace: any = null;
     try {
-      researcherTrace = await langSmithService.traceAgent(workflowTrace, {
+      researcherTrace = await langSmithService.traceAgent(workflowTrace || null, {
         agentName: 'researcher',
         sessionId,
         input: researchRequest,
@@ -485,7 +505,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
         metadata: { step: 'research', products: products.length, features: features.length }
       });
     } catch (traceError) {
-      console.log('[Orchestrator] Failed to create researcher trace (non-fatal):', traceError.message);
+      console.log('[Orchestrator] Failed to create researcher trace (non-fatal):', (traceError as Error).message);
     }
     
     // Perform research with granular progress tracking
@@ -506,11 +526,11 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     });
     
     if (researchData.products && researchData.products.length > 0) {
-      researchData.products.forEach((product, i) => {
+      researchData.products.forEach((product: any, i: number) => {
         console.log(`[Orchestrator] Product ${i + 1}: ${product.name} - ${product.features?.length || 0} features`);
         if (product.features && product.features.length > 0) {
           console.log(`[Orchestrator] Sample features for ${product.name}:`, 
-            product.features.slice(0, 3).map(f => f.name));
+            product.features.slice(0, 3).map((f: any) => f.name));
         }
       });
     }
@@ -522,7 +542,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
         researcherTrace.outputs = researchData;
         await researcherTrace.patchRun();
       } catch (traceError) {
-        console.log('[Orchestrator] Failed to complete researcher trace (non-fatal):', traceError.message);
+        console.log('[Orchestrator] Failed to complete researcher trace (non-fatal):', (traceError as Error).message);
       }
     }
     
@@ -544,7 +564,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     // Create LangSmith trace for validator agent (non-fatal)
     let validatorTrace = null;
     try {
-      validatorTrace = await langSmithService.traceAgent(workflowTrace, {
+      validatorTrace = await langSmithService.traceAgent(workflowTrace || null, {
         agentName: 'validator',
         sessionId,
         input: researchData,
@@ -554,13 +574,14 @@ Be intelligent: Don't just check if words exist - understand what the user meant
         metadata: { step: 'categorization', featuresCount: (researchData as any)?.products?.[0]?.features?.length || 0 }
       });
     } catch (traceError) {
-      console.log('[Orchestrator] Failed to create validator trace (non-fatal):', traceError.message);
+      console.log('[Orchestrator] Failed to create validator trace (non-fatal):', (traceError as Error).message);
     }
     
     // Pass proper validation request with target customer context
     const validationRequest = {
-      researchData: researchData,
-      targetCustomer: targetCustomer
+      researchData: researchData as any,
+      targetCustomer: targetCustomer,
+      products: products
     };
     const categorizedData = await validatorAgent.categorizeFeatures(validationRequest);
     const validatorTime = Date.now() - validatorStartTime;
@@ -591,7 +612,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
         validatorTrace.outputs = categorizedData;
         await validatorTrace.patchRun();
       } catch (traceError) {
-        console.log('[Orchestrator] Failed to complete validator trace (non-fatal):', traceError.message);
+        console.log('[Orchestrator] Failed to complete validator trace (non-fatal):', (traceError as Error).message);
       }
     }
     
@@ -652,7 +673,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     // Create LangSmith trace for analyst agent (non-fatal)
     let analystTrace = null;
     try {
-      analystTrace = await langSmithService.traceAgent(workflowTrace, {
+      analystTrace = await langSmithService.traceAgent(workflowTrace || null, {
         agentName: 'analyst',
         sessionId,
         input: analysisRequest,
@@ -666,7 +687,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
         }
       });
     } catch (traceError) {
-      console.log('[Orchestrator] Failed to create analyst trace (non-fatal):', traceError.message);
+      console.log('[Orchestrator] Failed to create analyst trace (non-fatal):', (traceError as Error).message);
     }
     
     const analysis = await analystAgent.analyzeKanoTable(analysisRequest);
@@ -679,7 +700,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
         analystTrace.outputs = analysis;
         await analystTrace.patchRun();
       } catch (traceError) {
-        console.log('[Orchestrator] Failed to complete analyst trace (non-fatal):', traceError.message);
+        console.log('[Orchestrator] Failed to complete analyst trace (non-fatal):', (traceError as Error).message);
       }
     }
     
@@ -695,9 +716,9 @@ Be intelligent: Don't just check if words exist - understand what the user meant
   }
 
   // Get mode-specific configuration
-  private getModeConfiguration(mode: AnalysisMode) {
+  private getModeConfiguration(mode: AnalysisMode): any {
     switch (mode) {
-      case 'express':
+      case 'quick':
         return {
           discoveryMessage: 'Setting up express analysis for quick insights...',
           researchMessage: 'Gathering essential product information...',
@@ -708,7 +729,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
           researchDepth: 'shallow',
           skipDetailedAnalysis: true
         };
-      case 'quick':
+      default:
         return {
           discoveryMessage: 'Initial setup complete. Starting balanced research...',
           researchMessage: 'Researching products and key features...',
@@ -719,19 +740,6 @@ Be intelligent: Don't just check if words exist - understand what the user meant
           researchDepth: 'medium',
           skipDetailedAnalysis: false
         };
-      case 'deep':
-        return {
-          discoveryMessage: 'Initial setup complete. Starting comprehensive research...',
-          researchMessage: 'Conducting thorough market and product research...',
-          categorizationMessage: 'Performing detailed Kano Model categorization...',
-          analysisMessage: 'Generating comprehensive strategic analysis...',
-          researchMode: 'comprehensive' as const,
-          maxFeatures: 15,
-          researchDepth: 'deep',
-          skipDetailedAnalysis: false
-        };
-      default:
-        return this.getModeConfiguration('quick');
     }
   }
 
@@ -775,7 +783,7 @@ Be intelligent: Don't just check if words exist - understand what the user meant
           promptVersion: '1.0',
         });
       } catch (dbError) {
-        console.log(`[Orchestrator] Failed to store evaluation for ${agentName} (non-fatal):`, dbError.message);
+        console.log(`[Orchestrator] Failed to store evaluation for ${agentName} (non-fatal):`, (dbError as Error).message);
       }
 
       console.log(`[Orchestrator] Evaluation completed for ${agentName}:`, {
@@ -788,10 +796,6 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     }
   }
 
-  private cleanProductList(productsString: string): string[] {
-    // Simply split by comma and trim - let the LLM handle intelligent interpretation
-    return productsString.split(',').map(p => p.trim()).filter(p => p.length > 0);
-  }
 
   private parseSuggestionResponse(content: string): SuggestionResponse {
     const lines = content.split('\n');
@@ -802,15 +806,26 @@ Be intelligent: Don't just check if words exist - understand what the user meant
     };
 
     let section = '';
+    let interpretationLines: string[] = [];
     
     for (const line of lines) {
       if (line.includes('PRODUCT_INTERPRETATION:')) {
         section = 'interpretation';
-        response.productInterpretation = line.split(':')[1]?.trim() || '';
+        const afterColon = line.split(':')[1]?.trim();
+        if (afterColon) {
+          interpretationLines.push(afterColon);
+        }
       } else if (line.includes('SUGGESTED_PRODUCTS:')) {
         section = 'products';
+        // Save accumulated interpretation
+        if (interpretationLines.length > 0) {
+          response.productInterpretation = interpretationLines.join(' ').trim();
+        }
       } else if (line.includes('SUGGESTED_FEATURES:')) {
         section = 'features';
+      } else if (section === 'interpretation' && line.trim() && !line.includes(':')) {
+        // Continue accumulating interpretation text
+        interpretationLines.push(line.trim());
       } else if (line.trim().startsWith('-')) {
         const content = line.substring(1).trim();
         const [name, reason] = content.split('|').map(s => s.trim());
@@ -821,6 +836,11 @@ Be intelligent: Don't just check if words exist - understand what the user meant
           response.suggestedFeatures.push(name);
         }
       }
+    }
+
+    // Save interpretation if we ended in that section
+    if (section === 'interpretation' && interpretationLines.length > 0) {
+      response.productInterpretation = interpretationLines.join(' ').trim();
     }
 
     return response;

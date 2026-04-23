@@ -2,9 +2,11 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { jwtAuthMiddleware } from "../middleware/jwt-auth";
-import { insertAnalysisSessionSchema, ANALYSIS_STEPS } from "@shared/schema";
+import { insertAnalysisSessionSchema, ANALYSIS_STEPS, ANALYSIS_STATUS } from "@shared/schema";
 import { ZodError } from "zod";
 import { titleGeneratorService } from "../services/title-generator";
+import { orchestratorAgent } from "../agents/orchestrator";
+import { webSocketService } from "../websocket";
 
 export function setupSessionRoutes(app: Express): void {
   // Get user analysis limits and usage
@@ -113,6 +115,15 @@ export function setupSessionRoutes(app: Express): void {
       await storage.incrementUserAnalysisCount(userId);
       
       console.log("[Routes] Created session:", session);
+      
+      // Automatically start analysis workflow
+      console.log("[Routes] Starting automatic analysis for session:", session.id);
+      
+      // Start real orchestrator analysis
+      startRealAnalysisWorkflow(session).catch(error => {
+        console.error(`[Routes] Real analysis failed for session ${session.id}:`, error);
+      });
+      
       res.json(session);
     } catch (error) {
       if (error instanceof ZodError) {
@@ -276,6 +287,98 @@ export function setupSessionRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to fetch progress" });
     }
   });
+}
+
+// Real analysis workflow using orchestrator agent
+async function startRealAnalysisWorkflow(session: any): Promise<void> {
+  const sessionId = session.id;
+  const products = Array.isArray(session.products) ? session.products : [];
+  const features = Array.isArray(session.features) ? session.features : [];
+  const targetCustomer = session.targetCustomer || 'business users';
+  
+  console.log(`[Real Analysis] Starting for session ${sessionId} with products: ${products.join(', ')}`);
+  
+  try {
+    // Update session to research step immediately
+    await storage.updateAnalysisSession(sessionId, {
+      currentStep: ANALYSIS_STEPS.RESEARCH,
+      status: ANALYSIS_STATUS.IN_PROGRESS,
+    });
+    
+    // Create progress callback that updates database and broadcasts via WebSocket
+    const onProgress = async (update: any) => {
+      console.log(`[Real Analysis] Progress for session ${sessionId}:`, update);
+      
+      // Map orchestrator steps to database steps
+      const stepMapping = {
+        'discovery': ANALYSIS_STEPS.DISCOVERY,
+        'research': ANALYSIS_STEPS.RESEARCH,
+        'categorization': ANALYSIS_STEPS.CATEGORIZATION,
+        'table_creation': ANALYSIS_STEPS.TABLE_CREATION,
+        'analysis': ANALYSIS_STEPS.ANALYSIS
+      };
+      
+      const dbStep = stepMapping[update.step] || ANALYSIS_STEPS.RESEARCH;
+      
+      // Update database
+      await storage.updateAnalysisSession(sessionId, {
+        currentStep: dbStep,
+        status: ANALYSIS_STATUS.IN_PROGRESS,
+      });
+      
+      // Broadcast progress via WebSocket
+      webSocketService.broadcastProgress(sessionId, {
+        step: update.step,
+        message: update.message,
+        progress: update.progress,
+        data: update.data,
+        sessionId: sessionId
+      });
+    };
+    
+    // Call real orchestrator
+    const result = await orchestratorAgent.coordinateFullAnalysis(
+      products,
+      features,
+      targetCustomer,
+      onProgress,
+      sessionId,
+      'quick' // analysis mode
+    );
+    
+    // Analysis completed successfully
+    await storage.updateAnalysisSession(sessionId, {
+      currentStep: ANALYSIS_STEPS.COMPLETED,
+      status: ANALYSIS_STATUS.COMPLETED,
+      tableData: result.tableData,
+      analysis: result.analysis,
+    });
+    
+    // Broadcast completion
+    webSocketService.broadcastComplete(sessionId, result);
+    
+    console.log(`[Real Analysis] Session ${sessionId} COMPLETED successfully`);
+    
+  } catch (error) {
+    console.error(`[Real Analysis] Error for session ${sessionId}:`, error);
+    
+    // Update to failed state
+    try {
+      await storage.updateAnalysisSession(sessionId, {
+        currentStep: ANALYSIS_STEPS.ERROR,
+        status: ANALYSIS_STATUS.FAILED,
+      });
+      
+      // Broadcast error
+      webSocketService.broadcastError(sessionId, {
+        message: error.message || 'Analysis failed',
+        step: 'error'
+      });
+      
+    } catch (updateError) {
+      console.error(`[Real Analysis] Error updating to failed state:`, updateError);
+    }
+  }
 }
 
 // Helper function to validate session ownership

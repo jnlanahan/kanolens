@@ -3,6 +3,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { registerRoutes } from "./routes/index";
 import { setupVite, serveStatic, log } from "./vite";
+import { webSocketService } from "./websocket";
 
 const app = express();
 app.use(express.json());
@@ -43,6 +44,10 @@ app.use((req, res, next) => {
   
   // Create HTTP server
   const server = createServer(app);
+  
+  // Initialize WebSocket service for real-time progress updates
+  console.log('[Server] Initializing WebSocket service...');
+  webSocketService.initialize(server);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -85,10 +90,8 @@ app.use((req, res, next) => {
   const gracefulShutdown = (signal: string) => {
     console.log(`\n[Server] Received ${signal}. Shutting down gracefully...`);
     
-    // Import webSocketService dynamically to avoid circular dependency
-    import('./websocket').then(({ webSocketService }) => {
-      webSocketService.shutdown();
-    });
+    // Shutdown WebSocket service first
+    webSocketService.shutdown();
     
     serverInstance.close(() => {
       console.log('[Server] HTTP server closed.');

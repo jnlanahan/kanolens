@@ -110,9 +110,6 @@ export default function Dashboard() {
     setLocation(`/analysis/${sessionId}/results`);
   };
 
-<<<<<<< Updated upstream
-  const handleSelectSession = useCallback((sessionId: number, checked: boolean) => {
-=======
   const handleSignOut = async () => {
     try {
       // Call the JWT logout endpoint
@@ -133,8 +130,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleSelectSession = (sessionId: number, checked: boolean) => {
->>>>>>> Stashed changes
+  const handleSelectSession = useCallback((sessionId: number, checked: boolean) => {
     const newSelected = new Set(selectedSessions);
     if (checked) {
       newSelected.add(sessionId);
