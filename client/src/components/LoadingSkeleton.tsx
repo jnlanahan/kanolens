@@ -7,7 +7,7 @@ interface LoadingSkeletonProps {
   count?: number;
 }
 
-export function LoadingSkeleton({ variant = 'card', count = 1 }: LoadingSkeletonProps) {
+export const LoadingSkeleton = React.memo(function LoadingSkeleton({ variant = 'card', count = 1 }: LoadingSkeletonProps) {
   const renderSkeleton = () => {
     switch (variant) {
       case 'dashboard':
@@ -188,6 +188,6 @@ export function LoadingSkeleton({ variant = 'card', count = 1 }: LoadingSkeleton
       ))}
     </div>
   );
-}
+});
 
 export default LoadingSkeleton;

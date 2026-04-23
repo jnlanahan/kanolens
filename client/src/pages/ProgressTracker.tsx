@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useParams } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,23 +72,24 @@ export default function ProgressTracker() {
   });
 
   // Force refresh function
-  const forceRefresh = () => {
+  const forceRefresh = useCallback(() => {
     console.log('[ProgressTracker] Force refreshing progress...');
     refetch();
-  };
+  }, [refetch]);
+
+  // Memoize step mapping for performance
+  const stepMap = useMemo(() => ({
+    'discovery': 0,
+    'research': 1,
+    'categorization': 2,
+    'table_creation': 3,
+    'analysis': 3,
+    'completed': 4
+  }), []);
 
   useEffect(() => {
     if (progressData) {
       console.log('[ProgressTracker] Using polling data:', progressData);
-      
-      const stepMap = {
-        'discovery': 0,
-        'research': 1,
-        'categorization': 2,
-        'table_creation': 3,
-        'analysis': 3,
-        'completed': 4
-      };
       
       const newStep = stepMap[progressData.currentStep as keyof typeof stepMap] ?? 1;
       setCurrentStep(newStep);
@@ -101,7 +102,7 @@ export default function ProgressTracker() {
         setLocation(`/analysis/${sessionId}/results`);
       }
     }
-  }, [progressData, sessionId, setLocation]);
+  }, [progressData, sessionId, setLocation, stepMap]);
 
   // Check for completion every 5 seconds as backup
   useEffect(() => {
@@ -141,20 +142,28 @@ export default function ProgressTracker() {
     }
   };
 
-  const getProgressPercentage = () => {
+  const getProgressPercentage = useCallback(() => {
     if (progressData?.progress) {
       return progressData.progress;
     }
     // Fallback based on current step
     return Math.min(25 + (currentStep * 25), 100);
-  };
+  }, [progressData?.progress, currentStep]);
 
-  const headerActions = (
+  const handleDashboardClick = useCallback(() => {
+    setLocation("/dashboard");
+  }, [setLocation]);
+
+  const handlePauseToggle = useCallback(() => {
+    setIsPaused(!isPaused);
+  }, [isPaused]);
+
+  const headerActions = useMemo(() => (
     <>
       <Button 
         variant="outline" 
         size="sm"
-        onClick={() => setLocation("/dashboard")}
+        onClick={handleDashboardClick}
         className="flex items-center gap-2"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -163,14 +172,14 @@ export default function ProgressTracker() {
       <Button 
         variant="outline" 
         size="sm"
-        onClick={() => setIsPaused(!isPaused)}
+        onClick={handlePauseToggle}
         className="flex items-center gap-2"
       >
         {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
         {isPaused ? 'Resume' : 'Pause'}
       </Button>
     </>
-  );
+  ), [handleDashboardClick, handlePauseToggle, isPaused]);
 
   return (
     <PageLayout>

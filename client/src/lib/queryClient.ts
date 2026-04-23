@@ -3,7 +3,16 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 // Helper function to get JWT token from localStorage
 function getAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('auth-token');
+  
+  let token = localStorage.getItem('auth-token');
+  
+  // In development, provide a default token if none exists
+  if (!token && process.env.NODE_ENV === 'development') {
+    token = 'dev-token';
+    localStorage.setItem('auth-token', token);
+  }
+  
+  return token;
 }
 
 // Helper function to clear token on 401 errors

@@ -1,9 +1,11 @@
+import React from 'react';
+
 interface LensLogoProps {
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export default function LensLogo({ size = "md", className = "" }: LensLogoProps) {
+const LensLogo = React.memo(function LensLogo({ size = "md", className = "" }: LensLogoProps) {
   const sizeClasses = {
     sm: "w-6 h-6",
     md: "w-8 h-8", 
@@ -18,4 +20,6 @@ export default function LensLogo({ size = "md", className = "" }: LensLogoProps)
       <div className="absolute inset-3 bg-gradient-to-br from-blue-500 to-violet-500 rounded-full"></div>
     </div>
   );
-}
+});
+
+export default LensLogo;

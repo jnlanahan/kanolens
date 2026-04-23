@@ -52,13 +52,23 @@ export default defineConfig({
       output: {
         // Manual chunk splitting for better caching
         manualChunks: {
-          // Vendor libraries
+          // Core vendor libraries
           vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          // UI component libraries
+          'ui-core': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
+          'ui-extras': ['@radix-ui/react-tooltip', '@radix-ui/react-popover', '@radix-ui/react-toast'],
+          // Routing and state management
           routing: ['wouter'],
           query: ['@tanstack/react-query'],
-          forms: ['react-hook-form', '@hookform/resolvers'],
-          utils: ['clsx', 'tailwind-merge', 'date-fns']
+          // Form handling
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          // Utilities
+          utils: ['clsx', 'tailwind-merge', 'date-fns'],
+          // Heavy libraries (only loaded when needed)
+          charts: ['recharts'],
+          export: ['xlsx', 'pptxgenjs'],
+          // Icons
+          icons: ['lucide-react', 'react-icons']
         },
         // Add hash to chunk names for cache busting
         chunkFileNames: (chunkInfo) => {

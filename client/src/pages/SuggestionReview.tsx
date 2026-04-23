@@ -62,7 +62,7 @@ export default function SuggestionReview() {
 
   const proceedMutation = useMutation({
     mutationFn: async (finalData: any) => {
-      const response = await apiRequest("POST", "/api/analysis/start", finalData);
+      const response = await apiRequest("POST", "/api/analysis/sessions", finalData);
       return response.json();
     },
     onSuccess: (data) => {
@@ -122,6 +122,8 @@ export default function SuggestionReview() {
       ...originalData,
       products: selectedProducts,
       features: selectedFeatures,
+      title: `Analysis: ${selectedProducts.slice(0, 3).join(', ')}${selectedProducts.length > 3 ? '...' : ''}`,
+      targetCustomer: originalData.targetCustomers, // Map plural to singular for backend
     };
 
     proceedMutation.mutate(finalData);

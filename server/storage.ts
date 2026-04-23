@@ -326,26 +326,24 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`Analysis session ${id} not found`);
       }
 
-      // Delete associated chat messages first (due to foreign key constraint)
-      await tx.delete(chatMessages).where(eq(chatMessages.sessionId, id));
+      // Batch all deletes in parallel for better performance
+      await Promise.all([
+        tx.delete(chatMessages).where(eq(chatMessages.sessionId, id)),
+        tx.delete(documents).where(eq(documents.sessionId, id)),
+        tx.delete(sharedAnalyses).where(eq(sharedAnalyses.sessionId, id))
+      ]);
       
-      // Delete associated documents
-      await tx.delete(documents).where(eq(documents.sessionId, id));
-      
-      // Delete associated shared analyses
-      await tx.delete(sharedAnalyses).where(eq(sharedAnalyses.sessionId, id));
-      
-      // Finally delete the session
-      await tx.delete(analysisSessions).where(eq(analysisSessions.id, id));
-      
-      // Decrement user's analysis count
-      await tx
-        .update(users)
-        .set({ 
-          analysisCount: sql`GREATEST(${users.analysisCount} - 1, 0)`,
-          updatedAt: new Date()
-        })
-        .where(eq(users.id, session.userId));
+      // Delete session and update user count in parallel
+      await Promise.all([
+        tx.delete(analysisSessions).where(eq(analysisSessions.id, id)),
+        tx
+          .update(users)
+          .set({ 
+            analysisCount: sql`GREATEST(${users.analysisCount} - 1, 0)`,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, session.userId))
+      ]);
     }, 3, 'deleteAnalysisSession');
   }
 
@@ -435,17 +433,20 @@ export class DatabaseStorage implements IStorage {
   
   // Prompt version operations
   async createPromptVersion(versionData: InsertPromptVersion): Promise<PromptVersion> {
-    // Deactivate all other versions for this agent
-    await db
-      .update(promptVersions)
-      .set({ isActive: false })
-      .where(eq(promptVersions.agentName, versionData.agentName));
-      
-    const [version] = await db
-      .insert(promptVersions)
-      .values(versionData)
-      .returning();
-    return version;
+    return await this.executeWithTransaction(async (tx) => {
+      // Parallel execution of deactivation and insertion
+      const [, [version]] = await Promise.all([
+        tx
+          .update(promptVersions)
+          .set({ isActive: false })
+          .where(eq(promptVersions.agentName, versionData.agentName)),
+        tx
+          .insert(promptVersions)
+          .values(versionData)
+          .returning()
+      ]);
+      return version;
+    });
   }
   
   async getActivePromptVersion(agentName: string): Promise<PromptVersion | undefined> {
