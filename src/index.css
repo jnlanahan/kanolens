@@ -1,0 +1,104 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 13% 98%;
+    --foreground: 215 25% 27%;
+
+    --muted: 210 11% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 27%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+
+    --border: 214 13% 91%;
+    --input: 214 13% 91%;
+    --ring: 221 83% 53%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 213 100% 97%;
+
+    --secondary: 210 11% 96%;
+    --secondary-foreground: 215 25% 27%;
+
+    --accent: 210 11% 96%;
+    --accent-foreground: 215 25% 27%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --radius: 0.75rem;
+
+    /* Kano category tokens used by KanoTable */
+    --kano-must: 221 83% 53%;   /* blue    — Must-Have */
+    --kano-perf: 27 96% 61%;    /* orange  — Performance Benefit */
+    --kano-delight: 258 90% 66%;/* violet  — Delighter */
+
+    /* Brand gradient stops */
+    --brand-from: 221 83% 53%;
+    --brand-to: 258 90% 66%;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+
+    --muted: 223 47% 11%;
+    --muted-foreground: 215 16% 57%;
+
+    --popover: 224 71% 4%;
+    --popover-foreground: 213 31% 91%;
+
+    --card: 224 71% 4%;
+    --card-foreground: 213 31% 91%;
+
+    --border: 223 47% 11%;
+    --input: 223 47% 11%;
+    --ring: 221 83% 53%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 213 100% 97%;
+
+    --secondary: 223 47% 11%;
+    --secondary-foreground: 213 31% 91%;
+
+    --accent: 223 47% 11%;
+    --accent-foreground: 213 31% 91%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 213 31% 91%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-mono tracking-tight;
+  }
+}
+
+@layer components {
+  .brand-gradient {
+    background: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-to)));
+  }
+
+  .brand-gradient-text {
+    background: linear-gradient(135deg, hsl(var(--brand-from)), hsl(var(--brand-to)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+}
