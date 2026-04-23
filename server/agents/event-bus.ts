@@ -1,0 +1,50 @@
+export type AnalysisEvent =
+  | { type: "status"; status: "queued" | "researching" | "writing" | "done" | "error"; message?: string }
+  | { type: "row"; feature: { id: string; name: string; description: string; customerBenefit: string; category: string }; ratings: Record<string, string>; justifications?: Record<string, string>; sources: string[] }
+  | { type: "narration"; text: string }
+  | { type: "done"; summary: string }
+  | { type: "error"; message: string };
+
+type Listener = (event: AnalysisEvent) => void;
+
+interface Stream {
+  listeners: Set<Listener>;
+  buffer: AnalysisEvent[];
+  closed: boolean;
+}
+
+const streams = new Map<string, Stream>();
+
+function getOrCreate(sessionId: string): Stream {
+  let s = streams.get(sessionId);
+  if (!s) {
+    s = { listeners: new Set(), buffer: [], closed: false };
+    streams.set(sessionId, s);
+  }
+  return s;
+}
+
+export function publish(sessionId: string, event: AnalysisEvent): void {
+  const s = getOrCreate(sessionId);
+  if (s.closed) return;
+  s.buffer.push(event);
+  for (const listener of s.listeners) listener(event);
+  if (event.type === "done" || event.type === "error") {
+    s.closed = true;
+  }
+}
+
+export function subscribe(sessionId: string, listener: Listener): { replay: AnalysisEvent[]; unsubscribe: () => void } {
+  const s = getOrCreate(sessionId);
+  s.listeners.add(listener);
+  return {
+    replay: [...s.buffer],
+    unsubscribe: () => {
+      s.listeners.delete(listener);
+    },
+  };
+}
+
+export function clearStream(sessionId: string): void {
+  streams.delete(sessionId);
+}

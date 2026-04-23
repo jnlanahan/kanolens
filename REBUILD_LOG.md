@@ -121,8 +121,9 @@ A cheap Haiku 4.5 sub-call handles per-citation source verification (`verified |
 
 - [x] **Phase 0.a** — Branch + preserve artifacts (docs/methodology, docs/prd.md)
 - [x] **Phase 0.b** — Strip cruft (root docs, attached_assets 92 files, server/, client/, shared/, scripts/, old root configs)
-- [ ] **Phase 0.c** — Scaffold fresh stack (package.json, configs, index.html, shadcn primitives, ported KanoTable, Hono skeleton)  ← **YOU ARE HERE**
-- [ ] **Phase 1** — Agent loop (analyst.ts with 5 tools, verifier.ts, prompt registry loading the methodology MD + PDFs)
+- [x] **Phase 0.c** — Scaffold fresh stack (package.json, configs, index.html, shadcn primitives, ported KanoTable, Hono skeleton). `npm run check` clean, Vite on :5173 and Hono on :3001 both boot.
+- [x] **Phase 1** — Agent system built: `server/agents/prompts.ts` (methodology as cached system block), `verifier.ts` (Haiku source check), `scope-proposer.ts` (Sonnet + structured output via zod), `analyst.ts` (Sonnet streaming loop with 3 tools: `web_search_20250305`, custom `upsert_feature_row`, custom `finalize_table`), `event-bus.ts` (in-memory SSE event fanout). 8 vitest tests pass, including an end-to-end analyst loop test with mocked Claude. Design choices: 2-phase (scope → analyst) instead of one loop with pause; verifier runs inside `upsert_feature_row` tool handler, all-cannot-verify sources downgrade ratings automatically; `web_search` uses the standard (non-dynamic) variant since we only need search, not in-browser filtering.
+- [ ] **Phase 2** — Backend plumbing (Drizzle 3-table schema, migrations, Hono routes, SSE endpoint, Google OAuth callback, JWT cookie)  ← **YOU ARE HERE**
 - [ ] **Phase 2** — Backend plumbing (Drizzle 3-table schema, migrations, Hono routes, SSE endpoint, Google OAuth callback, JWT cookie)
 - [ ] **Phase 3** — Frontend wizard (`/`, `/new`, `/scope/:id`, `/run/:id`, `/report/:id`) with ported KanoTable rendering streamed rows
 - [ ] **Phase 4** — Polish (loading/error/empty states, a11y, responsive, Playwright e2e against mocked Anthropic SSE)
