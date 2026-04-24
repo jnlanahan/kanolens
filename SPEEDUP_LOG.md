@@ -64,7 +64,18 @@ The event bus ([`event-bus.ts:32-34`](./server/agents/event-bus.ts#L32-L34)) clo
   - [x] Coordinator: [`server/agents/analyst.ts`](./server/agents/analyst.ts) is now the 3-phase coordinator with `Promise.allSettled` + hand-rolled `pLimit(5)`. On per-feature failure it publishes a Cannot-Verify fallback `row` (never a `type:"error"`, because the event bus closes the stream on that).
   - [x] Summary: Haiku call over structured ratings+justifications, emits `{type:"done", summary}` directly. Falls back to a one-line deterministic summary if the Haiku call fails.
   - [x] Tests: `server/agents/__tests__/analyst.test.ts` fully rewritten — 3 cases cover (a) happy fan-out (pre-pass + 2 features + summary = 1 parse + 3 create calls), (b) single-feature failure produces Cannot-Verify fallback but run still finalizes, (c) no-verified-sources still downgrades to Cannot Verify. `npm run test` → 9/9 passing (event-bus + prompts + analyst).
-- [ ] **Phase 6 — Live verification:** restart `npm run dev`, browser wizard flow, confirm rows stream within ~45s of `researching` and complete within ~3 min end-to-end.
+- [x] **Phase 6 — Live verification:** user ran through the full wizard on `analyst-parallel`. Verdict: *"works well now. Still kind of slow, but much faster for the initial batch."* Merged to `main`.
+
+### Remaining slowness (follow-up candidates)
+
+The fan-out won the biggest chunk of the wait — "initial batch" (the first ~5 feature shards) now lands noticeably faster. The tail is still slow. Plausible causes, in rough priority order:
+
+1. **Tail latency from `pLimit(5)`.** With 10 features and a 5-wide cap, the second batch of 5 can't start until the first fully drains. If the slowest shard in batch-1 takes 90s, batch-2's start is gated on that. Options: raise the cap to 8 (watch rate-limits) OR switch to a sliding-window scheduler.
+2. **Per-shard thinking budget.** We kept `thinking: adaptive` on each feature analyst. For narrow single-feature scope, the model may still spend 10–20s thinking before its first `web_search`. Could try `thinking: { type: "disabled" }` on the feature analyst and rely on web evidence alone — risks some quality drop.
+3. **`web_search` round-trip.** Each search hop is ~2–5s and goes through Anthropic's server-side tool. Nothing we can do client-side, but reducing `max_uses` from 4 to 3 could cut a search per feature on the happy path.
+4. **Summary is serialized after fan-out.** Adds ~3–5s at the end. Could start the summary call speculatively once ~80% of rows have committed, but payoff is small.
+
+None of these are urgent — the current design delivered the promised speedup per the user. Capture here for the next pass.
 
 ---
 
@@ -74,5 +85,5 @@ The event bus ([`event-bus.ts:32-34`](./server/agents/event-bus.ts#L32-L34)) clo
 |---|---|
 | `ae686f0` | `chore: allow git merge * after session approval` (kanolens-v2 → main fast-forward tip) |
 | `1975011` | `docs: seed SPEEDUP_LOG.md for analyst parallelization` |
-| _(pending)_ | `refactor(analyst): fan out per feature with shared source pre-pass` |
-| _(pending Phase 6)_ | Any post-verification fixes |
+| `b59dc7e` | `refactor(analyst): fan out per feature with shared source pre-pass` (+715 / −245) |
+| _(this commit)_ | `docs: close out Phase 6 — user-verified, note follow-up slowness candidates` |
