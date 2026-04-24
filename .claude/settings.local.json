@@ -82,7 +82,12 @@
       "Bash(findstr :3001)",
       "Bash(findstr LISTENING)",
       "Bash(git check-ignore *)",
-      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); s=d['sessions'][0]; print\\(f\\\\\"status={s['status']} updatedAt={s['updatedAt']}\\\\\"\\)\")"
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); s=d['sessions'][0]; print\\(f\\\\\"status={s['status']} updatedAt={s['updatedAt']}\\\\\"\\)\")",
+      "Bash(powershell.exe -NoProfile -Command 'Get-NetTCPConnection -LocalPort 3001,5173 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; \"killed pid=$_\" }')",
+      "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" status)",
+      "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" remote -v)",
+      "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" branch -vv)",
+      "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" diff .claude/settings.local.json)"
     ],
     "deny": []
   }
