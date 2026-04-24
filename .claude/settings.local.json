@@ -72,7 +72,17 @@
       "Bash(echo $PORT)",
       "Bash(timeout:*)",
       "Bash(gh repo create:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "WebSearch",
+      "Bash(git checkout *)",
+      "Bash(git rm *)",
+      "Bash(npm view *)",
+      "Bash(rm -rf .data /tmp/cookies.txt)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3001)",
+      "Bash(findstr LISTENING)",
+      "Bash(git check-ignore *)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); s=d['sessions'][0]; print\\(f\\\\\"status={s['status']} updatedAt={s['updatedAt']}\\\\\"\\)\")"
     ],
     "deny": []
   }
