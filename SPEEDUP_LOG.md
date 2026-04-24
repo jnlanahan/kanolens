@@ -57,12 +57,14 @@ The event bus ([`event-bus.ts:32-34`](./server/agents/event-bus.ts#L32-L34)) clo
 ## Phase checklist
 
 - [x] **Phase 0 — Git workflow:** commit outstanding `.claude/settings.local.json`, fast-forward `kanolens-v2` into `main` (already included `bac61dc` pglite-default fix and `c74e204` exploring-market mode), cut `analyst-parallel` branch.
-- [ ] **Phase 1 — Prompts:** add `buildFeatureAnalystKickoff(scope, feature, siblingFeatureNames, primarySources)` and `buildSourcePrepassKickoff(scope)` to [`server/agents/prompts.ts`](./server/agents/prompts.ts). Non-breaking — existing `buildAnalystKickoff` stays.
-- [ ] **Phase 2 — Pre-pass:** new file [`server/agents/source-prepass.ts`](./server/agents/source-prepass.ts) exporting `gatherPrimarySources(scope) → PrimarySourceMap`. Uses `messages.parse` + zod output schema (same pattern as [`scope-proposer.ts`](./server/agents/scope-proposer.ts)).
-- [ ] **Phase 3 — Feature analyst:** new file [`server/agents/feature-analyst.ts`](./server/agents/feature-analyst.ts) exporting `runFeatureAnalyst({sessionId, scope, feature, primarySources}) → {committed, ratings, justifications, sources}`. Internally: `max_tokens: 8000`, `thinking: adaptive`, `max_uses: 4` on web_search, `MAX_ITERATIONS: 8`, no `finalize_table` tool. Includes moved `handleUpsert` as a module-private helper.
-- [ ] **Phase 4 — Coordinator rewrite:** [`server/agents/analyst.ts`](./server/agents/analyst.ts) becomes the 3-phase coordinator. Delete old tool-use loop, keep exported `AnalystScope` and `AnalystResult` types.
-- [ ] **Phase 5 — Tests:** rewrite [`server/agents/__tests__/analyst.test.ts`](./server/agents/__tests__/analyst.test.ts) to mock the fan-out: pre-pass call + N feature-analyst calls + summary call. Assert row ordering is irrelevant, failure of one feature doesn't abort.
-- [ ] **Phase 6 — Live verification:** `npm run dev`, browser wizard flow, confirm rows stream within ~45s and complete within ~3 min.
+- [x] **Phase 1–5 — Refactor landed in one commit** (each phase compiles independently but the behavior change is atomic):
+  - [x] Prompts: `buildFeatureAnalystKickoff`, `buildSourcePrepassKickoff`, `buildSummaryPrompt` added; existing `buildAnalystKickoff` untouched.
+  - [x] Pre-pass: [`server/agents/source-prepass.ts`](./server/agents/source-prepass.ts) uses `messages.parse` with a zod output schema. Emits URLs from model knowledge (no web_search) — feature sub-agents verify downstream.
+  - [x] Feature analyst: [`server/agents/feature-analyst.ts`](./server/agents/feature-analyst.ts) with `max_tokens: 8000`, `thinking: adaptive`, `max_uses: 4` on web_search, `MAX_ITERATIONS: 8`, no `finalize_table` tool. `handleUpsert` moved here. `effort: high` dropped (plan called this out; the per-shard scope is narrow enough).
+  - [x] Coordinator: [`server/agents/analyst.ts`](./server/agents/analyst.ts) is now the 3-phase coordinator with `Promise.allSettled` + hand-rolled `pLimit(5)`. On per-feature failure it publishes a Cannot-Verify fallback `row` (never a `type:"error"`, because the event bus closes the stream on that).
+  - [x] Summary: Haiku call over structured ratings+justifications, emits `{type:"done", summary}` directly. Falls back to a one-line deterministic summary if the Haiku call fails.
+  - [x] Tests: `server/agents/__tests__/analyst.test.ts` fully rewritten — 3 cases cover (a) happy fan-out (pre-pass + 2 features + summary = 1 parse + 3 create calls), (b) single-feature failure produces Cannot-Verify fallback but run still finalizes, (c) no-verified-sources still downgrades to Cannot Verify. `npm run test` → 9/9 passing (event-bus + prompts + analyst).
+- [ ] **Phase 6 — Live verification:** restart `npm run dev`, browser wizard flow, confirm rows stream within ~45s of `researching` and complete within ~3 min end-to-end.
 
 ---
 
@@ -71,7 +73,6 @@ The event bus ([`event-bus.ts:32-34`](./server/agents/event-bus.ts#L32-L34)) clo
 | Commit | What |
 |---|---|
 | `ae686f0` | `chore: allow git merge * after session approval` (kanolens-v2 → main fast-forward tip) |
-| _(pending Phase 1)_ | Add `buildFeatureAnalystKickoff` + `buildSourcePrepassKickoff` to prompts.ts |
-| _(pending Phase 2-3)_ | Add `source-prepass.ts` + `feature-analyst.ts` |
-| _(pending Phase 4-5)_ | Rewrite analyst.ts as coordinator + update tests |
+| `1975011` | `docs: seed SPEEDUP_LOG.md for analyst parallelization` |
+| _(pending)_ | `refactor(analyst): fan out per feature with shared source pre-pass` |
 | _(pending Phase 6)_ | Any post-verification fixes |

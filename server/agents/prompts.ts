@@ -110,3 +110,130 @@ Remember:
 - Performance Benefits take High/Medium/Low ratings; Must-Haves and Delighters take Yes/Maybe/No/Cannot Verify.
 ${scope.userProductName ? "" : "- Do NOT include a column for the user's product — they don't have one yet.\n"}`;
 }
+
+export interface PrimarySource {
+  url: string;
+  purpose: string;
+}
+
+export type PrimarySourceMap = Record<string, PrimarySource[]>;
+
+export function buildSourcePrepassKickoff(scope: {
+  userProductName: string | null;
+  products: string[];
+  targetCustomer: string;
+}): string {
+  const productsList = scope.userProductName
+    ? [...scope.products, scope.userProductName]
+    : scope.products;
+
+  return `Before the full analysis runs, list the canonical primary-source URLs for each of these products. Downstream per-feature agents will use these as starting points so they don't all redundantly search for the same landing pages.
+
+<products>${productsList.join(" | ")}</products>
+<target_customer>${scope.targetCustomer}</target_customer>
+
+For each product, emit 3–5 high-signal URLs covering: the product marketing/homepage, the pricing page, and the feature list / documentation / help center. Prefer the official domain. Do NOT call any tool — emit URLs from your knowledge. Downstream agents will verify with web_search.
+
+If you are genuinely uncertain about a URL, omit it rather than guessing; fewer correct URLs beat more wrong ones.`;
+}
+
+export function buildFeatureAnalystKickoff(args: {
+  scope: {
+    userProductName: string | null;
+    products: string[];
+    targetCustomer: string;
+  };
+  feature: { id: string; name: string; description: string; customerBenefit: string; category: string };
+  siblingFeatureNames: string[];
+  primarySources: PrimarySourceMap;
+}): string {
+  const { scope, feature, siblingFeatureNames, primarySources } = args;
+  const userColumn = scope.userProductName
+    ? `<user_product>${scope.userProductName}</user_product>`
+    : `<no_user_product note="Market-scoping only. Do NOT include the user's own product in per_product." />`;
+  const productsList = scope.userProductName
+    ? [...scope.products, scope.userProductName]
+    : scope.products;
+
+  const sourcesBlock = productsList
+    .map((p) => {
+      const sources = primarySources[p] ?? [];
+      if (sources.length === 0) return `  <product name="${p}">(no primary-source hints — search from scratch)</product>`;
+      const lines = sources.map((s) => `    - ${s.url} (${s.purpose})`).join("\n");
+      return `  <product name="${p}">\n${lines}\n  </product>`;
+    })
+    .join("\n");
+
+  return `Research a SINGLE feature across the full product list and commit one complete Kano row. You are one of several parallel agents; each agent handles exactly one feature.
+
+<scope>
+${userColumn}
+<products_to_rate>${productsList.join(" | ")}</products_to_rate>
+<target_customer>${scope.targetCustomer}</target_customer>
+<sibling_features_for_context>${siblingFeatureNames.join(" | ")}</sibling_features_for_context>
+</scope>
+
+<feature id="${feature.id}" category="${feature.category}">
+  <name>${feature.name}</name>
+  <benefit>${feature.customerBenefit}</benefit>
+  <desc>${feature.description}</desc>
+</feature>
+
+<primary_source_hints>
+${sourcesBlock}
+</primary_source_hints>
+
+Workflow:
+1. Use the primary-source hints above as a starting point. If a hint URL looks wrong, ignore it and web_search.
+2. Use web_search sparingly — you have a budget of about 4 searches for this feature. Search for specifics like "${feature.name} Productboard" or the equivalent, not the product's home page (the hints above cover that).
+3. Once you have enough evidence for every product, call upsert_feature_row EXACTLY ONCE with ratings + justifications + sources. After that, you are done — stop.
+4. Do NOT call any tool named "finalize_table" — a coordinator handles finalization across all features.
+
+Scoring reminders:
+- ${feature.category === "performance" ? "Performance Benefit → High | Medium | Low | Maybe High | Maybe Medium | Maybe Low | Cannot Verify" : 'Must-Have / Delighter → "Yes" | "Maybe" | "No" | "Cannot Verify"'}.
+- Every rating must cite a primary-source URL (or be "Cannot Verify"). No guessing.
+- Include every product in <products_to_rate> in per_product — omissions default to "Cannot Verify" server-side.
+${scope.userProductName ? "" : "- Do NOT include the user's own product in per_product.\n"}`;
+}
+
+export function buildSummaryPrompt(args: {
+  scope: {
+    userProductName: string | null;
+    products: string[];
+    targetCustomer: string;
+  };
+  rows: {
+    feature: { id: string; name: string; category: string };
+    ratings: Record<string, string>;
+    justifications: Record<string, string>;
+  }[];
+}): string {
+  const { scope, rows } = args;
+  const productsList = scope.userProductName
+    ? [...scope.products, scope.userProductName]
+    : scope.products;
+
+  const tableBlock = rows
+    .map((r) => {
+      const cells = productsList
+        .map((p) => {
+          const rating = r.ratings[p] ?? "Cannot Verify";
+          const justif = r.justifications[p] ?? "";
+          return `    ${p}: ${rating}${justif ? ` — ${justif}` : ""}`;
+        })
+        .join("\n");
+      return `<feature name="${r.feature.name}" category="${r.feature.category}">\n${cells}\n</feature>`;
+    })
+    .join("\n");
+
+  return `Summarize this completed Kano Model competitive analysis in 1–2 sentences. Describe the overall competitive position only — no speculation beyond what the table shows, no strategic recommendations, no URLs.
+
+<target_customer>${scope.targetCustomer}</target_customer>
+${scope.userProductName ? `<user_product>${scope.userProductName}</user_product>\n` : ""}<products>${productsList.join(" | ")}</products>
+
+<table>
+${tableBlock}
+</table>
+
+Output only the 1–2 sentence summary. No preamble, no headers.`;
+}

@@ -1,9 +1,8 @@
-import type Anthropic from "@anthropic-ai/sdk";
-
 import { getAnthropicClient, MODELS } from "../lib/anthropic";
 import { publish } from "./event-bus";
-import { buildAnalystKickoff, buildSystemBlocks } from "./prompts";
-import { verifySource } from "./verifier";
+import { runFeatureAnalyst, type FeatureAnalystResult } from "./feature-analyst";
+import { buildSummaryPrompt, buildSystemBlocks } from "./prompts";
+import { gatherPrimarySources } from "./source-prepass";
 
 export interface AnalystScope {
   userProductName: string | null;
@@ -18,229 +17,125 @@ export interface AnalystScope {
   }[];
 }
 
-const TOOLS: Anthropic.Messages.ToolUnion[] = [
-  { type: "web_search_20250305", name: "web_search", max_uses: 12 },
-  {
-    name: "upsert_feature_row",
-    description:
-      "Commit the ratings + justifications + sources for one feature across all products. Call this ONCE per feature, in order. Emits a live row event to the user's UI.",
-    input_schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        feature_id: {
-          type: "string",
-          description: "The id of the feature from the scope",
-        },
-        per_product: {
-          type: "object",
-          description:
-            "Map of product name -> { rating, justification }. Must include every product in the scope.",
-          additionalProperties: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              rating: {
-                type: "string",
-                description:
-                  'Must-Have / Delighter: "Yes" | "Maybe" | "No" | "Cannot Verify". Performance: "High" | "Medium" | "Low" | "Maybe High" | "Maybe Medium" | "Maybe Low" | "Cannot Verify".',
-              },
-              justification: {
-                type: "string",
-                description: "one-sentence rationale for this rating",
-              },
-            },
-            required: ["rating", "justification"],
-          },
-        },
-        sources: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              url: { type: "string" },
-              claim: {
-                type: "string",
-                description: "the specific claim this URL backs",
-              },
-            },
-            required: ["url", "claim"],
-          },
-          description:
-            "Source URLs for the ratings above. If you have no primary-source URLs, leave empty — ratings with no sources will be downgraded to Cannot Verify server-side.",
-        },
-      },
-      required: ["feature_id", "per_product", "sources"],
-    },
-  },
-  {
-    name: "finalize_table",
-    description:
-      "Call this EXACTLY ONCE after every feature has been upserted, to close out the analysis. The UI navigates to the report view on this call.",
-    input_schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        summary: {
-          type: "string",
-          description:
-            "≤2-sentence summary of the overall competitive position. No speculation beyond what the table shows.",
-        },
-      },
-      required: ["summary"],
-    },
-  },
-];
-
-type UpsertInput = {
-  feature_id: string;
-  per_product: Record<string, { rating: string; justification: string }>;
-  sources: { url: string; claim: string }[];
-};
-
-type FinalizeInput = { summary: string };
-
 export interface AnalystResult {
   summary: string;
   committedFeatureIds: string[];
 }
+
+const FAN_OUT_CONCURRENCY = 5;
 
 export async function runAnalyst(args: {
   sessionId: string;
   scope: AnalystScope;
 }): Promise<AnalystResult> {
   const { sessionId, scope } = args;
-  const client = getAnthropicClient();
-  const featuresById = new Map(scope.features.map((f) => [f.id, f]));
-  const committed = new Set<string>();
-  let summary = "";
 
-  publish(sessionId, { type: "status", status: "researching", message: "Starting analysis" });
+  publish(sessionId, {
+    type: "status",
+    status: "researching",
+    message: "Gathering primary sources",
+  });
 
-  const messages: Anthropic.Messages.MessageParam[] = [
-    { role: "user", content: buildAnalystKickoff(scope) },
-  ];
-
-  const MAX_ITERATIONS = 40;
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const response = await client.messages.create({
-      model: MODELS.analyst,
-      max_tokens: 16000,
-      thinking: { type: "adaptive" },
-      output_config: { effort: "high" },
-      system: buildSystemBlocks(),
-      tools: TOOLS,
-      messages,
+  let primarySources = {};
+  try {
+    primarySources = await gatherPrimarySources({
+      userProductName: scope.userProductName,
+      products: scope.products,
+      targetCustomer: scope.targetCustomer,
     });
-
-    messages.push({ role: "assistant", content: response.content });
-
-    if (response.stop_reason === "end_turn") {
-      if (summary) break;
-      throw new Error("Analyst ended without calling finalize_table");
-    }
-
-    if (response.stop_reason === "pause_turn") {
-      continue;
-    }
-
-    const toolUses = response.content.filter(
-      (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",
-    );
-    if (toolUses.length === 0) {
-      throw new Error(`Analyst produced no tool calls (stop_reason=${response.stop_reason})`);
-    }
-
-    const toolResults: Anthropic.Messages.ToolResultBlockParam[] = [];
-    for (const tool of toolUses) {
-      if (tool.name === "upsert_feature_row") {
-        const input = tool.input as UpsertInput;
-        const result = await handleUpsert({ sessionId, input, scope, featuresById, committed });
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: tool.id,
-          content: result.message,
-          is_error: result.isError,
-        });
-      } else if (tool.name === "finalize_table") {
-        const input = tool.input as FinalizeInput;
-        summary = input.summary;
-        publish(sessionId, { type: "done", summary });
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: tool.id,
-          content: "table finalized; session closed",
-        });
-      } else {
-        // web_search / web_fetch are server-side; no manual handling needed.
-        continue;
-      }
-    }
-
-    if (toolResults.length === 0) continue;
-    messages.push({ role: "user", content: toolResults });
+  } catch (error) {
+    console.warn("[analyst] pre-pass failed, continuing without hints:", error);
   }
 
-  if (!summary) throw new Error("Analyst exceeded max iterations without finalizing");
-  return { summary, committedFeatureIds: [...committed] };
-}
+  publish(sessionId, {
+    type: "status",
+    status: "researching",
+    message: `Analyzing ${scope.features.length} features in parallel`,
+  });
 
-async function handleUpsert(args: {
-  sessionId: string;
-  input: UpsertInput;
-  scope: AnalystScope;
-  featuresById: Map<string, AnalystScope["features"][number]>;
-  committed: Set<string>;
-}): Promise<{ message: string; isError: boolean }> {
-  const { sessionId, input, scope, featuresById, committed } = args;
-  const feature = featuresById.get(input.feature_id);
-  if (!feature) {
-    return {
-      isError: true,
-      message: `Unknown feature_id "${input.feature_id}". Scope features: ${[...featuresById.keys()].join(", ")}`,
-    };
-  }
+  const siblingFeatureNames = scope.features.map((f) => f.name);
+  const featureScope = {
+    userProductName: scope.userProductName,
+    products: scope.products,
+    targetCustomer: scope.targetCustomer,
+  };
 
-  const verdicts = await Promise.all(
-    input.sources.map(async (s) => {
-      try {
-        const v = await verifySource({
-          claim: s.claim,
-          url: s.url,
-          product: scope.userProductName ?? "(market analysis)",
-        });
-        return { url: s.url, ...v };
-      } catch {
-        return { url: s.url, verdict: "cannot_verify" as const, note: "verifier error" };
-      }
-    }),
+  const limit = pLimit(FAN_OUT_CONCURRENCY);
+  const settled = await Promise.allSettled(
+    scope.features.map((feature) =>
+      limit(() =>
+        runFeatureAnalyst({
+          sessionId,
+          scope: featureScope,
+          feature,
+          siblingFeatureNames: siblingFeatureNames.filter((n) => n !== feature.name),
+          primarySources,
+        }),
+      ),
+    ),
   );
-  const anyVerified = verdicts.some((v) => v.verdict === "verified");
-  const anyMaybe = verdicts.some((v) => v.verdict === "maybe");
 
-  const ratings: Record<string, string> = {};
-  const justifications: Record<string, string> = {};
-  const allProducts = scope.userProductName
+  const fullProducts = scope.userProductName
     ? [...scope.products, scope.userProductName]
     : scope.products;
-  for (const product of allProducts) {
-    const row = input.per_product[product];
-    if (!row) {
-      ratings[product] = "Cannot Verify";
-      justifications[product] = "not provided by analyst";
-      continue;
-    }
-    if (!anyVerified && !anyMaybe) {
-      ratings[product] = "Cannot Verify";
-      justifications[product] = row.justification;
-    } else {
-      ratings[product] = row.rating;
-      justifications[product] = row.justification;
-    }
-  }
 
-  const sourceUrls = input.sources.map((s) => s.url);
+  const rowsByFeatureId = new Map<string, FeatureAnalystResult>();
+  settled.forEach((result, idx) => {
+    const feature = scope.features[idx]!;
+    if (result.status === "fulfilled" && result.value.committed) {
+      rowsByFeatureId.set(feature.id, result.value);
+    } else {
+      const reason =
+        result.status === "rejected"
+          ? result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason)
+          : "feature research failed";
+      console.warn(`[analyst] feature ${feature.id} failed:`, reason);
+      publishFallbackRow({ sessionId, feature, products: fullProducts, reason });
+    }
+  });
+
+  publish(sessionId, {
+    type: "status",
+    status: "writing",
+    message: "Writing summary",
+  });
+
+  const committedFeatureIds = [...rowsByFeatureId.keys()];
+  const summary = await generateSummary({
+    scope,
+    rows: scope.features
+      .map((f) => {
+        const row = rowsByFeatureId.get(f.id);
+        if (!row) return null;
+        return {
+          feature: { id: f.id, name: f.name, category: f.category },
+          ratings: row.ratings,
+          justifications: row.justifications,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null),
+  });
+
+  publish(sessionId, { type: "done", summary });
+
+  return { summary, committedFeatureIds };
+}
+
+function publishFallbackRow(args: {
+  sessionId: string;
+  feature: AnalystScope["features"][number];
+  products: string[];
+  reason: string;
+}): void {
+  const { sessionId, feature, products, reason } = args;
+  const ratings: Record<string, string> = {};
+  const justifications: Record<string, string> = {};
+  for (const p of products) {
+    ratings[p] = "Cannot Verify";
+    justifications[p] = `feature research did not complete (${reason.slice(0, 120)})`;
+  }
   publish(sessionId, {
     type: "row",
     feature: {
@@ -252,12 +147,70 @@ async function handleUpsert(args: {
     },
     ratings,
     justifications,
-    sources: sourceUrls,
+    sources: [],
   });
-  committed.add(feature.id);
+}
 
-  return {
-    isError: false,
-    message: `row committed. verifier: ${verdicts.map((v) => `${v.verdict}`).join("/")}`,
+async function generateSummary(args: {
+  scope: AnalystScope;
+  rows: {
+    feature: { id: string; name: string; category: string };
+    ratings: Record<string, string>;
+    justifications: Record<string, string>;
+  }[];
+}): Promise<string> {
+  if (args.rows.length === 0) {
+    return "No features could be rated from primary sources.";
+  }
+
+  const client = getAnthropicClient();
+  try {
+    const response = await client.messages.create({
+      model: MODELS.verifier,
+      max_tokens: 400,
+      system: buildSystemBlocks(),
+      messages: [
+        {
+          role: "user",
+          content: buildSummaryPrompt({
+            scope: {
+              userProductName: args.scope.userProductName,
+              products: args.scope.products,
+              targetCustomer: args.scope.targetCustomer,
+            },
+            rows: args.rows,
+          }),
+        },
+      ],
+    });
+    const text = response.content
+      .map((b) => (b.type === "text" ? b.text : ""))
+      .join("")
+      .trim();
+    if (text) return text;
+  } catch (error) {
+    console.warn("[analyst] summary generation failed:", error);
+  }
+  return `${args.rows.length} features rated across ${args.scope.products.length} products; see table for details.`;
+}
+
+function pLimit(n: number) {
+  let active = 0;
+  const queue: Array<() => void> = [];
+  const next = () => {
+    active--;
+    const waiter = queue.shift();
+    if (waiter) waiter();
+  };
+  return async <T>(fn: () => Promise<T>): Promise<T> => {
+    if (active >= n) {
+      await new Promise<void>((resolve) => queue.push(resolve));
+    }
+    active++;
+    try {
+      return await fn();
+    } finally {
+      next();
+    }
   };
 }
