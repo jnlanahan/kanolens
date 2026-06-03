@@ -88,7 +88,8 @@
       "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" remote -v)",
       "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" branch -vv)",
       "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" diff .claude/settings.local.json)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(findstr \":5173 :3001\")"
     ],
     "deny": []
   }
