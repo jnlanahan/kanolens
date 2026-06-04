@@ -1,10 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { KanoTable } from "@/components/kano/KanoTable";
 import { useAnalysisStream } from "@/hooks/useAnalysisStream";
 import { api, type StreamEvent } from "@/lib/api";
@@ -25,7 +23,7 @@ function RunAnalysis() {
 
   const stream = useAnalysisStream(sessionId, true);
 
-  const { table, statusText } = useMemo(
+  const { table, statusText, rowsDone } = useMemo(
     () => buildTableFromEvents(stream.events, sessionQuery.data?.analysis?.scope),
     [stream.events, sessionQuery.data],
   );
@@ -40,19 +38,38 @@ function RunAnalysis() {
     }
   }, [stream.status, navigate, sessionId]);
 
+  const totalFeatures = sessionQuery.data?.analysis?.scope?.features?.length ?? 0;
+  const pct = totalFeatures > 0 ? Math.min(100, Math.round((rowsDone / totalFeatures) * 100)) : 0;
+
   return (
     <div className="container max-w-5xl py-10 space-y-6">
+      {/* Stepper */}
+      <div className="flex items-center gap-1">
+        <span className="stepper__node stepper__node--done">Context</span>
+        <span className="stepper__line" />
+        <span className="stepper__node stepper__node--done">Scope</span>
+        <span className="stepper__line" />
+        <span className="stepper__node stepper__node--active">
+          <span className="w-2 h-2 rounded-full bg-current opacity-70" />
+          Analyze
+        </span>
+      </div>
+
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 3 of 3</p>
-        <h1 className="text-2xl font-semibold">Running analysis</h1>
+        <p className="eyebrow">Step 3 of 3</p>
+        <h1 className="text-2xl">Running analysis</h1>
         <p className="text-sm text-muted-foreground">
           Rows stream in as each feature is researched. Every rating is source-checked.
         </p>
       </header>
 
-      <Card className="p-4">
+      {/* Status card */}
+      <div className="panel p-4 space-y-3">
         <StatusLine status={stream.status} text={statusText} error={stream.error} />
-      </Card>
+        {stream.status !== "done" && stream.status !== "error" && totalFeatures > 0 ? (
+          <meter className="bar" value={pct} max={100} aria-label="Analysis progress" />
+        ) : null}
+      </div>
 
       <KanoTable tableData={table} isLoading={false} />
     </div>
@@ -71,7 +88,7 @@ function StatusLine({
   if (status === "done") {
     return (
       <div className="flex items-center gap-2 text-sm">
-        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        <CheckCircle2 className="h-4 w-4 text-[hsl(var(--kano-perf))]" />
         <span>Analysis complete — taking you to the report…</span>
       </div>
     );
@@ -86,11 +103,9 @@ function StatusLine({
   }
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      <span className="text-muted-foreground">{text}</span>
-      <Badge variant="secondary" className="ml-auto">
-        {status}
-      </Badge>
+      <span className="spin w-4 h-4 border-2 border-[hsl(var(--border-strong))] border-t-[hsl(var(--kano-perf))] rounded-full shrink-0" aria-hidden="true" />
+      <span className="text-muted-foreground flex-1 truncate">{text}</span>
+      <span className="stepper__node stepper__node--active text-[11px] py-0.5 px-2">{status}</span>
     </div>
   );
 }
@@ -98,8 +113,8 @@ function StatusLine({
 function buildTableFromEvents(
   events: StreamEvent[],
   scope: { products: string[]; userProductName: string | null; features: KanoFeature[] } | null | undefined,
-): { table: KanoTableData | undefined; statusText: string } {
-  if (!scope) return { table: undefined, statusText: "Connecting…" };
+): { table: KanoTableData | undefined; statusText: string; rowsDone: number } {
+  if (!scope) return { table: undefined, statusText: "Connecting…", rowsDone: 0 };
 
   const products = scope.userProductName ? [...scope.products, scope.userProductName] : [...scope.products];
   const featuresOrdered: KanoFeature[] = [];
@@ -128,5 +143,6 @@ function buildTableFromEvents(
       sources,
     },
     statusText: narration,
+    rowsDone: featuresOrdered.length,
   };
 }

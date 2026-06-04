@@ -257,8 +257,16 @@
   textarea.field { resize: vertical; min-height: 88px; line-height: 1.5; }
 
   /* ---------- Progress bars ---------- */
-  .bar { height: 6px; border-radius: 99px; background: hsl(40 24% 88%); overflow: hidden; }
+  .bar { height: 6px; border-radius: 99px; background: hsl(40 24% 88%); overflow: hidden; display: block; width: 100%; }
   .bar__fill { height: 100%; border-radius: 99px; background: hsl(var(--kano-perf)); }
+
+  /* meter element used as progress bar — avoids inline-style width */
+  meter.bar { -webkit-appearance: none; appearance: none; }
+  meter.bar::-webkit-meter-bar { background: hsl(40 24% 88%); border: none; border-radius: 99px; height: 6px; }
+  meter.bar::-webkit-meter-optimum-value,
+  meter.bar::-webkit-meter-suboptimum-value,
+  meter.bar::-webkit-meter-even-less-good-value { background: hsl(var(--kano-perf)); border-radius: 99px; }
+  meter.bar::-moz-meter-bar { background: hsl(var(--kano-perf)); border-radius: 99px; }
 
   /* ---------- Misc ---------- */
   .divider { height: 1px; background: hsl(var(--border)); }
