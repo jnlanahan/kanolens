@@ -104,7 +104,9 @@
       "Bash(echo \"PID: $!\")",
       "Bash(sleep 5 && cat /tmp/kanolens-dev.log)",
       "Read(//tmp/**)",
-      "Bash(start http://localhost:5173)"
+      "Bash(start http://localhost:5173)",
+      "PowerShell($proc = Get-NetTCPConnection -LocalPort 3001 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; if \\($proc\\) { Stop-Process -Id $proc -Force; \"Killed PID $proc\" } else { \"Nothing on 3001\" })",
+      "PowerShell($proc = Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -First 1; if \\($proc\\) { Stop-Process -Id $proc -Force; \"Killed PID $proc\" } else { \"Nothing on 5173\" })"
     ],
     "deny": []
   }
