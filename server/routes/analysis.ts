@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import type { AnalystScope } from "../agents/analyst";
 import { runAnalyst } from "../agents/analyst";
+import { applyMutation, runRefineAgent } from "../agents/refine-agent";
 import { clearStream, publish, subscribe } from "../agents/event-bus";
 import { proposeScope } from "../agents/scope-proposer";
 import { getDb, schema } from "../db/client";
@@ -237,6 +238,46 @@ analysisRoutes.get("/:id/stream", async (c) => {
   const loaded = await loadSession(c);
   if ("response" in loaded) return loaded.response;
   return streamAnalysisSSE(c, loaded.id);
+});
+
+analysisRoutes.post("/:id/refine", async (c) => {
+  const loaded = await loadSession(c);
+  if ("response" in loaded) return loaded.response;
+  const { db, id } = loaded;
+
+  const body = await c.req.json().catch(() => ({}));
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+  if (!message) {
+    return c.json({ error: "message_required" }, 400);
+  }
+
+  const analysisRows = await db
+    .select()
+    .from(schema.analyses)
+    .where(eq(schema.analyses.sessionId, id))
+    .limit(1);
+  const analysis = analysisRows[0];
+  if (!analysis?.tableData) {
+    return c.json({ error: "no_analysis" }, 400);
+  }
+
+  let result;
+  try {
+    result = await runRefineAgent({ message, tableData: analysis.tableData });
+  } catch (error) {
+    console.error("[refine-agent] failed:", error);
+    return c.json({ error: "refine_failed", message: error instanceof Error ? error.message : String(error) }, 500);
+  }
+
+  if (result.mutation.type !== "none") {
+    const updated = applyMutation(analysis.tableData, result.mutation);
+    await db
+      .update(schema.analyses)
+      .set({ tableData: updated })
+      .where(eq(schema.analyses.sessionId, id));
+  }
+
+  return c.json({ reply: result.reply });
 });
 
 function titleFor(userProductName: string | null): string {

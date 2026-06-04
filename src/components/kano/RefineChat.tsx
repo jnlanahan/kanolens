@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { SendHorizonal, Sparkles } from "lucide-react";
+import type { QueryClient } from "@tanstack/react-query";
+
+import { api } from "@/lib/api";
 
 export interface ChatMessage {
   id: string;
@@ -23,11 +26,11 @@ const SUGGESTIONS = [
 ];
 
 interface RefineChatProps {
-  /** Called when the user submits a message. Stub until mutation contract confirmed. */
-  onSend?: (text: string) => Promise<string>;
+  sessionId: string;
+  queryClient: QueryClient;
 }
 
-export function RefineChat({ onSend }: RefineChatProps) {
+export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -49,16 +52,18 @@ export function RefineChat({ onSend }: RefineChatProps) {
     setSending(true);
 
     try {
-      let reply: string;
-      if (onSend) {
-        reply = await onSend(trimmed);
-      } else {
-        // Stub: echo back until mutation contract confirmed
-        await new Promise((r) => setTimeout(r, 600));
-        reply = `Got it — "${trimmed}". (Refine chat is not yet wired to the AI endpoint. Confirm the mutation contract to enable live updates.)`;
-      }
+      const { reply } = await api.refine(sessionId, trimmed);
       const aiMsg: ChatMessage = { id: `a-${Date.now()}`, role: "ai", text: reply };
       setMessages((prev) => [...prev, aiMsg]);
+      // Refetch the analysis so the table reflects any mutations
+      await queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+    } catch (err) {
+      const errMsg: ChatMessage = {
+        id: `e-${Date.now()}`,
+        role: "ai",
+        text: err instanceof Error ? `Error: ${err.message}` : "Something went wrong. Please try again.",
+      };
+      setMessages((prev) => [...prev, errMsg]);
     } finally {
       setSending(false);
     }

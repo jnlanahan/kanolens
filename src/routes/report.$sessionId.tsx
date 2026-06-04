@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageSquare, FileText } from "lucide-react";
 // MessageSquare used in rail tab button only
@@ -19,6 +19,7 @@ type RailTab = "refine" | "detail";
 
 function ReportPage() {
   const { sessionId } = Route.useParams();
+  const queryClient = useQueryClient();
   const [railTab, setRailTab] = useState<RailTab>("refine");
   const [selectedFeature, setSelectedFeature] = useState<KanoFeature | null>(null);
 
@@ -120,7 +121,7 @@ function ReportPage() {
           {/* Rail content */}
           <div className="panel flex-1 overflow-hidden flex flex-col">
             {railTab === "refine" ? (
-              <RefineChat />
+              <RefineChat sessionId={sessionId} queryClient={queryClient} />
             ) : (
               <DetailPane feature={selectedFeature} tableData={table} />
             )}
