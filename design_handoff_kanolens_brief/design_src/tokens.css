@@ -1,0 +1,84 @@
+/* ============================================================================
+   KanoLens — "The Analyst's Brief" design tokens
+   Vibe: a sharp, expensive research brief for PMs & strategists.
+   Warm ivory paper · rich ink · serif headlines · earthy editorial palette
+   (terracotta · forest teal · ochre · charcoal). No synthetic AI blues.
+   Variable NAMES are preserved so the JSX keeps working — VALUES changed.
+   ============================================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,420&family=Work+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  /* ---- Canvas & surfaces (warm paper) ---- */
+  --background: 42 28% 93%;       /* #f3efe7 warm ivory canvas */
+  --surface: 44 44% 99%;          /* #fdfcf8 near-white card */
+  --surface-alt: 44 44% 99%;
+  --surface-muted: 42 33% 95%;    /* #f4f0e7 inset / hover */
+  --card: 44 44% 99%;
+  --card-foreground: 36 22% 13%;
+  --popover: 44 44% 99%;
+  --popover-foreground: 36 22% 13%;
+
+  /* ---- Text (warm ink) ---- */
+  --foreground: 32 19% 13%;       /* #241f19 warm near-black */
+  --muted-foreground: 33 11% 34%; /* #5d564b */
+  --subtle-foreground: 36 9% 50%; /* #8a8175 */
+
+  /* ---- Lines (warm hairline) ---- */
+  --border: 40 24% 85%;           /* #e5ddcf */
+  --border-strong: 39 22% 77%;    /* #d4c9b4 */
+  --input: 40 24% 85%;
+  --ring: 16 58% 46%;
+
+  /* ---- Brand: terracotta (kept var name --brand-emerald) ---- */
+  --brand-emerald: 15 56% 46%;    /* #b6532f terracotta */
+  --brand-ink: 16 62% 37%;        /* #97431f deeper */
+  --brand-soft: 19 52% 91%;       /* #f3e3d9 wash */
+
+  /* ---- Quiet label accent (kept var name --gold) ---- */
+  --gold: 33 13% 42%;             /* warm muted ink for eyebrows */
+  --gold-strong: 15 56% 46%;      /* terracotta for emphasis */
+
+  --primary: 15 56% 46%;
+  --primary-foreground: 44 44% 99%;
+  --secondary: 42 30% 94%;
+  --secondary-foreground: 32 19% 13%;
+  --accent: 42 30% 94%;
+  --accent-foreground: 32 19% 13%;
+  --muted: 42 30% 94%;
+
+  --destructive: 8 52% 46%;       /* brick red */
+  --destructive-foreground: 44 44% 99%;
+
+  /* ---- Kano categories (curated editorial trio) ---- */
+  --kano-must: 34 18% 24%;        /* charcoal — foundational */
+  --kano-perf: 170 40% 30%;       /* forest teal — scales */
+  --kano-delight: 38 60% 42%;     /* ochre gold — surprise */
+  --kano-must-soft: 40 26% 90%;
+  --kano-perf-soft: 162 26% 91%;
+  --kano-delight-soft: 43 50% 90%;
+
+  /* ---- Rating semantics ---- */
+  --rate-verified: 170 42% 27%;   /* teal */
+  --rate-yes: 170 38% 32%;
+  --rate-maybe: 38 56% 38%;       /* ochre */
+  --rate-unknown: 36 9% 50%;      /* warm gray */
+
+  /* ---- Geometry (a touch sharper than before) ---- */
+  --radius: 0.875rem;             /* 14px card */
+  --radius-sm: 0.5rem;            /* 8px buttons/fields */
+  --radius-pill: 9999px;
+
+  /* ---- Elevation (warm, soft, low) ---- */
+  --shadow-sm: 0 1px 2px hsl(34 30% 18% / 0.07);
+  --shadow-md: 0 1px 3px hsl(34 30% 18% / 0.09), 0 1px 2px hsl(34 30% 18% / 0.06);
+  --shadow-lg: 0 14px 34px hsl(34 30% 18% / 0.12);
+  --glow-emerald: 0 0 0 3px hsl(var(--brand-emerald) / 0.14);
+
+  --brand-from: 15 56% 47%;
+  --brand-to: 15 58% 42%;
+
+  /* ---- Type ---- */
+  --font-display: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-body: "Work Sans", system-ui, -apple-system, sans-serif;
+}
