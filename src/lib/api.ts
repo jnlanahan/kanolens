@@ -116,6 +116,11 @@ export const api = {
     }),
   startAnalysis: (id: string) =>
     request<{ ok: true; sessionId: string }>(`/api/analysis/${id}/start`, { method: "POST" }),
+  refine: (id: string, message: string) =>
+    request<{ reply: string }>(`/api/analysis/${id}/refine`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
   streamUrl: (id: string) => `/api/analysis/${id}/stream`,
 };
 
