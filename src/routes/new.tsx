@@ -1,15 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { ApiError, api } from "@/lib/api";
 
@@ -78,7 +75,7 @@ function NewAnalysis() {
   if (!me.data && !me.isLoading) {
     return (
       <div className="container py-16 text-center">
-        <Button asChild variant="brand">
+        <Button asChild className="btn-brand">
           <a href="/api/auth/google">Sign in to start</a>
         </Button>
       </div>
@@ -87,9 +84,21 @@ function NewAnalysis() {
 
   return (
     <div className="container max-w-2xl py-10 space-y-6">
+      {/* Stepper */}
+      <div className="flex items-center gap-1">
+        <span className="stepper__node stepper__node--active">
+          <span className="w-2 h-2 rounded-full bg-current opacity-70" />
+          Context
+        </span>
+        <span className="stepper__line" />
+        <span className="stepper__node">Scope</span>
+        <span className="stepper__line" />
+        <span className="stepper__node">Analyze</span>
+      </div>
+
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 1 of 3</p>
-        <h1 className="text-2xl font-semibold">
+        <p className="eyebrow">Step 1 of 3</p>
+        <h1 className="text-2xl">
           {mode === "have-product" ? "Tell us about your product" : "Tell us about the market"}
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -98,14 +107,15 @@ function NewAnalysis() {
         </p>
       </header>
 
-      <Card className="p-6 space-y-5">
+      <div className="panel p-6 space-y-5">
         <ModeToggle value={mode} onChange={setMode} />
 
         {mode === "have-product" ? (
-          <div className="space-y-2">
-            <Label htmlFor="productName">Your product name</Label>
-            <Input
+          <div className="space-y-1.5">
+            <Label className="form-label" htmlFor="productName">Your product name</Label>
+            <input
               id="productName"
+              className="field"
               placeholder="e.g. Acme Tasks"
               value={productName}
               onChange={(e) => setProductName(e.target.value)}
@@ -114,13 +124,14 @@ function NewAnalysis() {
           </div>
         ) : null}
 
-        <div className="space-y-2">
-          <Label htmlFor="description">
+        <div className="space-y-1.5">
+          <Label className="form-label" htmlFor="description">
             {mode === "have-product" ? "What does it do?" : "Describe the market or opportunity"}
           </Label>
-          <Textarea
+          <textarea
             id="description"
             rows={6}
+            className="field"
             placeholder={
               mode === "have-product"
                 ? "e.g. A task tracker for engineering leads. Tightly integrated with GitHub and Slack. Differentiator: instant standup recaps from AI."
@@ -134,20 +145,22 @@ function NewAnalysis() {
           </p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="targetCustomer">Target customer (optional)</Label>
-          <Input
+        <div className="space-y-1.5">
+          <Label className="form-label" htmlFor="targetCustomer">Target customer <span className="font-normal text-muted-foreground">(optional)</span></Label>
+          <input
             id="targetCustomer"
+            className="field"
             placeholder="e.g. eng leads at 50–500-person startups"
             value={targetCustomer}
             onChange={(e) => setTargetCustomer(e.target.value)}
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="competitors">Products to include (optional)</Label>
-          <Input
+        <div className="space-y-1.5">
+          <Label className="form-label" htmlFor="competitors">Products to include <span className="font-normal text-muted-foreground">(optional)</span></Label>
+          <input
             id="competitors"
+            className="field"
             placeholder="comma-separated, e.g. Linear, Jira, Asana"
             value={competitors}
             onChange={(e) => setCompetitors(e.target.value)}
@@ -159,8 +172,8 @@ function NewAnalysis() {
 
         <div className="flex items-center justify-end pt-2">
           <Button
-            variant="brand"
             size="lg"
+            className="btn-brand"
             disabled={disabled}
             onClick={() => submit.mutate()}
           >
@@ -173,7 +186,7 @@ function NewAnalysis() {
             )}
           </Button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -181,7 +194,7 @@ function NewAnalysis() {
 function ModeToggle({ value, onChange }: { value: Mode; onChange: (m: Mode) => void }) {
   return (
     <div className="space-y-2">
-      <Label>Do you already have a product?</Label>
+      <Label className="form-label">Do you already have a product?</Label>
       <div role="radiogroup" className="grid grid-cols-2 gap-2">
         <ModeOption
           label="Yes, I have a product"
@@ -212,19 +225,20 @@ function ModeOption({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={`text-left rounded-lg border p-3 transition-all ${
-        active
-          ? "border-primary bg-primary/5 ring-2 ring-ring ring-offset-0"
-          : "border-input hover:bg-accent"
-      }`}
-    >
-      <div className="text-sm font-medium">{label}</div>
-      <div className="text-xs text-muted-foreground mt-0.5">{description}</div>
-    </button>
+    <label className={`mode-opt block w-full cursor-pointer${active ? " mode-opt--active" : ""}`}>
+      <input
+        type="radio"
+        className="sr-only"
+        checked={active}
+        onChange={onClick}
+      />
+      <div className="flex items-center gap-2 mb-1">
+        <span className={`mode-radio${active ? " mode-radio--on" : ""}`} aria-hidden="true">
+          {active ? <Check className="h-2.5 w-2.5" /> : null}
+        </span>
+        <span className="text-sm font-semibold">{label}</span>
+      </div>
+      <p className="text-xs text-muted-foreground pl-[26px]">{description}</p>
+    </label>
   );
 }
