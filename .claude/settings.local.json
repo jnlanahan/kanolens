@@ -89,7 +89,22 @@
       "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" branch -vv)",
       "Bash(git -C \"s:/Vibe Coding Folder/kanolens\" diff .claude/settings.local.json)",
       "Bash(git merge *)",
-      "Bash(findstr \":5173 :3001\")"
+      "Bash(findstr \":5173 :3001\")",
+      "Bash(pdftotext \"kano-instructions.pdf\" -)",
+      "Bash(python -c \"import fitz; doc = fitz.open\\('s:/Vibe Coding Folder/kanolens/docs/methodology/kano-instructions.pdf'\\); print\\('\\\\n'.join\\(doc[i].get_text\\(\\) for i in range\\(len\\(doc\\)\\)\\)\\)\")",
+      "Bash(python -c \"import fitz; doc = fitz.open\\('s:/Vibe Coding Folder/kanolens/docs/methodology/competitive-analysis.pdf'\\); print\\('\\\\n'.join\\(doc[i].get_text\\(\\) for i in range\\(len\\(doc\\)\\)\\)\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "Bash(Remove-Item -Recurse -Force \"s:/Vibe Coding Folder/kanolens/docs/methodology/kano-instructions.pdf\" \"s:/Vibe Coding Folder/kanolens/docs/methodology/competitive-analysis.pdf\" \"s:/Vibe Coding Folder/kanolens/docs/methodology/extracted\")",
+      "Bash(Get-ChildItem \"s:/Vibe Coding Folder/kanolens/docs/methodology/\")",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm run *)",
+      "Bash(echo \"PID: $!\")",
+      "Bash(sleep 5 && cat /tmp/kanolens-dev.log)",
+      "Read(//tmp/**)",
+      "Bash(start http://localhost:5173)"
     ],
     "deny": []
   }

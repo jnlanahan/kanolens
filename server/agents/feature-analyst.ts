@@ -120,7 +120,6 @@ export async function runFeatureAnalyst(args: {
     const response = await client.messages.create({
       model: MODELS.analyst,
       max_tokens: 8000,
-      thinking: { type: "adaptive" },
       system: buildSystemBlocks(),
       tools: TOOLS,
       messages,

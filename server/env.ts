@@ -8,6 +8,7 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().url().optional(),
 
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
+  GEMINI_API_KEY: z.string().min(1).optional(),
 
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -30,7 +31,7 @@ function loadEnv(): Env {
 
 export const env = loadEnv();
 
-export function requireSecret<K extends "ANTHROPIC_API_KEY" | "DATABASE_URL" | "JWT_SECRET">(
+export function requireSecret<K extends "ANTHROPIC_API_KEY" | "GEMINI_API_KEY" | "DATABASE_URL" | "JWT_SECRET">(
   key: K,
 ): string {
   const value = env[key];

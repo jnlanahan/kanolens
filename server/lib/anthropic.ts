@@ -11,7 +11,7 @@ export function getAnthropicClient(): Anthropic {
 }
 
 export const MODELS = {
-  analyst: "claude-sonnet-4-6",
-  verifier: "claude-haiku-4-5",
-  proposer: "claude-sonnet-4-6",
+  analyst: "claude-opus-4-8",
+  verifier: "claude-haiku-4-5", // fallback — verifier now uses Gemini
+  proposer: "claude-opus-4-8",
 } as const;
