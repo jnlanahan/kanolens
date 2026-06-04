@@ -15,18 +15,15 @@ export function LensLogo({ size = 36, className }: LensLogoProps) {
       className={cn("shrink-0", className)}
     >
       <defs>
-        <linearGradient id="lens-outer" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="hsl(var(--brand-from))" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="hsl(var(--brand-to))" stopOpacity="0.9" />
-        </linearGradient>
-        <linearGradient id="lens-core" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="hsl(var(--brand-to))" />
-          <stop offset="100%" stopColor="hsl(var(--brand-from))" />
-        </linearGradient>
+        <radialGradient id="lens-terracotta" cx="34%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="hsl(18 70% 60%)" />
+          <stop offset="55%" stopColor="hsl(15 56% 44%)" />
+          <stop offset="100%" stopColor="hsl(14 60% 34%)" />
+        </radialGradient>
       </defs>
-      <circle cx="14" cy="20" r="12" fill="url(#lens-outer)" opacity="0.75" />
-      <circle cx="26" cy="20" r="12" fill="url(#lens-core)" opacity="0.75" />
-      <circle cx="20" cy="20" r="5" fill="white" opacity="0.95" />
+      <circle cx="20" cy="20" r="20" fill="url(#lens-terracotta)" />
+      {/* specular highlight — inner ellipse, no CSS needed */}
+      <ellipse cx="15" cy="13" rx="7" ry="5" fill="white" fillOpacity="0.82" />
     </svg>
   );
 }
