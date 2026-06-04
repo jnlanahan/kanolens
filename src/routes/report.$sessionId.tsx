@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageSquare, FileText } from "lucide-react";
+// MessageSquare used in rail tab button only
 import { useState } from "react";
 
 import { KanoTable } from "@/components/kano/KanoTable";
+import { RefineChat } from "@/components/kano/RefineChat";
 import { StepStrip } from "@/components/kano/StepStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
@@ -118,7 +120,7 @@ function ReportPage() {
           {/* Rail content */}
           <div className="panel flex-1 overflow-hidden flex flex-col">
             {railTab === "refine" ? (
-              <RefineStub />
+              <RefineChat />
             ) : (
               <DetailPane feature={selectedFeature} tableData={table} />
             )}
@@ -129,19 +131,6 @@ function ReportPage() {
   );
 }
 
-function RefineStub() {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 p-8 text-center h-full min-h-[240px]">
-      <div className="chat__head-mark">
-        <MessageSquare className="h-4 w-4" />
-      </div>
-      <p className="text-sm font-medium">Refine chat coming soon</p>
-      <p className="text-xs text-muted-foreground">
-        Ask to add a competitor, drop a benefit, or re-rate a feature in plain language.
-      </p>
-    </div>
-  );
-}
 
 function DetailPane({ feature, tableData }: { feature: KanoFeature | null; tableData: KanoTableData }) {
   if (!feature) {
