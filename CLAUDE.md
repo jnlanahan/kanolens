@@ -7,7 +7,7 @@ AI-powered competitive analysis using the Kano Model (Dan Olsen's benefits-focus
 - **Frontend**: React 19 + Vite + TypeScript + Tailwind + shadcn/ui + TanStack Router + TanStack Query + Zustand
 - **Backend**: Hono on Node (tsx in dev, esbuild bundle in prod)
 - **DB**: Postgres + Drizzle ORM
-- **AI**: Claude Sonnet 4.6 (agent loop) + Claude Haiku 4.5 (source verifier), via `@anthropic-ai/sdk`, with prompt caching on the methodology PDFs and the built-in `web_search` tool.
+- **AI**: Claude Opus 4.8 (feature analyst + scope proposer) + Gemini 2.5 Flash (source verifier) + Claude Haiku 4.5 (fallback), with prompt caching on the methodology markdown and native web search tools on both providers.
 - **Streaming**: Native Server-Sent Events (no WebSocket)
 - **Auth**: Google OAuth → JWT in HTTP-only cookie (via `jose`)
 
@@ -26,7 +26,6 @@ AI-powered competitive analysis using the Kano Model (Dan Olsen's benefits-focus
 ## Key files
 
 - `docs/methodology/kano-instructions.md` — **authoritative methodology**, loaded verbatim as the Analyst's system prompt. Never paraphrased by the LLM.
-- `docs/methodology/kano-instructions.pdf`, `competitive-analysis.pdf` — same methodology in PDF, attached to the Claude message with `cache_control: ephemeral`.
 - `docs/prd.md` — product requirements.
 - `server/agents/analyst.ts` — single Claude Sonnet 4.6 agent loop with 5 tools.
 - `server/agents/verifier.ts` — Haiku per-citation verifier.

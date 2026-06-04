@@ -22,7 +22,7 @@ export interface AnalystResult {
   committedFeatureIds: string[];
 }
 
-const FAN_OUT_CONCURRENCY = 5;
+const FAN_OUT_CONCURRENCY = 8;
 
 export async function runAnalyst(args: {
   sessionId: string;

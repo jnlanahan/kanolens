@@ -23,8 +23,10 @@ Absolute rules — do not deviate:
 2. BENEFITS, NOT FEATURES. Every row's name and description must describe the *customer benefit* — what the user gets — not the raw feature. Good: "Easy third-party app connections — saves developer time". Bad: "API integration".
 3. SOURCE EVERY RATING. Every rating cell must be backed by a URL + access date. If you cannot verify from a primary source, the rating MUST be "Cannot Verify". Never guess.
 4. SCORING SCALES:
-   - Must-Have / Delighter: Yes | Maybe | No | Cannot Verify
+   - Must-Have: Yes | Maybe | No | Cannot Verify  ("No" = verified absent — a real competitive gap)
+   - Delighter: Yes | Maybe | - | Cannot Verify  ("-" = absent, which is neutral/expected — not a gap)
    - Performance Benefit: High | Medium | Low | Maybe High | Maybe Medium | Maybe Low | Cannot Verify
+     (High = top tier vs. this field; Medium = on par; Low = clearly behind — all relative to competitors being analyzed)
 5. PRIMARY SOURCES ONLY: official product sites, official docs/help centers, verified review platforms (G2/Capterra/TrustRadius with specific citations), official release notes. Third-party blogs or social posts → rating must be "Maybe".
 6. NO SPECULATION: do not estimate market size, assume customer preferences without review data, or make strategic recommendations that aren't directly supported by the table.
 7. TABLE SHAPE: 8–12 features in v1 (hard cap 50). Cover all three categories.

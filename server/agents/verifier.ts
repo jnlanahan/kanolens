@@ -1,4 +1,4 @@
-import { getAnthropicClient, MODELS } from "../lib/anthropic";
+import { getGoogleClient, GEMINI_MODELS } from "../lib/google";
 
 export type SourceVerdict = "verified" | "maybe" | "cannot_verify";
 
@@ -8,11 +8,11 @@ export interface VerifyInput {
   product: string;
 }
 
-const SYSTEM = `You are a source verifier for competitive product research. Given a claim about a product and a source URL, decide whether the URL plausibly supports the claim.
+const SYSTEM = `You are a source verifier for competitive product research. Given a claim about a product and a source URL, use Google Search to look up the URL and verify whether it supports the claim.
 
 Respond with exactly one word on the first line:
-- verified — the URL is a primary source (official product site, official docs, verified review platform with a specific citation) that directly supports the claim.
-- maybe — the URL appears related but is secondary (third-party blog, social post, general comparison site) or cannot be directly validated.
+- verified — the source directly supports the claim (official product site, official docs, or a specific verified review).
+- maybe — the source appears related but is secondary or cannot be directly validated.
 - cannot_verify — the URL is unrelated, broken, or clearly does not support the claim.
 
 On a second line, a ≤15-word justification.
@@ -20,24 +20,17 @@ On a second line, a ≤15-word justification.
 Do not output anything else.`;
 
 export async function verifySource(input: VerifyInput): Promise<{ verdict: SourceVerdict; note: string }> {
-  const client = getAnthropicClient();
-  const response = await client.messages.create({
-    model: MODELS.verifier,
-    max_tokens: 120,
-    system: SYSTEM,
-    messages: [
-      {
-        role: "user",
-        content: `Product: ${input.product}\nClaim: ${input.claim}\nSource URL: ${input.url}`,
-      },
-    ],
+  const ai = getGoogleClient();
+
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODELS.verifier,
+    contents: `${SYSTEM}\n\nProduct: ${input.product}\nClaim: ${input.claim}\nSource URL: ${input.url}`,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
   });
 
-  const text = response.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim();
-
+  const text = (response.text ?? "").trim();
   const [firstLine = "", ...rest] = text.split("\n");
   const normalized = firstLine.toLowerCase().trim();
   const verdict: SourceVerdict =

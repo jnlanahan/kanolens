@@ -3,6 +3,52 @@
 ## Overview
 This tool conducts comprehensive competitive analysis using the Kano Model framework to identify strategic opportunities and guide product development decisions. The analysis focuses on comparing product benefits, identifying market gaps, and providing actionable insights for competitive positioning.
 
+## Kano Model Theoretical Foundation
+
+The Kano Model categorizes features by how their presence or absence affects user satisfaction. Understanding the underlying satisfaction curves — not just the labels — is essential for correct classification.
+
+**Must-Haves (Threshold Features)**
+- When absent: active dissatisfaction. Users notice, complain, and may churn.
+- When fully present: satisfaction plateaus. Users take them for granted — no delight, just the baseline expectation.
+- Classification signal: negative reviews that cite the absence of this feature; presence in every competitor's basic tier.
+
+**Performance Benefits (Linear Features)**
+- Satisfaction scales proportionally with how well the benefit is delivered.
+- More = more satisfied; less = less satisfied. The relationship is linear.
+- Classification signal: reviews that compare one product favorably/unfavorably to a competitor on a measurable dimension (speed, limits, depth).
+
+**Delighters (Excitement Features)**
+- When absent: no dissatisfaction. Users don't know to expect them yet.
+- When present: unexpected delight; they create standout moments and word-of-mouth.
+- Classification signal: positive surprise mentions in reviews; features found only in premium tiers or one or two competitors.
+
+**Critical: Category Migration Over Time**
+
+Features migrate categories as the market matures. A Delighter from three years ago (e.g., two-factor authentication, dark mode) can become a Must-Have today once users expect it as standard. A Performance Benefit can become a Must-Have once every competitor delivers it at acceptable quality.
+
+When categorizing, ask: *given the current competitive landscape*, what does a user expect as table stakes? If all major competitors have a feature, treat it as a Must-Have regardless of its theoretical excitement value. This temporal judgment is part of the analysis, not an exception to it.
+
+**Delighters: Absence Is Neutral, Not a Gap**
+
+For Delighters, a competitor not having the feature is *expected and neutral* — users don't know to expect it yet, so its absence causes no dissatisfaction. When rating a Delighter as absent, use a neutral marker (display as "-"), not "No." "No" implies a harmful gap; "-" says "not applicable here." By contrast, a Must-Have rated "No" signals a real competitive problem.
+
+**Performance Benefits: Relative Scoring**
+
+High, Medium, and Low are relative to the competitive field being analyzed, not absolute thresholds:
+- **High**: Clearly in the top tier — better than ~75% of the competitors in this analysis
+- **Medium**: Roughly on par with the field; neither a clear leader nor a laggard
+- **Low**: Clearly behind — worse than ~50% of the competitors in this analysis
+
+Rate based on verifiable evidence (speed benchmarks, storage limits, documented capabilities). If evidence is insufficient to differentiate, use "Cannot Verify" rather than guessing relative position.
+
+**Direct vs. Indirect Competitors**
+
+When scoping the competitive landscape, include both types:
+- **Direct competitors**: Same users, same problem, similar solution, comparable price/value
+- **Indirect competitors**: Same users, same problem, but a different solution (often at a different price point or quality level)
+
+Indirect competitors are harder to spot but can threaten the same users just as effectively. A Kano analysis scoped only to obvious direct competitors misses where users might go instead.
+
 ## Step-by-Step Process
 
 ### Step 1: Strategic Discovery & Scoping
