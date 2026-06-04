@@ -15,33 +15,48 @@ function RootLayout() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b">
-        <div className="container flex h-14 items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 font-semibold">
+      <header className="topbar">
+        <div className="topbar__inner">
+          <Link to="/" className="topbar__brand">
             <LensLogo size={28} />
-            <span className="brand-gradient-text text-lg tracking-tight">kanolens</span>
+            <span className="topbar__wordmark">kanolens</span>
+            <span className="topbar__sub">Kano Model</span>
           </Link>
-          <nav className="flex items-center gap-3">
+          <div />
+          <nav className="topbar__right">
             {user ? (
               <>
-                <Link
-                  to="/dashboard"
-                  className="text-sm text-muted-foreground hover:text-foreground"
-                >
-                  Dashboard
-                </Link>
-                <span className="text-sm text-muted-foreground">{user.email}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => logout.mutate()}
-                  disabled={logout.isPending}
-                >
-                  Sign out
-                </Button>
+                <div className="topbar__nav">
+                  <Link
+                    to="/dashboard"
+                    className="topnav"
+                    activeProps={{ className: "topnav topnav--on" }}
+                  >
+                    Dashboard
+                  </Link>
+                </div>
+                <div className="topbar__user">
+                  <span className="topbar__avatar">
+                    {user.email?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                  <span className="text-sm text-muted-foreground truncate max-w-[140px]">
+                    {user.email}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => logout.mutate()}
+                    disabled={logout.isPending}
+                  >
+                    Sign out
+                  </Button>
+                </div>
               </>
             ) : !loading ? (
-              <a href="/api/auth/google" className="text-sm underline-offset-4 hover:underline">
+              <a
+                href="/api/auth/google"
+                className="text-sm underline-offset-4 hover:underline"
+              >
                 Sign in with Google
               </a>
             ) : null}
@@ -51,8 +66,8 @@ function RootLayout() {
       <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        KanoLens — See what sets you apart.
+      <footer className="footer">
+        <span>KanoLens — See what sets you apart.</span>
       </footer>
     </div>
   );
