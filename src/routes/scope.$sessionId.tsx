@@ -4,13 +4,9 @@ import { Loader2, Play, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api, type ApiScope, type ApiScopeFeature } from "@/lib/api";
 import type { KanoCategory } from "@/lib/kano-types";
 
@@ -81,76 +77,99 @@ function ScopeReview() {
 
   return (
     <div className="container max-w-3xl py-10 space-y-8">
+      {/* Stepper */}
+      <div className="flex items-center gap-1">
+        <span className="stepper__node stepper__node--done">Context</span>
+        <span className="stepper__line" />
+        <span className="stepper__node stepper__node--active">
+          <span className="w-2 h-2 rounded-full bg-current opacity-70" />
+          Scope
+        </span>
+        <span className="stepper__line" />
+        <span className="stepper__node">Analyze</span>
+      </div>
+
       <header className="space-y-1">
-        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Step 2 of 3</p>
-        <h1 className="text-2xl font-semibold">Review and adjust the scope</h1>
+        <p className="eyebrow">Step 2 of 3</p>
+        <h1 className="text-2xl">Review and adjust the scope</h1>
         <p className="text-sm text-muted-foreground">
-          KanoLens proposed these competitors and features. Edit anything — then run the
-          analysis.
+          KanoLens proposed these competitors and features. Edit anything — then run the analysis.
         </p>
       </header>
 
+      {/* Context card */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
+          <h2 className="text-base font-semibold">
             {scope.userProductName === null ? "Market scope" : "Your product"}
           </h2>
           {scope.userProductName === null ? (
-            <Button
-              size="sm"
-              variant="outline"
+            <button
+              type="button"
+              className="btn-gold px-3 py-1.5 rounded-[var(--radius-sm)] text-sm"
               onClick={() => update((s) => ({ ...s, userProductName: "My product" }))}
             >
-              Add my product to this analysis
-            </Button>
+              Add my product
+            </button>
           ) : (
-            <Button
-              size="sm"
-              variant="ghost"
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => update((s) => ({ ...s, userProductName: null }))}
             >
               Remove my product
-            </Button>
+            </button>
           )}
         </div>
-        <Card className="p-4 space-y-3">
+        <div className="panel p-4 space-y-3">
           {scope.userProductName !== null ? (
             <div className="space-y-1.5">
-              <Label>Name</Label>
-              <Input
+              <Label className="form-label" htmlFor="scope-product-name">Name</Label>
+              <input
+                id="scope-product-name"
+                className="field"
                 value={scope.userProductName}
                 onChange={(e) => update((s) => ({ ...s, userProductName: e.target.value }))}
               />
             </div>
           ) : null}
           <div className="space-y-1.5">
-            <Label>Target customer</Label>
-            <Input
+            <Label className="form-label" htmlFor="scope-target-customer">Target customer</Label>
+            <input
+              id="scope-target-customer"
+              className="field"
               value={scope.targetCustomer}
               onChange={(e) => update((s) => ({ ...s, targetCustomer: e.target.value }))}
             />
           </div>
-        </Card>
+        </div>
       </section>
 
+      {/* Competitors */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Competitors ({scope.products.length})</h2>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              update((s) => ({ ...s, products: [...s.products, "New competitor"] }))
-            }
+          <h2 className="text-base font-semibold">Competitors ({scope.products.length})</h2>
+          <button
+            type="button"
+            className="btn-gold px-3 py-1.5 rounded-[var(--radius-sm)] text-sm inline-flex items-center gap-1.5"
+            onClick={() => update((s) => ({ ...s, products: [...s.products, "New competitor"] }))}
           >
-            <Plus className="h-4 w-4" /> Add competitor
-          </Button>
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
         </div>
-        <Card className="p-4 space-y-2">
+        <div className="panel p-2">
           {scope.products.map((name, i) => (
-            <div key={i} className="flex gap-2">
-              <Input
+            <div key={i} className="step2-row px-2">
+              <span
+                className="avatar text-xs shrink-0 w-7 h-7 bg-[hsl(var(--brand-emerald))]"
+                aria-hidden="true"
+              >
+                {name[0]?.toUpperCase() ?? "?"}
+              </span>
+              <input
+                className="field flex-1"
                 value={name}
+                aria-label={`Competitor ${i + 1} name`}
                 onChange={(e) =>
                   update((s) => {
                     const products = [...s.products];
@@ -159,27 +178,28 @@ function ScopeReview() {
                   })
                 }
               />
-              <Button
-                size="icon"
-                variant="ghost"
+              <button
+                type="button"
                 aria-label="Remove competitor"
-                onClick={() =>
-                  update((s) => ({ ...s, products: s.products.filter((_, j) => j !== i) }))
-                }
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-[hsl(var(--surface-muted))] transition-colors shrink-0"
+                onClick={() => update((s) => ({ ...s, products: s.products.filter((_, j) => j !== i) }))}
               >
                 <Trash2 className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
           ))}
-        </Card>
+        </div>
       </section>
 
+      {/* Features / benefits */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Features / benefits ({scope.features.length})</h2>
-          <Button
-            size="sm"
-            variant="outline"
+          <h2 className="text-base font-semibold">
+            Features / benefits ({scope.features.length})
+          </h2>
+          <button
+            type="button"
+            className="btn-gold px-3 py-1.5 rounded-[var(--radius-sm)] text-sm inline-flex items-center gap-1.5"
             onClick={() =>
               update((s) => ({
                 ...s,
@@ -190,18 +210,18 @@ function ScopeReview() {
                     name: "New benefit",
                     description: "",
                     customerBenefit: "",
-                    category: "must-have",
+                    category: "must-have" as KanoCategory,
                   },
                 ],
               }))
             }
           >
-            <Plus className="h-4 w-4" /> Add benefit
-          </Button>
+            <Plus className="h-3.5 w-3.5" /> Add
+          </button>
         </div>
-        <ul className="space-y-3">
+        <div className="panel p-2">
           {scope.features.map((feature, i) => (
-            <FeatureEditor
+            <FeatureRow
               key={feature.id}
               feature={feature}
               onChange={(next) =>
@@ -216,7 +236,7 @@ function ScopeReview() {
               }
             />
           ))}
-        </ul>
+        </div>
       </section>
 
       <div className="flex items-center justify-end gap-3">
@@ -226,8 +246,8 @@ function ScopeReview() {
           </span>
         ) : null}
         <Button
-          variant="brand"
           size="lg"
+          className="btn-brand"
           disabled={start.isPending || scope.features.length === 0 || scope.products.length === 0}
           onClick={() => start.mutate()}
         >
@@ -246,7 +266,7 @@ function ScopeReview() {
   );
 }
 
-function FeatureEditor({
+function FeatureRow({
   feature,
   onChange,
   onRemove,
@@ -256,53 +276,40 @@ function FeatureEditor({
   onRemove: () => void;
 }) {
   return (
-    <li>
-      <Card className="p-4 space-y-3">
-        <div className="flex items-start gap-2">
-          <div className="flex-1 space-y-2">
-            <Input
-              value={feature.name}
-              onChange={(e) => onChange({ ...feature, name: e.target.value })}
-              className="font-medium"
-              placeholder="Benefit name (what the user gets)"
-            />
-            <Textarea
-              rows={2}
-              value={feature.customerBenefit}
-              onChange={(e) => onChange({ ...feature, customerBenefit: e.target.value })}
-              placeholder="Customer benefit phrasing — what does the user experience?"
-            />
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <CategoryPicker
-              value={feature.category}
-              onChange={(category) => onChange({ ...feature, category })}
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              aria-label="Remove benefit"
-              onClick={onRemove}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </li>
+    <div className="step2-row px-2 items-start py-3">
+      <div className="flex-1 space-y-1.5 min-w-0">
+        <input
+          className="field font-medium"
+          value={feature.name}
+          onChange={(e) => onChange({ ...feature, name: e.target.value })}
+          placeholder="Benefit name (what the user gets)"
+        />
+        <input
+          className="field text-sm"
+          value={feature.customerBenefit}
+          onChange={(e) => onChange({ ...feature, customerBenefit: e.target.value })}
+          placeholder="Customer benefit phrasing"
+        />
+      </div>
+      <div className="flex flex-col items-end gap-2 shrink-0">
+        <CategoryPicker value={feature.category} onChange={(c) => onChange({ ...feature, category: c })} />
+        <button
+          type="button"
+          aria-label="Remove benefit"
+          className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-[hsl(var(--surface-muted))] transition-colors"
+          onClick={onRemove}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   );
 }
 
-const CATEGORY_LABEL: Record<KanoCategory, string> = {
-  "must-have": "Must-have",
-  performance: "Performance",
-  delighter: "Delighter",
-};
-
-const CATEGORY_VARIANT: Record<KanoCategory, "must" | "perf" | "delight"> = {
-  "must-have": "must",
-  performance: "perf",
-  delighter: "delight",
+const CAT_LABEL: Record<KanoCategory, string> = {
+  "must-have": "Must",
+  performance: "Perf",
+  delighter: "Delight",
 };
 
 function CategoryPicker({
@@ -320,12 +327,9 @@ function CategoryPicker({
           key={cat}
           type="button"
           onClick={() => onChange(cat)}
-          aria-pressed={value === cat}
-          className={`rounded-full transition-all ${
-            value === cat ? "ring-2 ring-offset-1 ring-ring" : "opacity-60 hover:opacity-90"
-          }`}
+          className={`cat-pick cat-pick--${cat}${value === cat ? ` cat-pick--on` : ""}`}
         >
-          <Badge variant={CATEGORY_VARIANT[cat]}>{CATEGORY_LABEL[cat]}</Badge>
+          {CAT_LABEL[cat]}
         </button>
       ))}
     </div>
