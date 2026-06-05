@@ -118,8 +118,13 @@ export function KanoTable({
                 const features = featuresByCategory[category];
                 if (features.length === 0) return [];
                 return [
-                  <tr key={`cat-${category}`}>
-                    <td colSpan={tableData.products.length + 1} className="px-4 pt-5 pb-1">
+                  <tr key={`cat-${category}`} role="row">
+                    <td
+                      colSpan={tableData.products.length + 1}
+                      className="px-4 pt-5 pb-1"
+                      role="rowheader"
+                      aria-label={`${CATEGORY_LABEL[category]} features`}
+                    >
                       <div className={`ribbon ${categoryRibbonMod[category]}`}>
                         <span className="ribbon__title">
                           <span className="ribbon__icon" aria-hidden="true" />
@@ -148,6 +153,15 @@ export function KanoTable({
                       key={feature.id}
                       className={`kano-row${selectedFeatureId === feature.id ? " kano-row--active" : ""}`}
                       onClick={() => onFeatureClick(feature)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onFeatureClick(feature);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${feature.name} — ${CATEGORY_LABEL[feature.category]}`}
                     >
                       <td className="px-4 py-3">
                         <div className="font-medium text-sm">{feature.name}</div>
