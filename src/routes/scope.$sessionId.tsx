@@ -66,6 +66,18 @@ function ScopeReview() {
     );
   }
 
+  if (sessionQuery.isError) {
+    return (
+      <div className="container max-w-3xl py-16 text-center space-y-3">
+        <h2 className="text-xl">Couldn't load scope</h2>
+        <p className="text-sm text-muted-foreground">
+          {sessionQuery.error instanceof Error ? sessionQuery.error.message : "Something went wrong."}
+        </p>
+        <Button onClick={() => sessionQuery.refetch()}>Retry</Button>
+      </div>
+    );
+  }
+
   function update(updater: (s: ApiScope) => ApiScope) {
     setScope((prev) => {
       if (!prev) return prev;

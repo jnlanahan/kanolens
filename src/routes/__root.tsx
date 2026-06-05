@@ -2,6 +2,7 @@ import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 
 import { LensLogo } from "@/components/brand/LensLogo";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useAutoDevLogin, useLogout } from "@/hooks/useAuth";
 
 export const Route = createRootRoute({
@@ -64,7 +65,9 @@ function RootLayout() {
         </div>
       </header>
       <main className="flex-1">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </main>
       <footer className="footer">
         <span>KanoLens — See what sets you apart.</span>

@@ -38,6 +38,17 @@ function RunAnalysis() {
     }
   }, [stream.status, navigate, sessionId]);
 
+  if (sessionQuery.isError) {
+    return (
+      <div className="container max-w-5xl py-16 text-center space-y-3">
+        <h2 className="text-xl">Couldn't load session</h2>
+        <p className="text-sm text-muted-foreground">
+          {sessionQuery.error instanceof Error ? sessionQuery.error.message : "Something went wrong."}
+        </p>
+      </div>
+    );
+  }
+
   const totalFeatures = sessionQuery.data?.analysis?.scope?.features?.length ?? 0;
   const pct = totalFeatures > 0 ? Math.min(100, Math.round((rowsDone / totalFeatures) * 100)) : 0;
 
