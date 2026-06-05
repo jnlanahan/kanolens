@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { ApiError, api } from "@/lib/api";
 
@@ -72,7 +73,16 @@ function NewAnalysis() {
     description.trim().length < 10 ||
     submit.isPending;
 
-  if (!me.data && !me.isLoading) {
+  if (me.isLoading) {
+    return (
+      <div className="container max-w-2xl py-10 space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-[400px]" />
+      </div>
+    );
+  }
+
+  if (!me.data) {
     return (
       <div className="container py-16 text-center">
         <Button asChild className="btn-brand">

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { KanoTable } from "@/components/kano/KanoTable";
 import { RefineChat } from "@/components/kano/RefineChat";
 import { StepStrip } from "@/components/kano/StepStrip";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import type { KanoTableData, KanoFeature } from "@/lib/kano-types";
@@ -34,6 +35,18 @@ function ReportPage() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-20" />
         <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  if (sessionQuery.isError) {
+    return (
+      <div className="container max-w-3xl py-16 text-center space-y-3">
+        <h2 className="text-xl">Couldn't load report</h2>
+        <p className="text-sm text-muted-foreground">
+          {sessionQuery.error instanceof Error ? sessionQuery.error.message : "Something went wrong."}
+        </p>
+        <Button onClick={() => sessionQuery.refetch()}>Retry</Button>
       </div>
     );
   }
