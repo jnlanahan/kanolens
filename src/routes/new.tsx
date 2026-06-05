@@ -95,6 +95,7 @@ function NewAnalysis() {
   return (
     <div className="container max-w-2xl py-10 space-y-6">
       {/* Stepper */}
+      <div className="stepper-wrap">
       <div className="flex items-center gap-1">
         <span className="stepper__node stepper__node--active">
           <span className="w-2 h-2 rounded-full bg-current opacity-70" />
@@ -104,6 +105,7 @@ function NewAnalysis() {
         <span className="stepper__node">Scope</span>
         <span className="stepper__line" />
         <span className="stepper__node">Analyze</span>
+      </div>
       </div>
 
       <header className="space-y-1">
