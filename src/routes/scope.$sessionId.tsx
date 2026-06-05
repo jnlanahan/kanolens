@@ -90,15 +90,17 @@ function ScopeReview() {
   return (
     <div className="container max-w-3xl py-10 space-y-8">
       {/* Stepper */}
-      <div className="flex items-center gap-1">
-        <span className="stepper__node stepper__node--done">Context</span>
-        <span className="stepper__line" />
-        <span className="stepper__node stepper__node--active">
-          <span className="w-2 h-2 rounded-full bg-current opacity-70" />
-          Scope
-        </span>
-        <span className="stepper__line" />
-        <span className="stepper__node">Analyze</span>
+      <div className="stepper-wrap">
+        <div className="flex items-center gap-1">
+          <span className="stepper__node stepper__node--done">Context</span>
+          <span className="stepper__line" />
+          <span className="stepper__node stepper__node--active">
+            <span className="w-2 h-2 rounded-full bg-current opacity-70" />
+            Scope
+          </span>
+          <span className="stepper__line" />
+          <span className="stepper__node">Analyze</span>
+        </div>
       </div>
 
       <header className="space-y-1">
@@ -140,6 +142,7 @@ function ScopeReview() {
               <input
                 id="scope-product-name"
                 className="field"
+                placeholder="e.g. Acme Tasks"
                 value={scope.userProductName}
                 onChange={(e) => update((s) => ({ ...s, userProductName: e.target.value }))}
               />
@@ -150,6 +153,7 @@ function ScopeReview() {
             <input
               id="scope-target-customer"
               className="field"
+              placeholder="e.g. eng leads at 50–500-person startups"
               value={scope.targetCustomer}
               onChange={(e) => update((s) => ({ ...s, targetCustomer: e.target.value }))}
             />
