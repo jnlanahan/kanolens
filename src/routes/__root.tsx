@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 
 import { LensLogo } from "@/components/brand/LensLogo";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useAutoDevLogin, useLogout } from "@/hooks/useAuth";
+import { identifyUser, resetUser, trackEvent } from "@/lib/monitoring";
 
 export const Route = createRootRoute({
   component: RootLayout,
@@ -13,6 +15,15 @@ function RootLayout() {
   const isDev = import.meta.env.DEV;
   const { user, loading } = useAutoDevLogin(isDev);
   const logout = useLogout();
+
+  useEffect(() => {
+    if (user) {
+      identifyUser({ id: user.id, email: user.email ?? "" });
+      trackEvent("signed_in");
+    } else if (!loading) {
+      resetUser();
+    }
+  }, [user, loading]);
 
   return (
     <div className="min-h-screen flex flex-col">
