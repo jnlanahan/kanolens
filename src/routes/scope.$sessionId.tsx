@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError, api, type ApiScope, type ApiScopeFeature } from "@/lib/api";
+import { trackEvent } from "@/lib/monitoring";
 import type { KanoCategory } from "@/lib/kano-types";
 
 export const Route = createFileRoute("/scope/$sessionId")({
@@ -46,6 +47,7 @@ function ScopeReview() {
       await api.startAnalysis(sessionId);
     },
     onSuccess: () => {
+      trackEvent("analysis_started", { session_id: sessionId });
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
       navigate({ to: "/run/$sessionId", params: { sessionId } });
     },
