@@ -7,10 +7,13 @@ export type AnalysisEvent =
 
 type Listener = (event: AnalysisEvent) => void;
 
+const TTL_MS = 30 * 60 * 1000;
+
 interface Stream {
   listeners: Set<Listener>;
   buffer: AnalysisEvent[];
   closed: boolean;
+  ttlTimer: ReturnType<typeof setTimeout>;
 }
 
 const streams = new Map<string, Stream>();
@@ -18,7 +21,8 @@ const streams = new Map<string, Stream>();
 function getOrCreate(sessionId: string): Stream {
   let s = streams.get(sessionId);
   if (!s) {
-    s = { listeners: new Set(), buffer: [], closed: false };
+    const ttlTimer = setTimeout(() => clearStream(sessionId), TTL_MS);
+    s = { listeners: new Set(), buffer: [], closed: false, ttlTimer };
     streams.set(sessionId, s);
   }
   return s;
@@ -46,5 +50,7 @@ export function subscribe(sessionId: string, listener: Listener): { replay: Anal
 }
 
 export function clearStream(sessionId: string): void {
+  const s = streams.get(sessionId);
+  if (s) clearTimeout(s.ttlTimer);
   streams.delete(sessionId);
 }

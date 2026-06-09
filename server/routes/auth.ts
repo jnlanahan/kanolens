@@ -18,7 +18,8 @@ export type AuthContext = {
 export const authRoutes = new Hono<AuthContext>();
 
 function redirectUri(): string {
-  return `http://localhost:${env.PORT}/api/auth/google/callback`;
+  const base = env.PUBLIC_WEB_ORIGIN ?? `http://localhost:${env.PORT}`;
+  return `${base}/api/auth/google/callback`;
 }
 
 function webOrigin(): string {
@@ -97,6 +98,9 @@ authRoutes.get("/google/callback", async (c) => {
   };
   if (!profile.email) {
     return c.json({ error: "google_email_missing" }, 400);
+  }
+  if (!profile.email_verified) {
+    return c.json({ error: "email_not_verified" }, 400);
   }
 
   const user = await upsertUser({

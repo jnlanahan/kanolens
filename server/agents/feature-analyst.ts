@@ -29,7 +29,11 @@ export interface FeatureAnalystResult {
   ratings: Record<string, string>;
   justifications: Record<string, string>;
   sources: string[];
+  inputTokens: number;
+  outputTokens: number;
 }
+
+type UpsertResult = Omit<FeatureAnalystResult, "inputTokens" | "outputTokens">;
 
 type UpsertInput = {
   feature_id: string;
@@ -114,7 +118,9 @@ export async function runFeatureAnalyst(args: {
     },
   ];
 
-  let captured: FeatureAnalystResult | null = null;
+  let captured: UpsertResult | null = null;
+  let totalInput = 0;
+  let totalOutput = 0;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await client.messages.create({
@@ -125,6 +131,8 @@ export async function runFeatureAnalyst(args: {
       messages,
     });
 
+    totalInput += response.usage.input_tokens;
+    totalOutput += response.usage.output_tokens;
     messages.push({ role: "assistant", content: response.content });
 
     if (response.stop_reason === "end_turn") {
@@ -171,7 +179,7 @@ export async function runFeatureAnalyst(args: {
     throw new Error(`Feature analyst finished without committing feature=${feature.id}`);
   }
 
-  return captured;
+  return { ...captured, inputTokens: totalInput, outputTokens: totalOutput };
 }
 
 async function handleUpsert(args: {
@@ -179,7 +187,7 @@ async function handleUpsert(args: {
   input: UpsertInput;
   scope: FeatureScope;
   feature: FeatureDescriptor;
-}): Promise<{ result: FeatureAnalystResult | null; message: string; isError: boolean }> {
+}): Promise<{ result: UpsertResult | null; message: string; isError: boolean }> {
   const { sessionId, input, scope, feature } = args;
 
   if (input.feature_id !== feature.id) {

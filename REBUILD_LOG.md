@@ -131,7 +131,7 @@ A cheap Haiku 4.5 sub-call handles per-citation source verification (`verified |
 
 1. **Anthropic API key** — add `ANTHROPIC_API_KEY=sk-ant-...` to `.env`. Without it, `POST /api/analysis/:id/scope` will throw.
 2. **Test the full loop** — with the key in, spin up `npm run dev`, go to `/new`, submit a product, and watch rows stream in. Real money gets spent here (~$0.20–0.50 per full analysis with Sonnet 4.6 + Haiku verifier).
-3. (Optional, later) **Real Postgres** — when you want persistence beyond local dev, set `DATABASE_URL` and run `npm run db:push`. The pglite store at `.data/pglite/` is gitignored and local-only.
+3. (Optional, later) **Real Postgres** — when you want persistence beyond local dev, set `DATABASE_URL` and run `npm run db:migrate` (not `db:push`). `db:push` is for local iteration only — it can silently alter or drop columns without a diff review. Commit the `drizzle/meta/` directory so migration history travels with the repo. The pglite store at `.data/pglite/` is gitignored and local-only.
 4. (Optional, later) **Google OAuth** — fill in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` and point Google Cloud's redirect URI at `http://localhost:3001/api/auth/google/callback` to enable real sign-in. Until then, dev-login handles local auth.
 
 ---

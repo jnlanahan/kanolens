@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -10,6 +10,7 @@ import { proposeScope } from "../agents/scope-proposer";
 import { getDb, schema } from "../db/client";
 import type { ScopeJson, SourcesJson, TableJson } from "../db/schema";
 import { mapAnthropicError } from "../lib/anthropic-errors";
+import { checkRateLimit } from "../lib/rate-limiter";
 import { streamAnalysisSSE } from "../lib/sse";
 import { requireUser, type AuthContext } from "./auth";
 
@@ -36,6 +37,10 @@ const ScopeEditBody = z.object({
   targetCustomer: z.string().trim().min(1),
   products: z.array(z.string().trim().min(1)).min(1).max(10),
   features: z.array(FeatureSchema).min(1).max(50),
+});
+
+const RefineBody = z.object({
+  message: z.string().trim().min(1).max(2000),
 });
 
 async function loadSession(c: import("hono").Context<AuthContext>) {
@@ -66,7 +71,11 @@ async function loadSession(c: import("hono").Context<AuthContext>) {
 analysisRoutes.post("/:id/scope", async (c) => {
   const loaded = await loadSession(c);
   if ("response" in loaded) return loaded.response;
-  const { db, id } = loaded;
+  const { db, id, user } = loaded;
+
+  if (!checkRateLimit(`scope:${user.id}`, 20, 3_600_000)) {
+    return c.json({ error: "rate_limited", message: "Too many scope proposals. Try again in an hour." }, 429);
+  }
 
   const body = await c.req.json().catch(() => ({}));
   const parsed = ScopeInputBody.safeParse(body);
@@ -78,7 +87,7 @@ analysisRoutes.post("/:id/scope", async (c) => {
 
   try {
     const name = parsed.data.userProductName?.trim() ? parsed.data.userProductName.trim() : null;
-    const proposal = await proposeScope({
+    const { proposal, inputTokens, outputTokens } = await proposeScope({
       userProductName: name ?? undefined,
       userProductDescription: parsed.data.userProductDescription,
       targetCustomerHint: parsed.data.targetCustomerHint,
@@ -94,7 +103,11 @@ analysisRoutes.post("/:id/scope", async (c) => {
     };
     await db
       .update(schema.analyses)
-      .set({ scope: scopeJson })
+      .set({
+        scope: scopeJson,
+        inputTokens: sql`${schema.analyses.inputTokens} + ${inputTokens}`,
+        outputTokens: sql`${schema.analyses.outputTokens} + ${outputTokens}`,
+      })
       .where(eq(schema.analyses.sessionId, id));
     await db
       .update(schema.sessions)
@@ -144,7 +157,11 @@ analysisRoutes.put("/:id/scope", async (c) => {
 analysisRoutes.post("/:id/start", async (c) => {
   const loaded = await loadSession(c);
   if ("response" in loaded) return loaded.response;
-  const { db, id } = loaded;
+  const { db, id, user } = loaded;
+
+  if (!checkRateLimit(`start:${user.id}`, 5, 3_600_000)) {
+    return c.json({ error: "rate_limited", message: "Too many analysis runs. Try again in an hour." }, 429);
+  }
 
   const analysisRow = await db
     .select()
@@ -213,7 +230,12 @@ analysisRoutes.post("/:id/start", async (c) => {
 
       await getDb()
         .update(schema.analyses)
-        .set({ tableData, sources })
+        .set({
+          tableData,
+          sources,
+          inputTokens: sql`${schema.analyses.inputTokens} + ${result.inputTokens}`,
+          outputTokens: sql`${schema.analyses.outputTokens} + ${result.outputTokens}`,
+        })
         .where(eq(schema.analyses.sessionId, id));
       await getDb()
         .update(schema.sessions)
@@ -228,6 +250,7 @@ analysisRoutes.post("/:id/start", async (c) => {
         .where(eq(schema.sessions.id, id));
     } finally {
       unsubscribe();
+      clearStream(id);
     }
   })();
 
@@ -243,13 +266,18 @@ analysisRoutes.get("/:id/stream", async (c) => {
 analysisRoutes.post("/:id/refine", async (c) => {
   const loaded = await loadSession(c);
   if ("response" in loaded) return loaded.response;
-  const { db, id } = loaded;
+  const { db, id, user } = loaded;
+
+  if (!checkRateLimit(`refine:${user.id}`, 20, 3_600_000)) {
+    return c.json({ error: "rate_limited", message: "Too many refinements. Try again in an hour." }, 429);
+  }
 
   const body = await c.req.json().catch(() => ({}));
-  const message = typeof body.message === "string" ? body.message.trim() : "";
-  if (!message) {
-    return c.json({ error: "message_required" }, 400);
+  const parsedBody = RefineBody.safeParse(body);
+  if (!parsedBody.success) {
+    return c.json({ error: "invalid_body", detail: parsedBody.error.flatten() }, 400);
   }
+  const message = parsedBody.data.message;
 
   const analysisRows = await db
     .select()

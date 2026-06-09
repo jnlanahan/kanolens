@@ -16,6 +16,8 @@ const EnvSchema = z.object({
   JWT_SECRET: z.string().min(32).optional(),
 
   PUBLIC_WEB_ORIGIN: z.string().url().optional(),
+
+  SENTRY_DSN: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
@@ -26,7 +28,20 @@ function loadEnv(): Env {
     console.error("Invalid environment:", parsed.error.flatten().fieldErrors);
     process.exit(1);
   }
-  return parsed.data;
+  const data = parsed.data;
+  if (data.NODE_ENV === "production") {
+    const required = ["DATABASE_URL", "JWT_SECRET", "ANTHROPIC_API_KEY"] as const;
+    const missing = required.filter((k) => !data[k]);
+    if (missing.length) {
+      console.error(`[env] Missing required production vars: ${missing.join(", ")}`);
+      process.exit(1);
+    }
+    if (data.JWT_SECRET && /dev|example|change.?me|placeholder|secret.?here/i.test(data.JWT_SECRET)) {
+      console.error("[env] JWT_SECRET looks like a placeholder. Generate with: openssl rand -hex 32");
+      process.exit(1);
+    }
+  }
+  return data;
 }
 
 export const env = loadEnv();

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const sessionStatus = pgEnum("session_status", [
   "draft", // scope not yet proposed
@@ -77,6 +77,8 @@ export const analyses = pgTable("analyses", {
   scope: jsonb("scope").$type<ScopeJson | null>(),
   tableData: jsonb("table_data").$type<TableJson | null>(),
   sources: jsonb("sources").$type<SourcesJson | null>(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

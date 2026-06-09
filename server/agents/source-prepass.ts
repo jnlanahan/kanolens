@@ -24,11 +24,17 @@ const PrepassOutputSchema = z.object({
     .describe("one entry per product in the input; omit a product entirely if you are uncertain"),
 });
 
+export interface GatherPrimarySourcesResult {
+  map: PrimarySourceMap;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export async function gatherPrimarySources(scope: {
   userProductName: string | null;
   products: string[];
   targetCustomer: string;
-}): Promise<PrimarySourceMap> {
+}): Promise<GatherPrimarySourcesResult> {
   const client = getAnthropicClient();
   const response = await client.messages.parse({
     model: MODELS.analyst,
@@ -38,11 +44,14 @@ export async function gatherPrimarySources(scope: {
     output_config: { format: zodOutputFormat(PrepassOutputSchema) },
   });
 
-  if (!response.parsed_output) return {};
+  const inputTokens = response.usage.input_tokens;
+  const outputTokens = response.usage.output_tokens;
+
+  if (!response.parsed_output) return { map: {}, inputTokens, outputTokens };
 
   const map: PrimarySourceMap = {};
   for (const entry of response.parsed_output.products) {
     map[entry.product] = entry.sources;
   }
-  return map;
+  return { map, inputTokens, outputTokens };
 }
