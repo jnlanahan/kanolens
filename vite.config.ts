@@ -26,6 +26,6 @@ export default defineConfig({
   },
   build: {
     outDir: "dist/web",
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV !== "production",
   },
 });

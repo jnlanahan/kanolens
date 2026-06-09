@@ -41,7 +41,13 @@ const ScopeProposalSchema = z.object({
 
 export type ScopeProposal = z.infer<typeof ScopeProposalSchema>;
 
-export async function proposeScope(ctx: ScopeProposalContext): Promise<ScopeProposal> {
+export interface ProposeScopeResult {
+  proposal: ScopeProposal;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export async function proposeScope(ctx: ScopeProposalContext): Promise<ProposeScopeResult> {
   const client = getAnthropicClient();
   const response = await client.messages.parse({
     model: MODELS.proposer,
@@ -56,5 +62,9 @@ export async function proposeScope(ctx: ScopeProposalContext): Promise<ScopeProp
       `Scope proposer returned no structured output. stop_reason=${response.stop_reason}`,
     );
   }
-  return response.parsed_output;
+  return {
+    proposal: response.parsed_output,
+    inputTokens: response.usage.input_tokens,
+    outputTokens: response.usage.output_tokens,
+  };
 }

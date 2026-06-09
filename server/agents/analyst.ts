@@ -1,7 +1,7 @@
 import { getAnthropicClient, MODELS } from "../lib/anthropic";
 import { publish } from "./event-bus";
 import { runFeatureAnalyst, type FeatureAnalystResult } from "./feature-analyst";
-import { buildSummaryPrompt, buildSystemBlocks } from "./prompts";
+import { buildSummaryPrompt, buildSystemBlocks, type PrimarySourceMap } from "./prompts";
 import { gatherPrimarySources } from "./source-prepass";
 
 export interface AnalystScope {
@@ -20,6 +20,8 @@ export interface AnalystScope {
 export interface AnalystResult {
   summary: string;
   committedFeatureIds: string[];
+  inputTokens: number;
+  outputTokens: number;
 }
 
 const FAN_OUT_CONCURRENCY = 8;
@@ -36,13 +38,18 @@ export async function runAnalyst(args: {
     message: "Gathering primary sources",
   });
 
-  let primarySources = {};
+  let primarySources: PrimarySourceMap = {};
+  let totalInput = 0;
+  let totalOutput = 0;
   try {
-    primarySources = await gatherPrimarySources({
+    const prepass = await gatherPrimarySources({
       userProductName: scope.userProductName,
       products: scope.products,
       targetCustomer: scope.targetCustomer,
     });
+    primarySources = prepass.map;
+    totalInput += prepass.inputTokens;
+    totalOutput += prepass.outputTokens;
   } catch (error) {
     console.warn("[analyst] pre-pass failed, continuing without hints:", error);
   }
@@ -83,6 +90,8 @@ export async function runAnalyst(args: {
   settled.forEach((result, idx) => {
     const feature = scope.features[idx]!;
     if (result.status === "fulfilled" && result.value.committed) {
+      totalInput += result.value.inputTokens;
+      totalOutput += result.value.outputTokens;
       rowsByFeatureId.set(feature.id, result.value);
     } else {
       const reason =
@@ -103,7 +112,7 @@ export async function runAnalyst(args: {
   });
 
   const committedFeatureIds = [...rowsByFeatureId.keys()];
-  const summary = await generateSummary({
+  const summaryResult = await generateSummary({
     scope,
     rows: scope.features
       .map((f) => {
@@ -117,10 +126,17 @@ export async function runAnalyst(args: {
       })
       .filter((r): r is NonNullable<typeof r> => r !== null),
   });
+  totalInput += summaryResult.inputTokens;
+  totalOutput += summaryResult.outputTokens;
 
-  publish(sessionId, { type: "done", summary });
+  publish(sessionId, { type: "done", summary: summaryResult.summary });
 
-  return { summary, committedFeatureIds };
+  return {
+    summary: summaryResult.summary,
+    committedFeatureIds,
+    inputTokens: totalInput,
+    outputTokens: totalOutput,
+  };
 }
 
 function publishFallbackRow(args: {
@@ -158,9 +174,9 @@ async function generateSummary(args: {
     ratings: Record<string, string>;
     justifications: Record<string, string>;
   }[];
-}): Promise<string> {
+}): Promise<{ summary: string; inputTokens: number; outputTokens: number }> {
   if (args.rows.length === 0) {
-    return "No features could be rated from primary sources.";
+    return { summary: "No features could be rated from primary sources.", inputTokens: 0, outputTokens: 0 };
   }
 
   const client = getAnthropicClient();
@@ -187,11 +203,17 @@ async function generateSummary(args: {
       .map((b) => (b.type === "text" ? b.text : ""))
       .join("")
       .trim();
-    if (text) return text;
+    if (text) {
+      return { summary: text, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
+    }
   } catch (error) {
     console.warn("[analyst] summary generation failed:", error);
   }
-  return `${args.rows.length} features rated across ${args.scope.products.length} products; see table for details.`;
+  return {
+    summary: `${args.rows.length} features rated across ${args.scope.products.length} products; see table for details.`,
+    inputTokens: 0,
+    outputTokens: 0,
+  };
 }
 
 function pLimit(n: number) {
