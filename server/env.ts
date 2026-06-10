@@ -17,6 +17,10 @@ const EnvSchema = z.object({
 
   PUBLIC_WEB_ORIGIN: z.string().url().optional(),
 
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_PRICE_ID: z.string().optional(),
+
   SENTRY_DSN: z.string().url().optional(),
 });
 

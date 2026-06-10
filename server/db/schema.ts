@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const sessionStatus = pgEnum("session_status", [
   "draft", // scope not yet proposed
@@ -20,6 +20,9 @@ export const users = pgTable(
     avatarUrl: text("avatar_url"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    freeRunUsed: boolean("free_run_used").notNull().default(false),
+    runCredits: integer("run_credits").notNull().default(0),
+    isAdmin: boolean("is_admin").notNull().default(false),
   },
   (t) => [index("users_google_sub_idx").on(t.googleSub)],
 );
@@ -34,6 +37,8 @@ export const sessions = pgTable(
     title: text("title").notNull().default("Untitled analysis"),
     status: sessionStatus("status").notNull().default("draft"),
     errorMessage: text("error_message"),
+    isPaidRun: boolean("is_paid_run").notNull().default(false),
+    refinementsUsed: integer("refinements_used").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -83,6 +88,17 @@ export const analyses = pgTable("analyses", {
     .notNull()
     .defaultNow()
     .$onUpdate(() => sql`now()`),
+});
+
+export const payments = pgTable("payments", {
+  id: uuid("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripeSessionId: text("stripe_session_id").notNull().unique(),
+  amountCents: integer("amount_cents").notNull(),
+  currency: text("currency").notNull().default("usd"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type User = typeof users.$inferSelect;

@@ -87,7 +87,6 @@ test.describe("analysis flow", () => {
   test.beforeEach(async ({ page }) => {
     // Auth — always return a logged-in user so the wizard is immediately accessible
     await page.route("**/api/auth/me", (r) => r.fulfill({ json: { user: USER } }));
-    await page.route("**/api/auth/dev", (r) => r.fulfill({ json: { user: USER } }));
 
     // Sessions — single handler disambiguates list vs detail by URL
     await page.route(/\/api\/sessions/, (r) => {

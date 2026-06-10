@@ -17,7 +17,8 @@
     "db:studio": "drizzle-kit studio",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "evals": "tsx --env-file=.env scripts/run-evals.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
@@ -40,6 +41,7 @@
     "drizzle-zod": "^0.8.0",
     "hono": "^4.12.0",
     "jose": "^6.0.0",
+    "langsmith": "^0.7.5",
     "lucide-react": "^1.8.0",
     "postgres": "^3.4.7",
     "posthog-js": "^1.383.1",
@@ -47,6 +49,7 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.73.0",
     "sonner": "^2.0.7",
+    "stripe": "^22.2.0",
     "tailwind-merge": "^3.5.0",
     "zod": "^4.3.0",
     "zustand": "^5.0.0"

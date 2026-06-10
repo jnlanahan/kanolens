@@ -1,14 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { useEffect } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { api, type ApiSessionSummary } from "@/lib/api";
 
+const SearchSchema = z.object({
+  payment: z.string().optional(),
+});
+
 export const Route = createFileRoute("/dashboard")({
+  validateSearch: SearchSchema,
   component: Dashboard,
 });
 
@@ -18,6 +25,14 @@ function Dashboard() {
   const me = useCurrentUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { payment } = Route.useSearch();
+
+  useEffect(() => {
+    if (payment === "success") {
+      toast.success("Payment successful — 1 analysis run added to your account.");
+      void navigate({ to: "/dashboard", search: {}, replace: true });
+    }
+  }, [payment, navigate]);
 
   const sessions = useQuery({
     queryKey: SESSIONS_KEY,

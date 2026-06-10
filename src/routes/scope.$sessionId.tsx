@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Loader2, Play, Plus, Trash2 } from "lucide-react";
+import { Loader2, Lock, Play, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +26,8 @@ function ScopeReview() {
   });
 
   const [scope, setScope] = useState<ApiScope | null>(null);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   useEffect(() => {
     if (sessionQuery.data?.analysis?.scope && !scope) {
@@ -52,11 +54,36 @@ function ScopeReview() {
       navigate({ to: "/run/$sessionId", params: { sessionId } });
     },
     onError: (err) => {
+      if (err instanceof ApiError && err.status === 402) {
+        const code = (err.detail as { error?: string })?.error;
+        if (code === "insufficient_credits") {
+          setShowPaywall(true);
+          return;
+        }
+      }
       const description =
         err instanceof ApiError ? err.detailMessage : err instanceof Error ? err.message : String(err);
       toast.error("Couldn't start analysis", { description });
     },
   });
+
+  async function handleBuyRun() {
+    setCheckingOut(true);
+    try {
+      const { url } = await api.createCheckout();
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Couldn't start checkout — no URL returned from Stripe.");
+      }
+    } catch (err) {
+      toast.error("Checkout failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setCheckingOut(false);
+    }
+  }
 
   if (sessionQuery.isLoading || !scope) {
     return (
@@ -257,29 +284,62 @@ function ScopeReview() {
         </div>
       </section>
 
-      <div className="flex items-center justify-end gap-3">
-        {save.isPending ? (
-          <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> saving…
-          </span>
-        ) : null}
-        <Button
-          size="lg"
-          className="btn-brand"
-          disabled={start.isPending || scope.features.length === 0 || scope.products.length === 0}
-          onClick={() => start.mutate()}
-        >
-          {start.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" /> Starting…
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4" /> Run analysis
-            </>
-          )}
-        </Button>
-      </div>
+      {showPaywall ? (
+        <div className="panel p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <h3 className="text-sm font-semibold">You've used your free run</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Get a full analysis with 3 refinements for <strong>$5</strong>. One charge — no subscription.
+          </p>
+          <div className="flex items-center gap-3">
+            <Button
+              size="lg"
+              className="btn-brand"
+              onClick={() => void handleBuyRun()}
+              disabled={checkingOut}
+            >
+              {checkingOut ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Loading…</>
+              ) : (
+                "Get a full analysis — $5"
+              )}
+            </Button>
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setShowPaywall(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-end gap-3">
+          {save.isPending ? (
+            <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> saving…
+            </span>
+          ) : null}
+          <Button
+            size="lg"
+            className="btn-brand"
+            disabled={start.isPending || scope.features.length === 0 || scope.products.length === 0}
+            onClick={() => start.mutate()}
+          >
+            {start.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Starting…
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" /> Run analysis
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

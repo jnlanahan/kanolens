@@ -417,4 +417,5 @@
   .chat__input:focus { outline: none; border-color: hsl(var(--brand-emerald) / 0.55); box-shadow: var(--glow-emerald); background: hsl(var(--surface)); }
   .chat__send { width: 38px; height: 38px; border-radius: 9px; border: none; background: hsl(var(--brand-emerald)); color: #fff; display: grid; place-items: center; cursor: pointer; font-size: 17px; flex: none; transition: background .15s; }
   .chat__send:hover { background: hsl(var(--brand-ink)); }
+  .chat__paywall { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--surface-muted)); }
 }

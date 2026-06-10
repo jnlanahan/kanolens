@@ -110,7 +110,8 @@
       "Bash(New-Item -ItemType Directory -Force -Path \"s:/Vibe Coding Folder/kanolens/tests/e2e\")",
       "Bash(Out-Null)",
       "Bash(Write-Output \"done\")",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(npx drizzle-kit *)"
     ],
     "deny": []
   }
