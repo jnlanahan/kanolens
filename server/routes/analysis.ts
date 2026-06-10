@@ -12,6 +12,7 @@ import type { ScopeJson, SourcesJson, TableJson } from "../db/schema";
 import { mapAnthropicError } from "../lib/anthropic-errors";
 import { checkRateLimit } from "../lib/rate-limiter";
 import { streamAnalysisSSE } from "../lib/sse";
+import { guardRefine, guardRunStart } from "../lib/usage-guard";
 import { requireUser, type AuthContext } from "./auth";
 
 export const analysisRoutes = new Hono<AuthContext>();
@@ -163,6 +164,11 @@ analysisRoutes.post("/:id/start", async (c) => {
     return c.json({ error: "rate_limited", message: "Too many analysis runs. Try again in an hour." }, 429);
   }
 
+  const usageError = await guardRunStart(user.id, id);
+  if (usageError) {
+    return c.json({ error: usageError.code, message: usageError.message }, 402);
+  }
+
   const analysisRow = await db
     .select()
     .from(schema.analyses)
@@ -270,6 +276,11 @@ analysisRoutes.post("/:id/refine", async (c) => {
 
   if (!checkRateLimit(`refine:${user.id}`, 20, 3_600_000)) {
     return c.json({ error: "rate_limited", message: "Too many refinements. Try again in an hour." }, 429);
+  }
+
+  const refineError = await guardRefine(user.id, id);
+  if (refineError) {
+    return c.json({ error: refineError.code, message: refineError.message }, 402);
   }
 
   const body = await c.req.json().catch(() => ({}));

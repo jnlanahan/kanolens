@@ -15,6 +15,7 @@ if (env.SENTRY_DSN) {
 import type { AuthContext } from "./routes/auth";
 import { authRoutes } from "./routes/auth";
 import { analysisRoutes } from "./routes/analysis";
+import { paymentsRoutes } from "./routes/payments";
 import { sessionRoutes } from "./routes/sessions";
 
 const app = new Hono<AuthContext>();
@@ -36,6 +37,7 @@ app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/auth", authRoutes);
 app.route("/api/sessions", sessionRoutes);
 app.route("/api/analysis", analysisRoutes);
+app.route("/api/payments", paymentsRoutes);
 
 app.notFound((c) => c.json({ error: "not found" }, 404));
 app.onError((err, c) => {

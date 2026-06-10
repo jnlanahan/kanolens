@@ -81,11 +81,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   me: () => request<{ user: ApiUser | null }>("/api/auth/me"),
-  devLogin: () =>
-    request<{ user: ApiUser }>("/api/auth/dev", {
-      method: "POST",
-      body: JSON.stringify({}),
-    }),
   logout: () => request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
 
   listSessions: () => request<{ sessions: ApiSessionSummary[] }>("/api/sessions"),
@@ -122,6 +117,9 @@ export const api = {
       body: JSON.stringify({ message }),
     }),
   streamUrl: (id: string) => `/api/analysis/${id}/stream`,
+
+  createCheckout: () =>
+    request<{ url: string | null }>("/api/payments/checkout", { method: "POST" }),
 };
 
 export type StreamEvent =

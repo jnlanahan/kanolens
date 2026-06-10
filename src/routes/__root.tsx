@@ -4,7 +4,7 @@ import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { LensLogo } from "@/components/brand/LensLogo";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { useAutoDevLogin, useLogout } from "@/hooks/useAuth";
+import { useCurrentUser, useLogout } from "@/hooks/useAuth";
 import { identifyUser, resetUser, trackEvent } from "@/lib/monitoring";
 
 export const Route = createRootRoute({
@@ -12,8 +12,7 @@ export const Route = createRootRoute({
 });
 
 function RootLayout() {
-  const isDev = import.meta.env.DEV;
-  const { user, loading } = useAutoDevLogin(isDev);
+  const { data: user, isLoading: loading } = useCurrentUser();
   const logout = useLogout();
 
   useEffect(() => {

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { SendHorizonal, Sparkles } from "lucide-react";
+import { Lock, SendHorizonal, Sparkles } from "lucide-react";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { ApiError, api } from "@/lib/api";
+import { toast } from "sonner";
 
 export interface ChatMessage {
   id: string;
@@ -30,10 +32,14 @@ interface RefineChatProps {
   queryClient: QueryClient;
 }
 
+type LockReason = "free_run_no_refine" | "refine_limit_reached";
+
 export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [locked, setLocked] = useState<LockReason | null>(null);
+  const [checkingOut, setCheckingOut] = useState(false);
   const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +64,14 @@ export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
       // Refetch the analysis so the table reflects any mutations
       await queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
     } catch (err) {
+      if (err instanceof ApiError && err.status === 402) {
+        const code = (err.detail as { error?: string })?.error;
+        if (code === "free_run_no_refine" || code === "refine_limit_reached") {
+          setLocked(code as LockReason);
+          setSending(false);
+          return;
+        }
+      }
       const errMsg: ChatMessage = {
         id: `e-${Date.now()}`,
         role: "ai",
@@ -66,6 +80,24 @@ export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
       setMessages((prev) => [...prev, errMsg]);
     } finally {
       setSending(false);
+    }
+  }
+
+  async function handleBuyRun() {
+    setCheckingOut(true);
+    try {
+      const { url } = await api.createCheckout();
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Couldn't start checkout — no URL returned from Stripe.");
+      }
+    } catch (err) {
+      toast.error("Checkout failed", {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setCheckingOut(false);
     }
   }
 
@@ -106,44 +138,73 @@ export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
         ) : null}
       </div>
 
-      {/* Suggestion chips */}
-      {messages.length <= 2 ? (
-        <div className="chat__suggests">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="chat__chip"
-              onClick={() => void send(s)}
-            >
-              {s}
-            </button>
-          ))}
+      {/* Paywall banner (shown when a 402 gate is hit) */}
+      {locked ? (
+        <div className="chat__paywall">
+          <Lock className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">
+              {locked === "refine_limit_reached"
+                ? "Refinement limit reached"
+                : "This is your free preview run"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {locked === "refine_limit_reached"
+                ? "You've used all 3 refinements. Start a new analysis to keep iterating."
+                : "Start a new paid analysis ($5) to refine and iterate."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            className="btn-brand shrink-0"
+            onClick={() => void handleBuyRun()}
+            disabled={checkingOut}
+          >
+            {checkingOut ? "Loading…" : "Get a full run — $5"}
+          </Button>
         </div>
-      ) : null}
+      ) : (
+        <>
+          {/* Suggestion chips */}
+          {messages.length <= 2 ? (
+            <div className="chat__suggests">
+              {SUGGESTIONS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="chat__chip"
+                  onClick={() => void send(s)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
-      {/* Composer */}
-      <div className="chat__composer">
-        <textarea
-          className="chat__input"
-          rows={1}
-          placeholder="Ask to refine the analysis…"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          aria-label="Refine message"
-          disabled={sending}
-        />
-        <button
-          type="button"
-          className="chat__send"
-          onClick={() => void send(draft)}
-          disabled={sending || !draft.trim()}
-          aria-label="Send"
-        >
-          <SendHorizonal className="h-4 w-4" />
-        </button>
-      </div>
+          {/* Composer */}
+          <div className="chat__composer">
+            <textarea
+              className="chat__input"
+              rows={1}
+              placeholder="Ask to refine the analysis…"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={handleKeyDown}
+              aria-label="Refine message"
+              disabled={sending}
+            />
+            <button
+              type="button"
+              className="chat__send"
+              onClick={() => void send(draft)}
+              disabled={sending || !draft.trim()}
+              aria-label="Send"
+            >
+              <SendHorizonal className="h-4 w-4" />
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

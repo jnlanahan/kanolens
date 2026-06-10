@@ -115,20 +115,6 @@ authRoutes.get("/google/callback", async (c) => {
   return c.redirect(`${webOrigin()}/dashboard`);
 });
 
-authRoutes.post("/dev", async (c) => {
-  if (env.NODE_ENV === "production") {
-    return c.json({ error: "dev_login_disabled_in_production" }, 403);
-  }
-  const body = (await c.req.json().catch(() => ({}))) as { email?: string; name?: string };
-  const email = body.email ?? "dev@kanolens.local";
-  const name = body.name ?? "Dev User";
-
-  const user = await upsertUser({ email, name });
-  const jwt = await signAuthToken({ sub: user.id, email: user.email });
-  setCookie(c, AUTH_COOKIE, jwt, authCookieOptions(false));
-  return c.json({ user: { id: user.id, email: user.email, name: user.name } });
-});
-
 authRoutes.post("/logout", (c) => {
   deleteCookie(c, AUTH_COOKIE, { path: "/" });
   return c.json({ ok: true });
@@ -149,6 +135,8 @@ authRoutes.get("/me", async (c) => {
   });
 });
 
+const ADMIN_EMAILS = new Set(["jnlanahan@gmail.com"]);
+
 async function upsertUser(args: {
   email: string;
   googleSub?: string;
@@ -167,6 +155,7 @@ async function upsertUser(args: {
     if (args.googleSub && !row.googleSub) updates.googleSub = args.googleSub;
     if (args.name && !row.name) updates.name = args.name;
     if (args.avatarUrl && !row.avatarUrl) updates.avatarUrl = args.avatarUrl;
+    if (ADMIN_EMAILS.has(args.email) && !row.isAdmin) updates.isAdmin = true;
     const [updated] = await db
       .update(schema.users)
       .set(updates)
@@ -181,6 +170,7 @@ async function upsertUser(args: {
       googleSub: args.googleSub,
       name: args.name,
       avatarUrl: args.avatarUrl,
+      isAdmin: ADMIN_EMAILS.has(args.email),
     })
     .returning();
   if (!created) throw new Error("failed to create user");
