@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
@@ -15,6 +15,7 @@ export const Route = createFileRoute("/run/$sessionId")({
 function RunAnalysis() {
   const { sessionId } = Route.useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const sessionQuery = useQuery({
     queryKey: ["session", sessionId],
@@ -30,13 +31,13 @@ function RunAnalysis() {
 
   useEffect(() => {
     if (stream.status === "done") {
-      const t = setTimeout(
-        () => navigate({ to: "/report/$sessionId", params: { sessionId } }),
-        800,
-      );
+      const t = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["session", sessionId] });
+        navigate({ to: "/report/$sessionId", params: { sessionId } });
+      }, 800);
       return () => clearTimeout(t);
     }
-  }, [stream.status, navigate, sessionId]);
+  }, [stream.status, navigate, sessionId, queryClient]);
 
   if (sessionQuery.isError) {
     return (
@@ -84,7 +85,11 @@ function RunAnalysis() {
         ) : null}
       </div>
 
-      <KanoTable tableData={table} isLoading={false} />
+      <KanoTable
+        tableData={table}
+        isLoading={false}
+        isStreaming={stream.status !== "done" && stream.status !== "error"}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback } from "react";
 import { Info } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -27,17 +28,22 @@ const categoryRibbonMod: Record<KanoCategory, string> = {
 interface KanoTableProps {
   tableData?: KanoTableData;
   isLoading?: boolean;
+  isStreaming?: boolean;
   /** When provided, row clicks call this instead of opening the built-in modal */
   onFeatureSelect?: (feature: KanoFeature) => void;
   /** Highlights the matching row (used with onFeatureSelect) */
   selectedFeatureId?: string;
+  /** Rows whose IDs appear in this set get a subtle highlight accent */
+  highlightedFeatureIds?: Set<string>;
 }
 
 export function KanoTable({
   tableData,
   isLoading = false,
+  isStreaming = false,
   onFeatureSelect,
   selectedFeatureId,
+  highlightedFeatureIds,
 }: KanoTableProps) {
   const [selected, setSelected] = useState<KanoFeature | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -92,9 +98,18 @@ export function KanoTable({
     );
   }
 
+  const rowsDone = tableData.features.length;
+  const totalProducts = tableData.products.length;
+
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="panel overflow-hidden">
+      <div className={`panel overflow-hidden${isStreaming ? " ring-2 ring-dashed ring-[hsl(var(--kano-perf))] animate-pulse" : ""}`}>
+        {isStreaming ? (
+          <div className="flex items-center gap-2 px-4 py-2 border-b text-sm text-muted-foreground bg-muted/30">
+            <span className="spin w-3.5 h-3.5 border-2 border-[hsl(var(--border-strong))] border-t-[hsl(var(--kano-perf))] rounded-full shrink-0" aria-hidden="true" />
+            <span>Analyzing features… ({rowsDone} of {totalProducts > 0 ? "?" : "?"} complete)</span>
+          </div>
+        ) : null}
         <div className="overflow-auto">
           <table className="w-full text-sm">
             <thead>
@@ -148,40 +163,48 @@ export function KanoTable({
                       </div>
                     </td>
                   </tr>,
-                  ...features.map((feature) => (
-                    <tr
-                      key={feature.id}
-                      className={`kano-row${selectedFeatureId === feature.id ? " kano-row--active" : ""}`}
-                      onClick={() => onFeatureClick(feature)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onFeatureClick(feature);
-                        }
-                      }}
-                      tabIndex={0}
-                      role="button"
-                      aria-label={`${feature.name} — ${CATEGORY_LABEL[feature.category]}`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-sm">{feature.name}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {feature.customerBenefit}
-                        </div>
-                      </td>
-                      {tableData.products.map((product) => {
-                        const rating = tableData.ratings[feature.id]?.[product] ?? "N/A";
-                        return (
-                          <td key={product} className="px-4 py-3 text-center">
-                            <RatingChip
-                              rating={rating}
-                              hasSource={(tableData.sources[feature.id] ?? []).length > 0}
-                            />
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  )),
+                  ...features.map((feature) => {
+                    const isHighlighted = highlightedFeatureIds?.has(feature.id);
+                    return (
+                      <tr
+                        key={feature.id}
+                        className={`kano-row${selectedFeatureId === feature.id ? " kano-row--active" : ""}${isHighlighted ? " bg-[hsl(var(--kano-perf)/0.06)] border-l-2 border-l-[hsl(var(--kano-perf)/0.4)]" : ""}`}
+                        onClick={() => onFeatureClick(feature)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onFeatureClick(feature);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`${feature.name} — ${CATEGORY_LABEL[feature.category]}`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-sm">{feature.name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {feature.customerBenefit}
+                          </div>
+                        </td>
+                        {tableData.products.map((product) => {
+                          const rating = tableData.ratings[feature.id]?.[product] ?? "N/A";
+                          const justification = tableData.justifications?.[feature.id]?.[product];
+                          const featureSources = tableData.sources[feature.id] ?? [];
+                          return (
+                            <td key={product} className="px-4 py-3 text-center">
+                              <RatingChip
+                                rating={rating}
+                                hasSource={featureSources.length > 0}
+                                justification={justification}
+                                sources={featureSources}
+                                onChipClick={() => onFeatureClick(feature)}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  }),
                 ];
               })}
             </tbody>
@@ -202,7 +225,66 @@ export function KanoTable({
   );
 }
 
-function RatingChip({ rating, hasSource }: { rating: string; hasSource: boolean }) {
+function RatingChip({
+  rating,
+  hasSource,
+  justification,
+  sources,
+  onChipClick,
+}: {
+  rating: string;
+  hasSource: boolean;
+  justification?: string;
+  sources: string[];
+  onChipClick: () => void;
+}) {
+  const chip = renderChip(rating, hasSource);
+  const hasContext = justification || sources.length > 0;
+
+  if (!hasContext) {
+    return chip;
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        asChild
+        onClick={(e) => {
+          e.stopPropagation();
+          onChipClick();
+        }}
+      >
+        <button type="button" className="cursor-pointer">{chip}</button>
+      </PopoverTrigger>
+      <PopoverContent className="text-xs space-y-2" onClick={(e) => e.stopPropagation()}>
+        {justification ? (
+          <p className="leading-snug">{justification}</p>
+        ) : null}
+        {sources.length > 0 ? (
+          <div className="space-y-1 pt-1 border-t">
+            {sources.map((url, i) => {
+              let domain = url;
+              try { domain = new URL(url).hostname.replace("www.", ""); } catch { /* keep full url */ }
+              return (
+                <a
+                  key={`${url}-${i}`}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block truncate text-[hsl(var(--kano-perf))] hover:underline"
+                >
+                  {domain}
+                </a>
+              );
+            })}
+          </div>
+        ) : null}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function renderChip(rating: string, hasSource: boolean): React.ReactElement {
   if (!rating || rating === "N/A" || rating === "") {
     return <span className="rating rating--na">—</span>;
   }

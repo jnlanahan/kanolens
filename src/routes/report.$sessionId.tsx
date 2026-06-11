@@ -2,11 +2,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageSquare, FileText } from "lucide-react";
 // MessageSquare used in rail tab button only
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { KanoTable } from "@/components/kano/KanoTable";
 import { RefineChat } from "@/components/kano/RefineChat";
 import { StepStrip } from "@/components/kano/StepStrip";
+import { InsightsPanel, detectInsights, type Insight } from "@/components/kano/InsightsPanel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
@@ -23,6 +24,7 @@ function ReportPage() {
   const queryClient = useQueryClient();
   const [railTab, setRailTab] = useState<RailTab>("refine");
   const [selectedFeature, setSelectedFeature] = useState<KanoFeature | null>(null);
+  const [hoveredInsight, setHoveredInsight] = useState<Insight | null>(null);
 
   const sessionQuery = useQuery({
     queryKey: ["session", sessionId],
@@ -71,6 +73,17 @@ function ReportPage() {
     sources: analysis.sources?.byFeatureId ?? {},
   };
 
+  const insights = useMemo(
+    () => detectInsights(table, scope?.userProductName ?? null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [analysis.tableData, scope?.userProductName],
+  );
+
+  const highlightedFeatureIds = useMemo(
+    () => hoveredInsight ? new Set(hoveredInsight.affectedFeatureIds) : undefined,
+    [hoveredInsight],
+  );
+
   function handleFeatureSelect(feature: KanoFeature) {
     setSelectedFeature(feature);
     setRailTab("detail");
@@ -97,7 +110,7 @@ function ReportPage() {
         />
       ) : null}
 
-      {/* Two-column overview */}
+      {/* Two-column overview + insights below */}
       <div className="overview-grid">
         {/* Left: table */}
         <div className="min-w-0">
@@ -106,6 +119,7 @@ function ReportPage() {
             isLoading={false}
             onFeatureSelect={handleFeatureSelect}
             selectedFeatureId={selectedFeature?.id}
+            highlightedFeatureIds={highlightedFeatureIds}
           />
         </div>
 
@@ -141,6 +155,9 @@ function ReportPage() {
           </div>
         </aside>
       </div>
+
+      {/* Insights panel — full width below the grid */}
+      <InsightsPanel insights={insights} onInsightHover={setHoveredInsight} />
     </div>
   );
 }
@@ -212,12 +229,12 @@ function DetailPane({ feature, tableData }: { feature: KanoFeature | null; table
           <div>
             <p className="detail__label">Sources</p>
             <div className="space-y-1.5">
-              {sources.map((url) => {
+              {sources.map((url, i) => {
                 let domain = url;
                 try { domain = new URL(url).hostname.replace("www.", ""); } catch { /* keep full url */ }
                 return (
                   <a
-                    key={url}
+                    key={`${url}-${i}`}
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"

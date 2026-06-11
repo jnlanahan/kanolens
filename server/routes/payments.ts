@@ -76,21 +76,19 @@ paymentsRoutes.post("/webhook", async (c) => {
 
     const db = getDb();
 
-    // Idempotency: skip if we've already processed this session
-    const existing = await db
-      .select()
-      .from(schema.payments)
-      .where(eq(schema.payments.stripeSessionId, session.id))
-      .limit(1);
-    if (existing.length > 0) return c.text("Already processed", 200);
+    const inserted = await db
+      .insert(schema.payments)
+      .values({
+        userId,
+        stripeSessionId: session.id,
+        amountCents: session.amount_total ?? 500,
+        currency: session.currency ?? "usd",
+      })
+      .onConflictDoNothing()
+      .returning();
 
-    // Record the payment and atomically credit the user
-    await db.insert(schema.payments).values({
-      userId,
-      stripeSessionId: session.id,
-      amountCents: session.amount_total ?? 500,
-      currency: session.currency ?? "usd",
-    });
+    if (inserted.length === 0) return c.text("Already processed", 200);
+
     await db
       .update(schema.users)
       .set({ runCredits: sql`${schema.users.runCredits} + 1` })

@@ -131,7 +131,7 @@ authRoutes.get("/me", async (c) => {
   const user = rows[0];
   if (!user) return c.json({ user: null });
   return c.json({
-    user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+    user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl, runCredits: user.runCredits, freeRunUsed: user.freeRunUsed },
   });
 });
 
