@@ -15,7 +15,7 @@ AI-powered competitive analysis using the Kano Model (Dan Olsen's benefits-focus
 
 - `npm install` — install deps
 - `npm run dev` — starts Vite (`:5173`) and Hono (`:3001`) concurrently; Vite proxies `/api` → Hono
-- `npm run db:push` — push Drizzle schema to `DATABASE_URL`
+- `npm run db:push` — push Drizzle schema to `DATABASE_URL` (**run this after every change to `server/db/schema.ts`**) ⚠️ **Safe only for additive changes** (new tables, new nullable columns). Dropping columns or tables, or adding NOT NULL columns without a default, can silently wipe rows. For any destructive schema change: backup the DB first, or use `drizzle-kit generate` + `drizzle-kit migrate` instead.
 - `npm run db:studio` — Drizzle Studio UI
 - `npm run check` — `tsc --noEmit`
 - `npm run test` — Vitest unit/integration
@@ -40,6 +40,12 @@ AI-powered competitive analysis using the Kano Model (Dan Olsen's benefits-focus
 - Scoring: **Yes / Maybe / No / Cannot Verify** for Must-Haves + Delighters. **High / Medium / Low** (+ Maybe variants) for Performance Benefits.
 - Every rating needs a **source URL + access date**. No citation → rating must be `Cannot Verify`.
 - Tables: 8–12 features initially, 50 hard cap.
+
+## Database sync rules
+
+- **After any change to `server/db/schema.ts`**: run `npm run db:push` (requires `DATABASE_URL`) before testing. Without it, the app will throw column-not-found errors.
+- **Also update `server/db/bootstrap.sql`** to match — this file seeds the in-memory pglite fallback used when `DATABASE_URL` is not set. If it falls out of sync, local dev breaks on next server restart.
+- **Destructive changes** (dropping a column or table): warn the user and suggest a DB backup before running `db:push`.
 
 ## Rebuild context
 

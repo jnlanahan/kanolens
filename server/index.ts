@@ -17,6 +17,7 @@ import { authRoutes } from "./routes/auth";
 import { analysisRoutes } from "./routes/analysis";
 import { paymentsRoutes } from "./routes/payments";
 import { sessionRoutes } from "./routes/sessions";
+import { shareRoutes } from "./routes/share";
 
 const app = new Hono<AuthContext>();
 
@@ -38,6 +39,7 @@ app.route("/api/auth", authRoutes);
 app.route("/api/sessions", sessionRoutes);
 app.route("/api/analysis", analysisRoutes);
 app.route("/api/payments", paymentsRoutes);
+app.route("/api/share", shareRoutes);
 
 app.notFound((c) => c.json({ error: "not found" }, 404));
 app.onError((err, c) => {

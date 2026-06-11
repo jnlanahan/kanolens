@@ -17,12 +17,11 @@ const SEED_MESSAGES: ChatMessage[] = [
   {
     id: "seed-1",
     role: "ai",
-    text: "I can update this analysis in plain language. Try asking me to add a competitor, drop a benefit, or explain a rating.",
+    text: "I can update this analysis in plain language. Try asking me to drop a benefit, re-rate a feature, or explain a rating.",
   },
 ];
 
 const SUGGESTIONS = [
-  "Add a competitor",
   "Drop a benefit",
   "Explain a rating",
   "Re-rate a feature",

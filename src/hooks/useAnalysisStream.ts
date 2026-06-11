@@ -31,9 +31,12 @@ export function useAnalysisStream(sessionId: string | null, enabled: boolean): S
         error: ev.type === "error" ? ev.message : prev.error,
       }));
 
+    let doneSeen = false;
+
     const handler = (raw: MessageEvent<string>) => {
       try {
         const parsed = JSON.parse(raw.data) as StreamEvent;
+        if (parsed.type === "done") doneSeen = true;
         push(parsed);
         if (parsed.type === "done" || parsed.type === "error") es.close();
       } catch (err) {
@@ -45,6 +48,7 @@ export function useAnalysisStream(sessionId: string | null, enabled: boolean): S
       es.addEventListener(type, handler);
     }
     es.onerror = () => {
+      if (doneSeen) return;
       setState((prev) =>
         prev.status === "done" ? prev : { ...prev, status: "error", error: "stream disconnected" },
       );

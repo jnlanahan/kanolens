@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, createRootRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import { LensLogo } from "@/components/brand/LensLogo";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { useCurrentUser, useLogout } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
 import { identifyUser, resetUser, trackEvent } from "@/lib/monitoring";
 
 export const Route = createRootRoute({
@@ -30,6 +32,30 @@ function CreditPill({ runCredits, freeRunUsed }: { runCredits: number; freeRunUs
     <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border">
       1 free run
     </span>
+  );
+}
+
+function BuyRunButton() {
+  const [loading, setLoading] = useState(false);
+  async function handleBuy() {
+    setLoading(true);
+    try {
+      const { url } = await api.createCheckout();
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Couldn't start checkout — no URL returned.");
+      }
+    } catch (err) {
+      toast.error("Checkout failed", { description: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <Button size="sm" className="btn-brand shrink-0" onClick={() => void handleBuy()} disabled={loading}>
+      {loading ? "Loading…" : "Buy a run — $5"}
+    </Button>
   );
 }
 
@@ -76,6 +102,7 @@ function RootLayout() {
                     {user.email}
                   </span>
                   <CreditPill runCredits={user.runCredits} freeRunUsed={user.freeRunUsed} />
+                  {user.freeRunUsed && user.runCredits === 0 ? <BuyRunButton /> : null}
                   <Button
                     variant="ghost"
                     size="sm"
