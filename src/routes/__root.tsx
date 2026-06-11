@@ -11,6 +11,28 @@ export const Route = createRootRoute({
   component: RootLayout,
 });
 
+function CreditPill({ runCredits, freeRunUsed }: { runCredits: number; freeRunUsed: boolean }) {
+  if (runCredits > 0) {
+    return (
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-[hsl(var(--kano-perf)/0.15)] text-[hsl(var(--kano-perf))] border border-[hsl(var(--kano-perf)/0.3)]">
+        {runCredits} {runCredits === 1 ? "run" : "runs"}
+      </span>
+    );
+  }
+  if (freeRunUsed) {
+    return (
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-orange-500/10 text-orange-600 border border-orange-500/20">
+        0 runs
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border">
+      1 free run
+    </span>
+  );
+}
+
 function RootLayout() {
   const { data: user, isLoading: loading } = useCurrentUser();
   const logout = useLogout();
@@ -53,6 +75,7 @@ function RootLayout() {
                   <span className="text-sm text-muted-foreground truncate max-w-[140px]">
                     {user.email}
                   </span>
+                  <CreditPill runCredits={user.runCredits} freeRunUsed={user.freeRunUsed} />
                   <Button
                     variant="ghost"
                     size="sm"

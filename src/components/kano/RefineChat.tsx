@@ -3,6 +3,7 @@ import { Lock, SendHorizonal, Sparkles } from "lucide-react";
 import type { QueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { useCurrentUser } from "@/hooks/useAuth";
 import { ApiError, api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -35,6 +36,7 @@ interface RefineChatProps {
 type LockReason = "free_run_no_refine" | "refine_limit_reached";
 
 export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
+  const { data: user } = useCurrentUser();
   const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -151,17 +153,21 @@ export function RefineChat({ sessionId, queryClient }: RefineChatProps) {
             <p className="text-xs text-muted-foreground">
               {locked === "refine_limit_reached"
                 ? "You've used all 3 refinements. Start a new analysis to keep iterating."
-                : "Start a new paid analysis ($5) to refine and iterate."}
+                : (user?.runCredits ?? 0) > 0
+                  ? "You have a run credit — start a new analysis to use it."
+                  : "Start a new paid analysis ($5) to refine and iterate."}
             </p>
           </div>
-          <Button
-            size="sm"
-            className="btn-brand shrink-0"
-            onClick={() => void handleBuyRun()}
-            disabled={checkingOut}
-          >
-            {checkingOut ? "Loading…" : "Get a full run — $5"}
-          </Button>
+          {locked === "free_run_no_refine" && (user?.runCredits ?? 0) === 0 ? (
+            <Button
+              size="sm"
+              className="btn-brand shrink-0"
+              onClick={() => void handleBuyRun()}
+              disabled={checkingOut}
+            >
+              {checkingOut ? "Loading…" : "Get a full run — $5"}
+            </Button>
+          ) : null}
         </div>
       ) : (
         <>

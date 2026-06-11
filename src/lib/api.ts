@@ -7,6 +7,8 @@ export interface ApiUser {
   email: string;
   name: string | null;
   avatarUrl?: string | null;
+  runCredits: number;
+  freeRunUsed: boolean;
 }
 
 export interface ApiSessionSummary {
