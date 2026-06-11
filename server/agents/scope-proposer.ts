@@ -37,6 +37,13 @@ const ScopeProposalSchema = z.object({
   rationale: z
     .string()
     .describe("≤3 sentences explaining why these products and features were chosen"),
+  suggestedAdditionalCompetitors: z
+    .array(z.string())
+    .min(0)
+    .max(3)
+    .optional()
+    .default([])
+    .describe("2–3 additional competitor names the user may not have thought of, based on the product space. Omit any already in products."),
 });
 
 export type ScopeProposal = z.infer<typeof ScopeProposalSchema>;

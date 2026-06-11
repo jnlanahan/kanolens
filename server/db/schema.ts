@@ -61,6 +61,7 @@ export interface ScopeJson {
     category: "must-have" | "performance" | "delighter";
   }[];
   rationale?: string;
+  suggestedAdditionalCompetitors?: string[];
 }
 
 export interface TableJson {
@@ -84,6 +85,8 @@ export const analyses = pgTable("analyses", {
   sources: jsonb("sources").$type<SourcesJson | null>(),
   inputTokens: integer("input_tokens").notNull().default(0),
   outputTokens: integer("output_tokens").notNull().default(0),
+  shareToken: uuid("share_token").notNull().defaultRandom(),
+  shareEnabled: boolean("share_enabled").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

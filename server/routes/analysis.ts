@@ -38,6 +38,7 @@ const ScopeEditBody = z.object({
   targetCustomer: z.string().trim().min(1),
   products: z.array(z.string().trim().min(1)).min(1).max(10),
   features: z.array(FeatureSchema).min(1).max(50),
+  suggestedAdditionalCompetitors: z.array(z.string()).optional(),
 });
 
 const RefineBody = z.object({
@@ -101,6 +102,7 @@ analysisRoutes.post("/:id/scope", async (c) => {
       products: proposal.products,
       features: proposal.features,
       rationale: proposal.rationale,
+      suggestedAdditionalCompetitors: proposal.suggestedAdditionalCompetitors ?? [],
     };
     await db
       .update(schema.analyses)
@@ -317,6 +319,28 @@ analysisRoutes.post("/:id/refine", async (c) => {
   }
 
   return c.json({ reply: result.reply });
+});
+
+analysisRoutes.post("/:id/share", async (c) => {
+  const loaded = await loadSession(c);
+  if ("response" in loaded) return loaded.response;
+  const { db, id } = loaded;
+
+  await db
+    .update(schema.analyses)
+    .set({ shareEnabled: true })
+    .where(eq(schema.analyses.sessionId, id));
+
+  const [analysis] = await db
+    .select({ shareToken: schema.analyses.shareToken })
+    .from(schema.analyses)
+    .where(eq(schema.analyses.sessionId, id))
+    .limit(1);
+
+  if (!analysis) return c.json({ error: "not_found" }, 404);
+
+  const base = process.env.PUBLIC_WEB_ORIGIN ?? `http://localhost:${process.env.WEB_PORT ?? 5173}`;
+  return c.json({ shareUrl: `${base}/share/${analysis.shareToken}` });
 });
 
 function titleFor(userProductName: string | null): string {

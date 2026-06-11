@@ -63,7 +63,15 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
       const competitorsWithFeature = competitors.filter((c) => POSITIVE_RATINGS.has(ratings[c] ?? ""));
       const userHasFeature = POSITIVE_RATINGS.has(userRating);
 
-      if (!userHasFeature && competitorsWithFeature.length === 1) {
+      if (!userHasFeature && userRating === "No" && competitorsWithFeature.length === 1) {
+        insights.push({
+          id: `steal-${feature.id}`,
+          type: "opportunity",
+          title: `Steal this delighter: ${feature.name}`,
+          body: `Only ${competitorsWithFeature[0]} has this — you've confirmed you don't. Actionable build target.`,
+          affectedFeatureIds: [feature.id],
+        });
+      } else if (!userHasFeature && competitorsWithFeature.length === 1) {
         insights.push({
           id: `opportunity-${feature.id}`,
           type: "opportunity",
@@ -79,6 +87,47 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
           type: "strength",
           title: `Unique advantage: ${feature.name}`,
           body: `You're the only product with this feature`,
+          affectedFeatureIds: [feature.id],
+        });
+      }
+
+      if (competitorsWithFeature.length >= 3) {
+        insights.push({
+          id: `risk-commoditizing-${feature.id}`,
+          type: "risk",
+          title: `Becoming a must-have: ${feature.name}`,
+          body: `${competitorsWithFeature.length} competitors already offer this — it's losing its delight factor`,
+          affectedFeatureIds: [feature.id],
+        });
+      }
+    }
+
+    if (feature.category === "performance") {
+      const userIsHigh = userRating === "High";
+      const LOW_PERFORMANCE = new Set(["Medium", "Low", "Maybe Medium", "Maybe Low"]);
+      const allCompetitorsLow =
+        competitors.length > 0 && competitors.every((c) => LOW_PERFORMANCE.has(ratings[c] ?? ""));
+      if (userIsHigh && allCompetitorsLow) {
+        insights.push({
+          id: `lead-${feature.id}`,
+          type: "strength",
+          title: `Performance leadership: ${feature.name}`,
+          body: `You score High while all competitors are Medium or below — lead with this`,
+          affectedFeatureIds: [feature.id],
+        });
+      }
+    }
+
+    if (feature.category === "must-have" && userRating === "Yes") {
+      const competitorsMissing = competitors.filter((c) =>
+        ["No", "Cannot Verify"].includes(ratings[c] ?? ""),
+      );
+      if (competitorsMissing.length >= 1) {
+        insights.push({
+          id: `parity-${feature.id}`,
+          type: "strength",
+          title: `Parity advantage: ${feature.name}`,
+          body: `You have this must-have while ${competitorsMissing.length} competitor(s) lag — a real baseline edge`,
           affectedFeatureIds: [feature.id],
         });
       }
@@ -121,15 +170,16 @@ const insightLabel: Record<InsightType, string> = {
 interface InsightsPanelProps {
   insights: Insight[];
   onInsightHover: (insight: Insight | null) => void;
+  compact?: boolean;
 }
 
-export function InsightsPanel({ insights, onInsightHover }: InsightsPanelProps) {
+export function InsightsPanel({ insights, onInsightHover, compact }: InsightsPanelProps) {
   if (insights.length === 0) return null;
 
   return (
     <div className="space-y-2">
       <p className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Strategic Insights</p>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
         {insights.map((insight) => {
           const config = insightConfig[insight.type];
           return (

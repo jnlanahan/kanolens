@@ -34,6 +34,7 @@ export interface ApiScope {
   products: string[];
   features: ApiScopeFeature[];
   rationale?: string;
+  suggestedAdditionalCompetitors?: string[];
 }
 
 export interface ApiAnalysis {
@@ -119,6 +120,16 @@ export const api = {
       body: JSON.stringify({ message }),
     }),
   streamUrl: (id: string) => `/api/analysis/${id}/stream`,
+
+  enableShare: (id: string) =>
+    request<{ shareUrl: string }>(`/api/analysis/${id}/share`, { method: "POST" }),
+  getShare: (shareToken: string) =>
+    request<{
+      tableData: KanoTableData | null;
+      scope: ApiScope | null;
+      sources: { byFeatureId: Record<string, string[]> } | null;
+      title: string;
+    }>(`/api/share/${shareToken}`),
 
   createCheckout: () =>
     request<{ url: string | null }>("/api/payments/checkout", { method: "POST" }),

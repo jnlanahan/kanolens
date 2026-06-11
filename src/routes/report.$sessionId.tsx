@@ -1,36 +1,66 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { MessageSquare, FileText } from "lucide-react";
-// MessageSquare used in rail tab button only
+import { Share2, Check } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { KanoTable } from "@/components/kano/KanoTable";
 import { RefineChat } from "@/components/kano/RefineChat";
 import { StepStrip } from "@/components/kano/StepStrip";
 import { InsightsPanel, detectInsights, type Insight } from "@/components/kano/InsightsPanel";
+import { TLDRBanner } from "@/components/kano/TLDRBanner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import type { KanoTableData, KanoFeature } from "@/lib/kano-types";
+import type { KanoTableData } from "@/lib/kano-types";
 
 export const Route = createFileRoute("/report/$sessionId")({
   component: ReportPage,
 });
 
-type RailTab = "refine" | "detail";
-
 function ReportPage() {
   const { sessionId } = Route.useParams();
   const queryClient = useQueryClient();
-  const [railTab, setRailTab] = useState<RailTab>("refine");
-  const [selectedFeature, setSelectedFeature] = useState<KanoFeature | null>(null);
   const [hoveredInsight, setHoveredInsight] = useState<Insight | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const shareMutation = useMutation({
+    mutationFn: () => api.enableShare(sessionId),
+    onSuccess: ({ shareUrl }) => {
+      navigator.clipboard.writeText(shareUrl).catch(() => {});
+      toast.success("Link copied to clipboard");
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    },
+    onError: () => toast.error("Couldn't generate share link"),
+  });
 
   const sessionQuery = useQuery({
     queryKey: ["session", sessionId],
     queryFn: () => api.getSession(sessionId),
   });
 
+  // Hoist data derivation above early returns so hooks are called unconditionally
+  const analysis = sessionQuery.data?.analysis;
+  const session = sessionQuery.data?.session;
+  const scope = analysis?.scope;
+
+  const table: KanoTableData | undefined = analysis?.tableData
+    ? { ...analysis.tableData, sources: analysis.sources?.byFeatureId ?? {} }
+    : undefined;
+
+  const insights = useMemo(
+    () => (table && scope ? detectInsights(table, scope.userProductName ?? null) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [analysis?.tableData, scope?.userProductName],
+  );
+
+  const highlightedFeatureIds = useMemo(
+    () => (hoveredInsight ? new Set(hoveredInsight.affectedFeatureIds) : undefined),
+    [hoveredInsight],
+  );
+
+  // Early returns AFTER all hooks
   if (sessionQuery.isLoading) {
     return (
       <div className="container max-w-[1280px] py-10 space-y-4">
@@ -53,11 +83,7 @@ function ReportPage() {
     );
   }
 
-  const analysis = sessionQuery.data?.analysis;
-  const session = sessionQuery.data?.session;
-  const scope = analysis?.scope;
-
-  if (!analysis?.tableData) {
+  if (!table) {
     return (
       <div className="container max-w-3xl py-16 text-center space-y-3">
         <h2 className="text-2xl">No report yet</h2>
@@ -68,36 +94,30 @@ function ReportPage() {
     );
   }
 
-  const table: KanoTableData = {
-    ...analysis.tableData,
-    sources: analysis.sources?.byFeatureId ?? {},
-  };
-
-  const insights = useMemo(
-    () => detectInsights(table, scope?.userProductName ?? null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [analysis.tableData, scope?.userProductName],
-  );
-
-  const highlightedFeatureIds = useMemo(
-    () => hoveredInsight ? new Set(hoveredInsight.affectedFeatureIds) : undefined,
-    [hoveredInsight],
-  );
-
-  function handleFeatureSelect(feature: KanoFeature) {
-    setSelectedFeature(feature);
-    setRailTab("detail");
-  }
-
   return (
     <div className="container max-w-[1280px] py-8 space-y-6">
       {/* Page header */}
-      <header className="space-y-1">
-        <p className="eyebrow">Analysis complete</p>
-        <h1 className="text-2xl">{session?.title}</h1>
-        {table.summary ? (
-          <p className="text-sm text-muted-foreground max-w-3xl">{table.summary}</p>
-        ) : null}
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <p className="eyebrow">Analysis complete</p>
+          <h1 className="text-2xl">{session?.title}</h1>
+          {table.summary ? (
+            <p className="text-sm text-muted-foreground max-w-3xl">{table.summary}</p>
+          ) : null}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={() => shareMutation.mutate()}
+          disabled={shareMutation.isPending}
+        >
+          {shareCopied ? (
+            <><Check className="h-3.5 w-3.5 mr-1.5" />Copied!</>
+          ) : (
+            <><Share2 className="h-3.5 w-3.5 mr-1.5" />Share</>
+          )}
+        </Button>
       </header>
 
       {/* Context strip */}
@@ -110,143 +130,31 @@ function ReportPage() {
         />
       ) : null}
 
-      {/* Two-column overview + insights below */}
+      {/* TL;DR summary banner */}
+      <TLDRBanner insights={insights} tableData={table} userProductName={scope?.userProductName ?? null} />
+
+      {/* Two-column layout: table + sticky rail */}
       <div className="overview-grid">
-        {/* Left: table */}
+        {/* Left: table — row clicks open the built-in modal popup */}
         <div className="min-w-0">
           <KanoTable
             tableData={table}
             isLoading={false}
-            onFeatureSelect={handleFeatureSelect}
-            selectedFeatureId={selectedFeature?.id}
             highlightedFeatureIds={highlightedFeatureIds}
           />
         </div>
 
-        {/* Right: sticky rail */}
+        {/* Right: sticky rail — strategic insights above refine chat */}
         <aside className="overview-rail">
-          {/* Tab switcher */}
-          <div className="rail-switch">
-            <button
-              type="button"
-              className={`rail-switch__btn${railTab === "refine" ? " rail-switch__btn--on" : ""}`}
-              onClick={() => setRailTab("refine")}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Refine
-            </button>
-            <button
-              type="button"
-              className={`rail-switch__btn${railTab === "detail" ? " rail-switch__btn--on" : ""}`}
-              onClick={() => setRailTab("detail")}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              Detail
-            </button>
-          </div>
-
-          {/* Rail content */}
-          <div className="panel flex-1 overflow-hidden flex flex-col">
-            {railTab === "refine" ? (
-              <RefineChat sessionId={sessionId} queryClient={queryClient} />
-            ) : (
-              <DetailPane feature={selectedFeature} tableData={table} />
-            )}
+          {insights.length > 0 && (
+            <div className="panel p-3 overflow-y-auto shrink-0 max-h-[45%]">
+              <InsightsPanel insights={insights} onInsightHover={setHoveredInsight} compact />
+            </div>
+          )}
+          <div className="panel flex-1 overflow-hidden flex flex-col min-h-0">
+            <RefineChat sessionId={sessionId} queryClient={queryClient} />
           </div>
         </aside>
-      </div>
-
-      {/* Insights panel — full width below the grid */}
-      <InsightsPanel insights={insights} onInsightHover={setHoveredInsight} />
-    </div>
-  );
-}
-
-
-function DetailPane({ feature, tableData }: { feature: KanoFeature | null; tableData: KanoTableData }) {
-  if (!feature) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-2 p-8 text-center h-full min-h-[240px]">
-        <p className="text-sm text-muted-foreground">Click any row to see the full breakdown.</p>
-      </div>
-    );
-  }
-
-  const sources = tableData.sources[feature.id] ?? [];
-  const ratings = tableData.ratings[feature.id] ?? {};
-  const justifications = tableData.justifications?.[feature.id] ?? {};
-
-  const headClass = `detail__head detail__head--${feature.category}`;
-  const catIcon = feature.category === "must-have" ? "◼" : feature.category === "performance" ? "▲" : "★";
-
-  return (
-    <div className="detail flex-1 overflow-hidden">
-      <div className={headClass}>
-        <span className="detail__head-icon" aria-hidden="true">{catIcon}</span>
-        <div className="flex-1 min-w-0">
-          <p className="detail__head-cat">{feature.category.replace("-", " ")}</p>
-          <p className="text-sm font-semibold leading-snug mt-0.5">{feature.name}</p>
-        </div>
-      </div>
-
-      <div className="detail__body">
-        {feature.customerBenefit ? (
-          <div>
-            <p className="detail__label">Customer benefit</p>
-            <p className="text-sm leading-relaxed">{feature.customerBenefit}</p>
-          </div>
-        ) : null}
-
-        {feature.description ? (
-          <div>
-            <p className="detail__label">Description</p>
-            <p className="text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
-          </div>
-        ) : null}
-
-        {Object.keys(ratings).length > 0 ? (
-          <div>
-            <p className="detail__label">Competitive position</p>
-            <div className="space-y-2">
-              {Object.entries(ratings).map(([product, rating]) => (
-                <div key={product} className="detail__stat">
-                  <div>
-                    <p className="text-xs font-semibold">{product}</p>
-                    {justifications[product] ? (
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                        {justifications[product]}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="text-xs font-medium shrink-0 ml-3">{rating}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {sources.length > 0 ? (
-          <div>
-            <p className="detail__label">Sources</p>
-            <div className="space-y-1.5">
-              {sources.map((url, i) => {
-                let domain = url;
-                try { domain = new URL(url).hostname.replace("www.", ""); } catch { /* keep full url */ }
-                return (
-                  <a
-                    key={`${url}-${i}`}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="detail__source"
-                  >
-                    <span className="truncate">{domain}</span>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );

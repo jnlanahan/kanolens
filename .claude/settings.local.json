@@ -111,7 +111,11 @@
       "Bash(Out-Null)",
       "Bash(Write-Output \"done\")",
       "Bash(npx playwright *)",
-      "Bash(npx drizzle-kit *)"
+      "Bash(npx drizzle-kit *)",
+      "Bash(git stash *)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(npm list *)"
     ],
     "deny": []
   }

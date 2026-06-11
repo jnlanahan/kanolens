@@ -236,6 +236,35 @@ function ScopeReview() {
         </div>
       </section>
 
+      {/* Competitor suggestions */}
+      {(scope.suggestedAdditionalCompetitors ?? []).filter((n) => !scope.products.includes(n)).length > 0 && (
+        <section className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">You might also want to add:</p>
+          <div className="flex flex-wrap gap-2">
+            {(scope.suggestedAdditionalCompetitors ?? [])
+              .filter((n) => !scope.products.includes(n))
+              .map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full border border-dashed text-sm text-muted-foreground hover:text-foreground hover:border-solid transition-colors"
+                  onClick={() =>
+                    update((s) => ({
+                      ...s,
+                      products: [...s.products, name],
+                      suggestedAdditionalCompetitors: (s.suggestedAdditionalCompetitors ?? []).filter(
+                        (n) => n !== name,
+                      ),
+                    }))
+                  }
+                >
+                  <Plus className="h-3 w-3" /> {name}
+                </button>
+              ))}
+          </div>
+        </section>
+      )}
+
       {/* Features / benefits */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
