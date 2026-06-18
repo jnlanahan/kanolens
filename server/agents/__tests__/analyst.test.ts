@@ -37,11 +37,16 @@ function upsertToolUseResponse(id: string, input: unknown) {
         input,
       },
     ],
+    usage: { input_tokens: 100, output_tokens: 50 },
   } as const;
 }
 
 function textResponse(text: string) {
-  return { stop_reason: "end_turn", content: [{ type: "text", text }] } as const;
+  return {
+    stop_reason: "end_turn",
+    content: [{ type: "text", text }],
+    usage: { input_tokens: 100, output_tokens: 50 },
+  } as const;
 }
 
 describe("analyst coordinator", () => {
@@ -82,6 +87,7 @@ describe("analyst coordinator", () => {
           { product: "Acme Tasks", sources: [{ url: "https://acme.com", purpose: "marketing" }] },
         ],
       },
+      usage: { input_tokens: 100, output_tokens: 50 },
     });
 
     // Phase B: two feature-analyst calls (one per feature) + Phase C: summary call
@@ -160,7 +166,10 @@ describe("analyst coordinator", () => {
     };
 
     // Pre-pass returns nothing useful (also tests the empty-map path)
-    parseMock.mockResolvedValueOnce({ parsed_output: { products: [] } });
+    parseMock.mockResolvedValueOnce({
+      parsed_output: { products: [] },
+      usage: { input_tokens: 100, output_tokens: 50 },
+    });
 
     // Feature f1 fails outright; feature f2 commits; then summary call
     createMock
@@ -217,7 +226,10 @@ describe("analyst coordinator", () => {
       ],
     };
 
-    parseMock.mockResolvedValueOnce({ parsed_output: { products: [] } });
+    parseMock.mockResolvedValueOnce({
+      parsed_output: { products: [] },
+      usage: { input_tokens: 100, output_tokens: 50 },
+    });
 
     createMock
       .mockResolvedValueOnce(

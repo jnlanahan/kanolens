@@ -5,7 +5,7 @@
   "type": "module",
   "description": "AI-powered competitive analysis using the Kano Model (Dan Olsen's benefits-focused framing)",
   "scripts": {
-    "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
+    "dev": "concurrently --raw \"npm:dev:web\" \"npm:dev:api\"",
     "dev:web": "vite",
     "dev:api": "tsx watch --env-file=.env server/index.ts",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/server.js",

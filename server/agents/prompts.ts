@@ -1,17 +1,27 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const METHODOLOGY_MD = path.resolve(__dirname, "../../docs/methodology/kano-instructions.md");
+// Resolve from the working directory (repo root), not __dirname. In the prod
+// build everything is bundled into dist/server.js, so __dirname would be dist/
+// and a relative "../../docs" path climbs above the repo root. `npm start` runs
+// from the repo root in both dev and prod, and docs/ is committed, so cwd is correct.
+const METHODOLOGY_MD = path.resolve(process.cwd(), "docs/methodology/kano-instructions.md");
 
 let cachedMethodology: string | null = null;
 
 function loadMethodology(): string {
   if (cachedMethodology) return cachedMethodology;
-  cachedMethodology = fs.readFileSync(METHODOLOGY_MD, "utf8");
+  try {
+    cachedMethodology = fs.readFileSync(METHODOLOGY_MD, "utf8");
+  } catch (error) {
+    throw new Error(
+      `Could not read the Kano methodology file at ${METHODOLOGY_MD}. ` +
+        `It must ship with the deploy and the server must run from the repo root. ` +
+        `Original error: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
   return cachedMethodology;
 }
 

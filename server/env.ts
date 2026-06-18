@@ -34,7 +34,7 @@ function loadEnv(): Env {
   }
   const data = parsed.data;
   if (data.NODE_ENV === "production") {
-    const required = ["DATABASE_URL", "JWT_SECRET", "ANTHROPIC_API_KEY"] as const;
+    const required = ["DATABASE_URL", "JWT_SECRET", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"] as const;
     const missing = required.filter((k) => !data[k]);
     if (missing.length) {
       console.error(`[env] Missing required production vars: ${missing.join(", ")}`);

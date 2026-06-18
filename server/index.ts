@@ -1,6 +1,7 @@
 import "dotenv/config";
 import * as Sentry from "@sentry/node";
 import { serve } from "@hono/node-server";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -40,6 +41,19 @@ app.route("/api/sessions", sessionRoutes);
 app.route("/api/analysis", analysisRoutes);
 app.route("/api/payments", paymentsRoutes);
 app.route("/api/share", shareRoutes);
+
+// Unmatched API routes always return JSON 404 — must come before the SPA
+// static fallback below so they never get served index.html.
+app.all("/api/*", (c) => c.json({ error: "not found" }, 404));
+
+// In production the Hono server also serves the built React app (dist/web).
+// In dev the frontend is served by Vite on its own port, so this is skipped.
+if (env.NODE_ENV === "production") {
+  // Serve any built asset that exists on disk (JS/CSS bundles, favicon, etc.).
+  app.use("/*", serveStatic({ root: "./dist/web" }));
+  // SPA fallback: client-side routes (/new, /report/:id, …) get index.html.
+  app.get("*", serveStatic({ path: "./dist/web/index.html" }));
+}
 
 app.notFound((c) => c.json({ error: "not found" }, 404));
 app.onError((err, c) => {
