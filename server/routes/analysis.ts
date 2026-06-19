@@ -215,6 +215,7 @@ analysisRoutes.post("/:id/start", async (c) => {
     try {
       const analystScope: AnalystScope = {
         userProductName: scope.userProductName,
+        userProductDescription: scope.userProductDescription,
         products: scope.products,
         targetCustomer: scope.targetCustomer,
         features: scope.features,

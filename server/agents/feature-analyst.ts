@@ -11,6 +11,7 @@ import { verifySource } from "./verifier";
 
 export interface FeatureScope {
   userProductName: string | null;
+  userProductDescription?: string | null;
   products: string[];
   targetCustomer: string;
 }
@@ -38,7 +39,7 @@ type UpsertResult = Omit<FeatureAnalystResult, "inputTokens" | "outputTokens">;
 type UpsertInput = {
   feature_id: string;
   per_product: Record<string, { rating: string; justification: string }>;
-  sources: { url: string; claim: string }[];
+  sources: { url: string; claim: string; products?: string[] }[];
 };
 
 const TOOLS: Anthropic.Messages.ToolUnion[] = [
@@ -87,11 +88,17 @@ const TOOLS: Anthropic.Messages.ToolUnion[] = [
                 type: "string",
                 description: "the specific claim this URL backs",
               },
+              products: {
+                type: "array",
+                items: { type: "string" },
+                description:
+                  "Which product names this source backs. Only those products are credited; others without their own verified source are downgraded to Cannot Verify. Omit only if the source genuinely applies to every product.",
+              },
             },
             required: ["url", "claim"],
           },
           description:
-            "Source URLs for the ratings. If you have no primary-source URLs, leave empty — ratings with no sources will be downgraded to Cannot Verify server-side.",
+            "Source URLs for the ratings. A competitor with no verified source is downgraded to Cannot Verify server-side. The user's own product may instead be rated from the provided <user_product_context> with no URL.",
         },
       },
       required: ["feature_id", "per_product", "sources"],
@@ -206,14 +213,31 @@ async function handleUpsert(args: {
           url: s.url,
           product: scope.userProductName ?? "(market analysis)",
         });
-        return { url: s.url, ...v };
+        return { url: s.url, products: s.products, ...v };
       } catch {
-        return { url: s.url, verdict: "cannot_verify" as const, note: "verifier error" };
+        return {
+          url: s.url,
+          products: s.products,
+          verdict: "cannot_verify" as const,
+          note: "verifier error",
+        };
       }
     }),
   );
-  const anyVerified = verdicts.some((v) => v.verdict === "verified");
-  const anyMaybe = verdicts.some((v) => v.verdict === "maybe");
+
+  // A product is backed if it has its own verified/maybe source. A source with no
+  // explicit `products` list applies to every product (back-compat with old output).
+  const productSupported = (product: string): boolean =>
+    verdicts.some(
+      (v) =>
+        (v.verdict === "verified" || v.verdict === "maybe") &&
+        (!v.products || v.products.length === 0 || v.products.includes(product)),
+    );
+
+  // The user's own product can be rated from their first-party description (passed
+  // to the analyst as <user_product_context>) without an external citation.
+  const userDescriptionAvailable =
+    Boolean(scope.userProductName) && Boolean(scope.userProductDescription?.trim());
 
   const ratings: Record<string, string> = {};
   const justifications: Record<string, string> = {};
@@ -227,11 +251,13 @@ async function handleUpsert(args: {
       justifications[product] = "not provided by analyst";
       continue;
     }
-    if (!anyVerified && !anyMaybe) {
-      ratings[product] = "Cannot Verify";
+    const isUserProduct = scope.userProductName === product;
+    const grounded = productSupported(product) || (isUserProduct && userDescriptionAvailable);
+    if (grounded) {
+      ratings[product] = row.rating;
       justifications[product] = row.justification;
     } else {
-      ratings[product] = row.rating;
+      ratings[product] = "Cannot Verify";
       justifications[product] = row.justification;
     }
   }

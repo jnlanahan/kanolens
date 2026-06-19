@@ -6,6 +6,7 @@ import { gatherPrimarySources } from "./source-prepass";
 
 export interface AnalystScope {
   userProductName: string | null;
+  userProductDescription?: string | null;
   products: string[];
   targetCustomer: string;
   features: {
@@ -63,6 +64,7 @@ export async function runAnalyst(args: {
   const siblingFeatureNames = scope.features.map((f) => f.name);
   const featureScope = {
     userProductName: scope.userProductName,
+    userProductDescription: scope.userProductDescription,
     products: scope.products,
     targetCustomer: scope.targetCustomer,
   };

@@ -152,6 +152,7 @@ If you are genuinely uncertain about a URL, omit it rather than guessing; fewer 
 export function buildFeatureAnalystKickoff(args: {
   scope: {
     userProductName: string | null;
+    userProductDescription?: string | null;
     products: string[];
     targetCustomer: string;
   };
@@ -163,6 +164,13 @@ export function buildFeatureAnalystKickoff(args: {
   const userColumn = scope.userProductName
     ? `<user_product>${scope.userProductName}</user_product>`
     : `<no_user_product note="Market-scoping only. Do NOT include the user's own product in per_product." />`;
+  const userProductContext =
+    scope.userProductName && scope.userProductDescription?.trim()
+      ? `\n<user_product_context product="${scope.userProductName}">
+The user provided this first-party description of their own product. Treat it as a PRIMARY SOURCE for ${scope.userProductName} ONLY. If it clearly supports or rules out this benefit, rate ${scope.userProductName} from it directly — you do NOT need an external URL for ${scope.userProductName}. If the description does not address this benefit, rate ${scope.userProductName} "Cannot Verify". Research every other product from external primary sources as usual.
+${scope.userProductDescription.trim()}
+</user_product_context>\n`
+      : "";
   const productsList = scope.userProductName
     ? [...scope.products, scope.userProductName]
     : scope.products;
@@ -184,7 +192,7 @@ ${userColumn}
 <target_customer>${scope.targetCustomer}</target_customer>
 <sibling_features_for_context>${siblingFeatureNames.join(" | ")}</sibling_features_for_context>
 </scope>
-
+${userProductContext}
 <feature id="${feature.id}" category="${feature.category}">
   <name>${feature.name}</name>
   <benefit>${feature.customerBenefit}</benefit>
@@ -203,7 +211,8 @@ Workflow:
 
 Scoring reminders:
 - ${feature.category === "performance" ? "Performance Benefit → High | Medium | Low | Maybe High | Maybe Medium | Maybe Low | Cannot Verify" : 'Must-Have / Delighter → "Yes" | "Maybe" | "No" | "Cannot Verify"'}.
-- Every rating must cite a primary-source URL (or be "Cannot Verify"). No guessing.
+- Every competitor rating must cite a primary-source URL (or be "Cannot Verify"). No guessing.${scope.userProductName && scope.userProductDescription?.trim() ? `\n- ${scope.userProductName} may be rated directly from <user_product_context> with no external URL.` : ""}
+- In each source, set "products" to the list of product names that source actually backs, so other products aren't wrongly downgraded. Omit it only for a source that genuinely applies to every product.
 - Include every product in <products_to_rate> in per_product — omissions default to "Cannot Verify" server-side.
 ${scope.userProductName ? "" : "- Do NOT include the user's own product in per_product.\n"}`;
 }
