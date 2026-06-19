@@ -110,18 +110,24 @@ export function KanoTable({
             <span>Analyzing features… ({rowsDone} of {totalProducts > 0 ? "?" : "?"} complete)</span>
           </div>
         ) : null}
-        <div className="overflow-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[38%]" />
+              {tableData.products.map((product) => (
+                <col key={product} />
+              ))}
+            </colgroup>
             <thead>
               <tr className="border-b">
-                <th scope="col" className="text-left p-4 font-semibold min-w-[16rem] text-xs uppercase tracking-wide">
+                <th scope="col" className="text-left p-4 font-semibold text-xs uppercase tracking-wide">
                   Feature / Benefit
                 </th>
                 {tableData.products.map((product) => (
                   <th
                     key={product}
                     scope="col"
-                    className="text-center p-4 font-semibold min-w-[7rem] text-xs uppercase tracking-wide"
+                    className="text-center p-4 font-semibold text-xs uppercase tracking-wide break-words"
                   >
                     {product}
                   </th>
