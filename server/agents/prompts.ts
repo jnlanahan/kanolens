@@ -31,7 +31,7 @@ Absolute rules — do not deviate:
 
 1. THREE CATEGORIES ONLY: "must-have", "performance", "delighter". Never use Indifferent or Reverse.
 2. BENEFITS, NOT FEATURES. Every row's name and description must describe the *customer benefit* — what the user gets — not the raw feature. Good: "Easy third-party app connections — saves developer time". Bad: "API integration".
-3. SOURCE EVERY RATING. Every rating cell must be backed by a URL + access date. If you cannot verify from a primary source, the rating MUST be "Cannot Verify". Never guess.
+3. GROUND EVERY RATING; MARK ESTIMATES. Prefer a primary-source URL + access date for every rating. When you have genuinely researched a product but cannot find a citable primary source that settles a cell, you MAY give your best-estimate rating based on the evidence you did gather — the system will visibly mark it as an unverified estimate, not a confirmed fact. Reserve "Cannot Verify" for when you found no basis at all to judge, or the product appears not to exist. NEVER fabricate a source, and never assert a specific capability you have no evidence for.
 4. SCORING SCALES:
    - Must-Have: Yes | Maybe | No | Cannot Verify  ("No" = verified absent — a real competitive gap)
    - Delighter: Yes | Maybe | - | Cannot Verify  ("-" = absent, which is neutral/expected — not a gap)
@@ -211,7 +211,7 @@ Workflow:
 
 Scoring reminders:
 - ${feature.category === "performance" ? "Performance Benefit → High | Medium | Low | Maybe High | Maybe Medium | Maybe Low | Cannot Verify" : 'Must-Have / Delighter → "Yes" | "Maybe" | "No" | "Cannot Verify"'}.
-- Every competitor rating must cite a primary-source URL (or be "Cannot Verify"). No guessing.${scope.userProductName && scope.userProductDescription?.trim() ? `\n- ${scope.userProductName} may be rated directly from <user_product_context> with no external URL.` : ""}
+- Prefer a primary-source URL for every competitor rating. If you researched a product but found no citable source to settle a cell, give your best-estimate rating (it will be shown as an unverified estimate) instead of defaulting to "Cannot Verify". Reserve "Cannot Verify" for a product you found no basis for at all, or that appears not to exist — never invent a source or capability.${scope.userProductName && scope.userProductDescription?.trim() ? `\n- ${scope.userProductName} may be rated directly from <user_product_context> with no external URL.` : ""}
 - In each source, set "products" to the list of product names that source actually backs, so other products aren't wrongly downgraded. Omit it only for a source that genuinely applies to every product.
 - Include every product in <products_to_rate> in per_product — omissions default to "Cannot Verify" server-side.
 ${scope.userProductName ? "" : "- Do NOT include the user's own product in per_product.\n"}`;

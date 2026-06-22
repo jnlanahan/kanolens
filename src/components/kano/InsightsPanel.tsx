@@ -1,4 +1,4 @@
-import { AlertTriangle, Lightbulb, TrendingUp, Zap } from "lucide-react";
+import { useMemo } from "react";
 import type { KanoTableData } from "@/lib/kano-types";
 
 export type InsightType = "risk" | "opportunity" | "gap" | "strength";
@@ -13,6 +13,14 @@ export interface Insight {
 
 const HIGH_RATINGS = new Set(["Yes", "High", "Maybe High"]);
 const POSITIVE_RATINGS = new Set(["Yes", "High"]);
+
+/** Joins competitor names into a readable phrase: "A", "A and B", "A, B and C". */
+function listNames(names: string[]): string {
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0] ?? "";
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
 
 export function detectInsights(tableData: KanoTableData, userProductName: string | null): Insight[] {
   const insights: Insight[] = [];
@@ -30,7 +38,7 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
           id: `risk-${feature.id}`,
           type: "risk",
           title: `Trending to table stakes: ${feature.name}`,
-          body: `${leadingCompetitors.length} of ${competitors.length} competitors already lead here`,
+          body: `${leadingCompetitors.length} of ${competitors.length} rivals already lead here — it's becoming table stakes.`,
           affectedFeatureIds: [feature.id],
         });
       }
@@ -38,11 +46,21 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
 
     if (feature.category === "must-have") {
       if (userRating === "No" || userRating === "Cannot Verify") {
+        const confirmers = competitors.filter((c) => ratings[c] === "Yes");
+        const youVerb = userRating === "Cannot Verify" ? "can't verify it" : "don't have it";
+        let body: string;
+        if (confirmers.length === 0) {
+          body = `No rival has confirmed it either — unproven across the field, so closing it first wins the baseline.`;
+        } else if (confirmers.length === 1) {
+          body = `Only ${confirmers[0]} confirms it while you ${youVerb} — an early gap to close.`;
+        } else {
+          body = `${confirmers.length} rivals confirm it while you ${youVerb} — a baseline gap to close first.`;
+        }
         insights.push({
           id: `gap-${feature.id}`,
           type: "gap",
           title: `Critical gap: ${feature.name}`,
-          body: `You${userRating === "Cannot Verify" ? " cannot verify this feature" : " are missing this feature"}, which competitors treat as baseline`,
+          body,
           affectedFeatureIds: [feature.id],
         });
       }
@@ -53,50 +71,50 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
           id: `strength-musthave-${feature.id}`,
           type: "strength",
           title: `Table stakes met: ${feature.name}`,
-          body: `Universally delivered — differentiate elsewhere`,
+          body: `Every product delivers it — neutral ground, so differentiate elsewhere.`,
           affectedFeatureIds: [feature.id],
         });
       }
     }
 
     if (feature.category === "delighter") {
-      const competitorsWithFeature = competitors.filter((c) => POSITIVE_RATINGS.has(ratings[c] ?? ""));
+      const confirmingCompetitors = competitors.filter((c) => POSITIVE_RATINGS.has(ratings[c] ?? ""));
       const userHasFeature = POSITIVE_RATINGS.has(userRating);
 
-      if (!userHasFeature && userRating === "No" && competitorsWithFeature.length === 1) {
+      if (!userHasFeature && userRating === "No" && confirmingCompetitors.length === 1) {
         insights.push({
           id: `steal-${feature.id}`,
           type: "opportunity",
           title: `Steal this delighter: ${feature.name}`,
-          body: `Only ${competitorsWithFeature[0]} has this — you've confirmed you don't. Actionable build target.`,
+          body: `Only ${confirmingCompetitors[0]} has it and you've confirmed you don't — a concrete build target.`,
           affectedFeatureIds: [feature.id],
         });
-      } else if (!userHasFeature && competitorsWithFeature.length === 1) {
+      } else if (!userHasFeature && confirmingCompetitors.length === 1) {
         insights.push({
           id: `opportunity-${feature.id}`,
           type: "opportunity",
           title: `White space: ${feature.name}`,
-          body: `Only ${competitorsWithFeature[0]} has this — room to differentiate`,
+          body: `Only ${confirmingCompetitors[0]} offers it — open space to differentiate.`,
           affectedFeatureIds: [feature.id],
         });
       }
 
-      if (userHasFeature && competitorsWithFeature.length === 0) {
+      if (userHasFeature && confirmingCompetitors.length === 0) {
         insights.push({
           id: `strength-delighter-${feature.id}`,
           type: "strength",
           title: `Unique advantage: ${feature.name}`,
-          body: `You're the only product with this feature`,
+          body: `You're the only product confirming it — a genuine delighter to lead with.`,
           affectedFeatureIds: [feature.id],
         });
       }
 
-      if (competitorsWithFeature.length >= 3) {
+      if (confirmingCompetitors.length >= 3) {
         insights.push({
           id: `risk-commoditizing-${feature.id}`,
           type: "risk",
           title: `Becoming a must-have: ${feature.name}`,
-          body: `${competitorsWithFeature.length} competitors already offer this — it's losing its delight factor`,
+          body: `${confirmingCompetitors.length} rivals already offer it — its delight factor is fading toward expected.`,
           affectedFeatureIds: [feature.id],
         });
       }
@@ -112,7 +130,7 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
           id: `lead-${feature.id}`,
           type: "strength",
           title: `Performance leadership: ${feature.name}`,
-          body: `You score High while all competitors are Medium or below — lead with this`,
+          body: `You score High while every rival sits at Medium or below — lead with it.`,
           affectedFeatureIds: [feature.id],
         });
       }
@@ -123,11 +141,15 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
         ["No", "Cannot Verify"].includes(ratings[c] ?? ""),
       );
       if (competitorsMissing.length >= 1) {
+        const who =
+          competitorsMissing.length <= 2
+            ? listNames(competitorsMissing)
+            : `${competitorsMissing.length} rivals`;
         insights.push({
           id: `parity-${feature.id}`,
           type: "strength",
           title: `Parity advantage: ${feature.name}`,
-          body: `You have this must-have while ${competitorsMissing.length} competitor(s) lag — a real baseline edge`,
+          body: `You confirm this baseline while ${who} can't — a real parity edge.`,
           affectedFeatureIds: [feature.id],
         });
       }
@@ -137,68 +159,79 @@ export function detectInsights(tableData: KanoTableData, userProductName: string
   return insights;
 }
 
-const insightConfig: Record<InsightType, { icon: React.ReactNode; colorClass: string; labelClass: string }> = {
-  risk: {
-    icon: <AlertTriangle className="h-4 w-4" />,
-    colorClass: "border-l-red-500 bg-red-500/5",
-    labelClass: "text-red-600",
-  },
-  gap: {
-    icon: <TrendingUp className="h-4 w-4" />,
-    colorClass: "border-l-yellow-500 bg-yellow-500/5",
-    labelClass: "text-yellow-700",
-  },
-  opportunity: {
-    icon: <Lightbulb className="h-4 w-4" />,
-    colorClass: "border-l-blue-500 bg-blue-500/5",
-    labelClass: "text-blue-600",
-  },
-  strength: {
-    icon: <Zap className="h-4 w-4" />,
-    colorClass: "border-l-green-500 bg-green-500/5",
-    labelClass: "text-green-700",
-  },
+const insightDisplay: Record<InsightType, { label: string; color: string; mark: string }> = {
+  gap: { label: "Gap", color: "hsl(var(--rate-maybe))", mark: "△" },
+  risk: { label: "Risk", color: "hsl(var(--destructive))", mark: "▲" },
+  opportunity: { label: "Opening", color: "hsl(var(--brand-emerald))", mark: "◆" },
+  strength: { label: "Strength", color: "hsl(var(--rate-yes))", mark: "✦" },
 };
 
-const insightLabel: Record<InsightType, string> = {
-  risk: "Risk",
-  gap: "Gap",
-  opportunity: "Opportunity",
-  strength: "Strength",
-};
+/** Pulls the feature name out of a "Label: Feature" insight title. */
+function featureFromTitle(title: string): string {
+  const idx = title.indexOf(": ");
+  return idx >= 0 ? title.slice(idx + 2) : title;
+}
 
 interface InsightsPanelProps {
   insights: Insight[];
   onInsightHover: (insight: Insight | null) => void;
-  compact?: boolean;
 }
 
-export function InsightsPanel({ insights, onInsightHover, compact }: InsightsPanelProps) {
+export function InsightsPanel({ insights, onInsightHover }: InsightsPanelProps) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <p className="text-xs uppercase tracking-wide font-semibold text-muted-foreground">Strategic Insights</p>
-      <div className={`grid gap-2 ${compact ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+    <div>
+      <p className="eyebrow" style={{ marginBottom: "6px" }}>What it means</p>
+      <div>
         {insights.map((insight) => {
-          const config = insightConfig[insight.type];
+          const d = insightDisplay[insight.type];
           return (
             <div
               key={insight.id}
-              className={`panel border-l-4 p-3 space-y-1 cursor-default transition-opacity ${config.colorClass}`}
+              className="insight-row"
               onMouseEnter={() => onInsightHover(insight)}
               onMouseLeave={() => onInsightHover(null)}
             >
-              <div className={`flex items-center gap-1.5 text-xs font-semibold ${config.labelClass}`}>
-                {config.icon}
-                <span>{insightLabel[insight.type]}</span>
-              </div>
-              <p className="text-sm font-medium leading-snug">{insight.title}</p>
-              <p className="text-xs text-muted-foreground leading-snug">{insight.body}</p>
+              <span className="insight-row__label" style={{ color: d.color }}>
+                <span className="insight-row__mark" aria-hidden="true">{d.mark}</span>
+                {d.label}
+              </span>
+              <span className="insight-row__feature">{featureFromTitle(insight.title)}</span>
+              <span className="insight-row__note">{insight.body}</span>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+const SIGNAL_TILES: { type: InsightType; label: string; color: string; caption: string }[] = [
+  { type: "gap", label: "Gaps", color: "hsl(var(--rate-maybe))", caption: "Must-haves you can't verify" },
+  { type: "risk", label: "Risk", color: "hsl(var(--destructive))", caption: "A rival confirms it; you don't" },
+  { type: "opportunity", label: "Opening", color: "hsl(var(--brand-emerald))", caption: "White-space to differentiate" },
+  { type: "strength", label: "Strengths", color: "hsl(var(--rate-yes))", caption: "Confirmed while rivals are unproven" },
+];
+
+export function SignalStrip({ insights }: { insights: Insight[] }) {
+  const counts = useMemo(() => {
+    const c: Record<InsightType, number> = { gap: 0, risk: 0, opportunity: 0, strength: 0 };
+    for (const i of insights) c[i.type] += 1;
+    return c;
+  }, [insights]);
+
+  return (
+    <div className="signal-strip">
+      {SIGNAL_TILES.map((t) => (
+        <div key={t.type} className="signal-tile">
+          <div className="signal-tile__top">
+            <span className="signal-tile__num" style={{ color: t.color }}>{counts[t.type]}</span>
+            <span className="signal-tile__label" style={{ color: t.color }}>{t.label}</span>
+          </div>
+          <div className="signal-tile__cap">{t.caption}</div>
+        </div>
+      ))}
     </div>
   );
 }

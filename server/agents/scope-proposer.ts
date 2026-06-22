@@ -6,6 +6,17 @@ import { buildScopeProposalPrompt, buildSystemBlocks, type ScopeProposalContext 
 
 const KanoCategoryEnum = z.enum(["must-have", "performance", "delighter"]);
 
+/** Product names must be the bare name only. Models sometimes append a parenthetical
+ *  positioning note ("Onebrief (AI planning, NATO focus)") which then breaks the table
+ *  header. Strip any trailing "(...)" / "[...]" and clamp length defensively. */
+function cleanProductName(raw: string): string {
+  return raw
+    .replace(/\s*[([].*$/s, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+}
+
 const FeatureProposalSchema = z.object({
   id: z.string().describe("kebab-case slug, unique within the scope"),
   name: z
@@ -25,10 +36,12 @@ const ScopeProposalSchema = z.object({
     .string()
     .describe("the primary customer segment this analysis will focus on"),
   products: z
-    .array(z.string())
+    .array(z.string().transform(cleanProductName))
     .min(3)
     .max(5)
-    .describe("3–5 directly comparable competitor products, exact product names"),
+    .describe(
+      '3–5 directly comparable competitor products. Use the exact product NAME ONLY — no parenthetical descriptions, taglines, or positioning notes (e.g. "Onebrief", not "Onebrief (AI planning, NATO focus)").',
+    ),
   features: z
     .array(FeatureProposalSchema)
     .min(8)
@@ -38,12 +51,12 @@ const ScopeProposalSchema = z.object({
     .string()
     .describe("≤3 sentences explaining why these products and features were chosen"),
   suggestedAdditionalCompetitors: z
-    .array(z.string())
+    .array(z.string().transform(cleanProductName))
     .min(0)
     .max(3)
     .optional()
     .default([])
-    .describe("2–3 additional competitor names the user may not have thought of, based on the product space. Omit any already in products."),
+    .describe("2–3 additional competitor names (name only, no parentheticals) the user may not have thought of, based on the product space. Omit any already in products."),
 });
 
 export type ScopeProposal = z.infer<typeof ScopeProposalSchema>;

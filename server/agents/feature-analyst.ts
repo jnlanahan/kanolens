@@ -29,6 +29,9 @@ export interface FeatureAnalystResult {
   committed: boolean;
   ratings: Record<string, string>;
   justifications: Record<string, string>;
+  /** Per-product: true when the rating is the analyst's best estimate (researched but
+   *  not backed by a citable source), false when source-verified or an honest unknown. */
+  estimated: Record<string, boolean>;
   sources: string[];
   inputTokens: number;
   outputTokens: number;
@@ -241,6 +244,7 @@ async function handleUpsert(args: {
 
   const ratings: Record<string, string> = {};
   const justifications: Record<string, string> = {};
+  const estimated: Record<string, boolean> = {};
   const allProducts = scope.userProductName
     ? [...scope.products, scope.userProductName]
     : scope.products;
@@ -249,16 +253,27 @@ async function handleUpsert(args: {
     if (!row) {
       ratings[product] = "Cannot Verify";
       justifications[product] = "not provided by analyst";
+      estimated[product] = false;
       continue;
     }
     const isUserProduct = scope.userProductName === product;
     const grounded = productSupported(product) || (isUserProduct && userDescriptionAvailable);
     if (grounded) {
+      // Source-verified (or the user's own product from its first-party description).
       ratings[product] = row.rating;
       justifications[product] = row.justification;
-    } else {
+      estimated[product] = false;
+    } else if (!row.rating || row.rating === "Cannot Verify") {
+      // The analyst itself had no basis to judge — keep the honest unknown.
       ratings[product] = "Cannot Verify";
       justifications[product] = row.justification;
+      estimated[product] = false;
+    } else {
+      // Researched but no citable source found — keep the best-estimate rating,
+      // flagged so the UI shows it as an unverified estimate rather than a fact.
+      ratings[product] = row.rating;
+      justifications[product] = row.justification;
+      estimated[product] = true;
     }
   }
 
@@ -274,6 +289,7 @@ async function handleUpsert(args: {
     },
     ratings,
     justifications,
+    estimated,
     sources: sourceUrls,
   });
 
@@ -283,6 +299,7 @@ async function handleUpsert(args: {
       committed: true,
       ratings,
       justifications,
+      estimated,
       sources: sourceUrls,
     },
     isError: false,

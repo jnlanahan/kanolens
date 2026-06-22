@@ -60,6 +60,11 @@
     --rate-yes: 170 38% 32%;
     --rate-maybe: 38 56% 38%;
     --rate-unknown: 36 9% 50%;
+    /* Heatmap soft cell fills (per rating) */
+    --rate-yes-soft: 162 26% 91%;
+    --rate-maybe-soft: 43 50% 90%;
+    --rate-none-soft: 42 30% 94%;
+    --rate-no-soft: 8 40% 91%;
 
     /* Geometry */
     --radius: 0.875rem;
@@ -245,6 +250,10 @@
   .rating--unknown { background: transparent; color: hsl(36 8% 50%); }
   .rating--no { background: transparent; color: hsl(8 44% 46%); }
   .rating--na { background: transparent; color: hsl(36 8% 64%); font-weight: 400; }
+  /* Best-estimate (researched, not citation-verified): keep the rating color but dim it
+     and add a dashed underline + small mark so it never reads as a confirmed fact. */
+  .rating--estimate { opacity: 0.78; text-decoration: underline dashed hsl(var(--gold) / 0.55); text-underline-offset: 3px; }
+  .rating__est { font-size: 10px; line-height: 1; margin-left: 1px; color: hsl(var(--gold)); vertical-align: super; }
 
   /* ---------- Inputs ---------- */
   .field {
@@ -377,11 +386,6 @@
   /* ---------- Footer ---------- */
   .footer { display: flex; align-items: center; justify-content: space-between; max-width: 1280px; margin: 0 auto; width: 100%; padding: 22px 28px; font-size: 12px; color: hsl(var(--subtle-foreground)); box-sizing: border-box; border-top: 1px solid hsl(var(--border)); margin-top: 24px; }
 
-  /* ---------- Overview layout ---------- */
-  .overview-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start; }
-  .overview-rail { position: sticky; top: 78px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100vh - 96px); }
-  @media (max-width: 1120px) { .overview-grid { grid-template-columns: 1fr; } .overview-rail { position: static; max-height: none; } }
-
   /* ---------- Responsive ---------- */
   /* Stepper: allow horizontal scroll on narrow viewports instead of clipping */
   .stepper-wrap { overflow-x: auto; padding-bottom: 2px; }
@@ -418,4 +422,60 @@
   .chat__send { width: 38px; height: 38px; border-radius: 9px; border: none; background: hsl(var(--brand-emerald)); color: #fff; display: grid; place-items: center; cursor: pointer; font-size: 17px; flex: none; transition: background .15s; }
   .chat__send:hover { background: hsl(var(--brand-ink)); }
   .chat__paywall { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--surface-muted)); }
+
+  /* ---------- Signal strip (KPI tiles) ---------- */
+  .signal-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+  .signal-tile { background: hsl(var(--surface)); border: 1px solid hsl(var(--border)); border-radius: 11px; padding: 14px 17px; }
+  .signal-tile__top { display: flex; align-items: center; gap: 9px; }
+  .signal-tile__num { font-family: var(--font-display); font-size: 28px; font-weight: 500; line-height: 1; }
+  .signal-tile__label { font-family: var(--font-body); font-weight: 600; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; }
+  .signal-tile__cap { font-size: 12px; color: hsl(var(--subtle-foreground)); margin-top: 5px; line-height: 1.35; }
+  @media (max-width: 720px) { .signal-strip { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ---------- Heatmap matrix ---------- */
+  .heatmap { background: hsl(var(--surface)); border: 1px solid hsl(var(--border)); border-radius: 13px; overflow: hidden; }
+  .heatmap__scroll { overflow-x: auto; }
+  .heatmap__row { display: grid; align-items: stretch; }
+  .heatmap__head { background: #f7f2e8; border-bottom: 1px solid hsl(var(--border)); }
+  .heatmap__head-feature { padding: 14px 14px 12px 20px; font-family: var(--font-body); font-weight: 600; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: hsl(var(--subtle-foreground)); align-self: end; }
+  .heatmap__head-prod { padding: 13px 5px 10px; text-align: center; align-self: end; font-size: 11px; font-weight: 500; color: hsl(var(--muted-foreground)); line-height: 1.25; overflow-wrap: anywhere; }
+  .heatmap__cat { display: flex; align-items: center; gap: 10px; padding: 16px 20px 8px; border-bottom: 1px solid #ece6d9; background: #faf6ec; }
+  .heatmap__cat-dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  .heatmap__cat-label { font-family: var(--font-body); font-weight: 600; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #4a4136; }
+  .heatmap__cat-def { margin-left: auto; font-family: var(--font-display); font-style: italic; font-size: 12.5px; color: hsl(var(--subtle-foreground)); text-align: right; }
+  .heatmap__feat-row { border-top: 1px solid #f0ebdf; cursor: pointer; transition: box-shadow 0.18s; }
+  .heatmap__feat-row:hover { background: hsl(var(--surface-muted) / 0.45); }
+  .heatmap__feat-row--active { box-shadow: inset 0 0 0 1.5px hsl(var(--brand-emerald) / 0.45); }
+  .heatmap__feat-row--hl { box-shadow: inset 0 0 0 1.5px hsl(var(--brand-emerald) / 0.35); }
+  .heatmap__feat-cell { padding: 13px 14px 13px 20px; align-self: center; min-width: 0; }
+  .heatmap__feat-name { font-family: var(--font-display); font-size: 15px; color: hsl(var(--foreground)); line-height: 1.25; }
+  .heatmap__feat-benefit { font-size: 11.5px; color: hsl(var(--muted-foreground)); margin-top: 4px; line-height: 1.45; }
+  .heatmap__cell { padding: 6px; display: flex; align-items: center; justify-content: center; }
+  .heatmap__chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-size: 11.5px; font-weight: 500; padding: 7px 6px; border-radius: 7px; white-space: nowrap; border: none; cursor: pointer; font-family: var(--font-body); }
+  .heatmap__chip--est { opacity: 0.8; text-decoration: underline dashed hsl(var(--gold) / 0.55); text-underline-offset: 3px; }
+  /* User ("you") product column */
+  .heatmap__you-head { background: hsl(var(--brand-emerald) / 0.07); border-bottom: 2px solid hsl(var(--brand-emerald)); }
+  .heatmap__you-cell { background: hsl(var(--brand-emerald) / 0.07); }
+  .heatmap__you-chip { font-weight: 600; box-shadow: 0 0 0 1.5px hsl(var(--brand-emerald) / 0.32); }
+  .heatmap__you-name { font-weight: 700; font-size: 11.5px; color: hsl(var(--brand-emerald)); line-height: 1.2; }
+  .heatmap__you-tag { font-size: 8.5px; font-weight: 600; letter-spacing: 0.12em; color: hsl(var(--brand-emerald)); margin-top: 3px; }
+  .heatmap__legend { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 13px 20px; border-top: 1px solid hsl(var(--border)); background: #f7f2e8; font-size: 11.5px; color: hsl(var(--subtle-foreground)); }
+  .heatmap__legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .heatmap__legend-sw { width: 16px; height: 13px; border-radius: 3px; flex: none; }
+
+  /* ---------- Insight list ("What it means") ---------- */
+  .insight-row { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-top: 1px solid hsl(var(--border)); cursor: default; }
+  .insight-row__label { flex: none; width: 84px; padding-top: 3px; font-family: var(--font-body); font-weight: 700; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .insight-row__mark { margin-right: 5px; }
+  .insight-row__feature { flex: none; width: 270px; font-family: var(--font-display); font-size: 15.5px; color: hsl(var(--foreground)); line-height: 1.3; }
+  .insight-row__note { flex: 1 1 200px; min-width: 180px; font-size: 13px; color: hsl(var(--muted-foreground)); line-height: 1.5; }
+  @media (max-width: 640px) {
+    .insight-row { flex-wrap: wrap; gap: 6px 12px; }
+    .insight-row__feature { width: auto; flex: 1 1 100%; }
+  }
+
+  /* ---------- Report bottom grid ---------- */
+  .report-bottom { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 30px; align-items: start; }
+  .report-bottom__rail { position: sticky; top: 78px; }
+  @media (max-width: 1120px) { .report-bottom { grid-template-columns: 1fr; } .report-bottom__rail { position: static; } }
 }

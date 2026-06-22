@@ -27,6 +27,8 @@ export interface KanoTableData {
   features: KanoFeature[];
   ratings: Record<string, Record<string, Rating>>;
   justifications?: Record<string, Record<string, string>>;
+  /** Per feature → per product: true when the rating is an unverified best-estimate. */
+  estimated?: Record<string, Record<string, boolean>>;
   sources: Record<string, string[]>;
   summary?: string;
 }

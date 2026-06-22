@@ -89,6 +89,7 @@ function RunAnalysis() {
         tableData={table}
         isLoading={false}
         isStreaming={stream.status !== "done" && stream.status !== "error"}
+        userProductName={sessionQuery.data?.analysis?.scope?.userProductName ?? null}
       />
     </div>
   );
@@ -138,6 +139,7 @@ function buildTableFromEvents(
   const featuresOrdered: KanoFeature[] = [];
   const ratings: Record<string, Record<string, Rating>> = {};
   const justifications: Record<string, Record<string, string>> = {};
+  const estimated: Record<string, Record<string, boolean>> = {};
   const sources: Record<string, string[]> = {};
   let narration = "Researching…";
 
@@ -148,6 +150,7 @@ function buildTableFromEvents(
       if (!ratings[ev.feature.id]) featuresOrdered.push(ev.feature);
       ratings[ev.feature.id] = ev.ratings as Record<string, Rating>;
       justifications[ev.feature.id] = ev.justifications ?? {};
+      estimated[ev.feature.id] = ev.estimated ?? {};
       sources[ev.feature.id] = ev.sources;
     }
   }
@@ -158,6 +161,7 @@ function buildTableFromEvents(
       features: featuresOrdered,
       ratings,
       justifications,
+      estimated,
       sources,
     },
     statusText: narration,

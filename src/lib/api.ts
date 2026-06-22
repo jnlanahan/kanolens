@@ -142,6 +142,7 @@ export type StreamEvent =
       feature: KanoFeature;
       ratings: Record<string, string>;
       justifications?: Record<string, string>;
+      estimated?: Record<string, boolean>;
       sources: string[];
     }
   | { type: "narration"; text: string }

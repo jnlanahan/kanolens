@@ -194,6 +194,7 @@ analysisRoutes.post("/:id/start", async (c) => {
       feature: AnalystScope["features"][number];
       ratings: Record<string, string>;
       justifications: Record<string, string>;
+      estimated: Record<string, boolean>;
       sources: string[];
     }
   >();
@@ -204,6 +205,7 @@ analysisRoutes.post("/:id/start", async (c) => {
         feature: event.feature as AnalystScope["features"][number],
         ratings: event.ratings,
         justifications: event.justifications ?? {},
+        estimated: event.estimated ?? {},
         sources: event.sources,
       });
     }
@@ -227,6 +229,7 @@ analysisRoutes.post("/:id/start", async (c) => {
         features: scope.features,
         ratings: {},
         justifications: {},
+        estimated: {},
         summary: result.summary,
       };
       const sources: SourcesJson = { byFeatureId: {} };
@@ -234,6 +237,7 @@ analysisRoutes.post("/:id/start", async (c) => {
         const row = rowsCollected.get(f.id);
         tableData.ratings[f.id] = row?.ratings ?? {};
         tableData.justifications[f.id] = row?.justifications ?? {};
+        tableData.estimated![f.id] = row?.estimated ?? {};
         sources.byFeatureId[f.id] = row?.sources ?? [];
       }
 

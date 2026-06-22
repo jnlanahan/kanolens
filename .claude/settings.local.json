@@ -145,7 +145,9 @@
       "Bash(ls -la public/)",
       "Bash(ls public/*.svg public/*.ico public/*.png)",
       "mcp__plugin_playwright_playwright__browser_evaluate",
-      "PowerShell(npm run check)"
+      "PowerShell(npm run check)",
+      "PowerShell(foreach \\($p in 3001,5173,5174\\) { Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop; \"killed PID $_ on port $p\" } catch {} } }; \"ports cleared\")",
+      "mcp__plugin_playwright_playwright__browser_resize"
     ],
     "deny": []
   }

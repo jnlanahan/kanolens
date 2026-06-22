@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { KanoTable } from "@/components/kano/KanoTable";
 import { RefineChat } from "@/components/kano/RefineChat";
 import { StepStrip } from "@/components/kano/StepStrip";
-import { InsightsPanel, detectInsights, type Insight } from "@/components/kano/InsightsPanel";
+import { InsightsPanel, SignalStrip, detectInsights, type Insight } from "@/components/kano/InsightsPanel";
 import { TLDRBanner } from "@/components/kano/TLDRBanner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +23,7 @@ function ReportPage() {
   const queryClient = useQueryClient();
   const [hoveredInsight, setHoveredInsight] = useState<Insight | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
 
   const shareMutation = useMutation({
     mutationFn: () => api.enableShare(sessionId),
@@ -95,14 +96,27 @@ function ReportPage() {
   }
 
   return (
-    <div className="container max-w-[1280px] py-8 space-y-6">
+    <div className="container max-w-[1240px] py-8 space-y-5">
       {/* Page header */}
-      <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
+      <header className="flex items-start justify-between gap-6">
+        <div className="space-y-1 min-w-0">
           <p className="eyebrow">Analysis complete</p>
-          <h1 className="text-2xl">{session?.title}</h1>
+          <h1 className="text-[34px] leading-tight">{session?.title}</h1>
           {table.summary ? (
-            <p className="text-sm text-muted-foreground max-w-3xl">{table.summary}</p>
+            <div className="max-w-3xl">
+              <p className={`text-sm text-muted-foreground${summaryExpanded ? "" : " line-clamp-2"}`}>
+                {table.summary}
+              </p>
+              {table.summary.length > 160 ? (
+                <button
+                  type="button"
+                  className="text-xs text-[hsl(var(--gold))] hover:underline mt-0.5"
+                  onClick={() => setSummaryExpanded((v) => !v)}
+                >
+                  {summaryExpanded ? "Show less" : "Show more"}
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </div>
         <Button
@@ -130,32 +144,36 @@ function ReportPage() {
         />
       ) : null}
 
-      {/* TL;DR summary banner */}
-      <TLDRBanner insights={insights} tableData={table} userProductName={scope?.userProductName ?? null} />
+      {/* Signal strip — counts by insight type */}
+      {insights.length > 0 ? <SignalStrip insights={insights} /> : null}
 
-      {/* Two-column layout: table + sticky rail */}
-      <div className="overview-grid">
-        {/* Left: table — row clicks open the built-in modal popup */}
+      {/* Heatmap matrix — full width; row clicks open the built-in modal popup */}
+      <KanoTable
+        tableData={table}
+        isLoading={false}
+        highlightedFeatureIds={highlightedFeatureIds}
+        userProductName={scope?.userProductName ?? null}
+      />
+
+      {/* Below the matrix: "What it means" insight list + sticky Refine rail */}
+      <div className="report-bottom">
         <div className="min-w-0">
-          <KanoTable
-            tableData={table}
-            isLoading={false}
-            highlightedFeatureIds={highlightedFeatureIds}
-          />
+          {insights.length > 0 ? (
+            <InsightsPanel insights={insights} onInsightHover={setHoveredInsight} />
+          ) : null}
         </div>
-
-        {/* Right: sticky rail — strategic insights above refine chat */}
-        <aside className="overview-rail">
-          {insights.length > 0 && (
-            <div className="panel p-3 overflow-y-auto shrink-0 max-h-[45%]">
-              <InsightsPanel insights={insights} onInsightHover={setHoveredInsight} compact />
-            </div>
-          )}
-          <div className="panel flex-1 overflow-hidden flex flex-col min-h-0">
+        <aside className="report-bottom__rail">
+          <div
+            className="panel overflow-hidden flex flex-col rounded-[13px]"
+            style={{ maxHeight: "calc(100vh - 100px)" }}
+          >
             <RefineChat sessionId={sessionId} queryClient={queryClient} />
           </div>
         </aside>
       </div>
+
+      {/* At-a-glance recap — actionable Steal / Watch / Skip buckets */}
+      <TLDRBanner insights={insights} tableData={table} userProductName={scope?.userProductName ?? null} />
     </div>
   );
 }

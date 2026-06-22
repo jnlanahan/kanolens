@@ -69,6 +69,8 @@ export interface TableJson {
   features: ScopeJson["features"];
   ratings: Record<string, Record<string, string>>;
   justifications: Record<string, Record<string, string>>;
+  /** Per feature → per product: true when the rating is an unverified best-estimate. */
+  estimated?: Record<string, Record<string, boolean>>;
   summary?: string;
 }
 

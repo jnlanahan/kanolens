@@ -1,6 +1,6 @@
 export type AnalysisEvent =
   | { type: "status"; status: "queued" | "researching" | "writing" | "done" | "error"; message?: string }
-  | { type: "row"; feature: { id: string; name: string; description: string; customerBenefit: string; category: string }; ratings: Record<string, string>; justifications?: Record<string, string>; sources: string[] }
+  | { type: "row"; feature: { id: string; name: string; description: string; customerBenefit: string; category: string }; ratings: Record<string, string>; justifications?: Record<string, string>; estimated?: Record<string, boolean>; sources: string[] }
   | { type: "narration"; text: string }
   | { type: "done"; summary: string }
   | { type: "error"; message: string };

@@ -14,35 +14,25 @@ export function StepStrip({ productName, competitorCount, featureCount, updatedA
     year: "numeric",
   });
 
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      <StepCard
-        eyebrow="Product"
-        value={productName ?? "Market scan"}
-        icon={<FileText className="h-3.5 w-3.5" />}
-      />
-      <StepCard
-        eyebrow="Scope"
-        value={`${competitorCount} competitor${competitorCount !== 1 ? "s" : ""} · ${featureCount} benefit${featureCount !== 1 ? "s" : ""}`}
-        icon={<Users className="h-3.5 w-3.5" />}
-      />
-      <StepCard
-        eyebrow="Analyzed"
-        value={date}
-        icon={null}
-      />
-    </div>
-  );
-}
+  const items = [
+    { label: "Product", value: productName ?? "Market scan", icon: <FileText className="h-3.5 w-3.5 text-muted-foreground" /> },
+    {
+      label: "Scope",
+      value: `${competitorCount} competitor${competitorCount !== 1 ? "s" : ""} · ${featureCount} benefit${featureCount !== 1 ? "s" : ""}`,
+      icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />,
+    },
+    { label: "Analyzed", value: date, icon: null },
+  ];
 
-function StepCard({ eyebrow, value, icon }: { eyebrow: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="panel--inset panel rounded-[var(--radius-sm)] px-4 py-3 space-y-1">
-      <p className="eyebrow flex items-center gap-1.5">
-        {icon}
-        {eyebrow}
-      </p>
-      <p className="text-sm font-medium truncate">{value}</p>
+    <div className="panel--inset panel rounded-[11px] px-5 py-3 flex flex-wrap items-center gap-x-7 gap-y-1.5">
+      {items.map((it) => (
+        <div key={it.label} className="flex items-center gap-2 text-sm min-w-0">
+          {it.icon}
+          <span className="eyebrow">{it.label}</span>
+          <span className="font-medium truncate">{it.value}</span>
+        </div>
+      ))}
     </div>
   );
 }

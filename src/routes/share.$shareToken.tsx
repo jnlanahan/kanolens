@@ -101,7 +101,7 @@ function SharedReportContent({
       <TLDRBanner insights={insights} tableData={table} userProductName={scope?.userProductName ?? null} />
 
       {/* Kano table — read-only (no feature selection handler) */}
-      <KanoTable tableData={table} isLoading={false} />
+      <KanoTable tableData={table} isLoading={false} userProductName={scope?.userProductName ?? null} />
 
       {/* Insights */}
       <InsightsPanel insights={insights} onInsightHover={() => {}} />

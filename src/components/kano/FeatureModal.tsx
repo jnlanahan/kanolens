@@ -54,6 +54,7 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
   const ratings = tableData.ratings[feature.id] ?? {};
   const sources = tableData.sources[feature.id] ?? [];
   const justifications = tableData.justifications?.[feature.id] ?? {};
+  const estimatedMap = tableData.estimated?.[feature.id] ?? {};
 
   const positive = Object.values(ratings).filter((r) => r === "Yes" || r === "High").length;
   const total = tableData.products.length;
@@ -97,10 +98,18 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
                     ? "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900"
                     : "bg-muted/50 border";
                 const note = justifications[product];
+                const isEstimate = estimatedMap[product] ?? false;
                 return (
                   <Card key={product} className={`p-3 ${tone}`}>
                     <div className="font-medium text-sm">{product}</div>
-                    <div className="text-xs mt-1 text-muted-foreground">{displayRating(rating)}</div>
+                    <div className="text-xs mt-1 text-muted-foreground">
+                      {displayRating(rating)}
+                      {isEstimate ? (
+                        <span className="ml-1.5 text-[hsl(var(--gold))]" title="Best estimate — not verified by a citable source">
+                          ✦ estimate
+                        </span>
+                      ) : null}
+                    </div>
                     {note ? <div className="text-xs mt-2 text-foreground/80">{note}</div> : null}
                   </Card>
                 );

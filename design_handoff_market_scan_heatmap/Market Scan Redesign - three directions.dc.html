@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,440&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Work Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+</style>
+</helmet>
+
+<div style="width: max-content; min-width: 100%; min-height: 100vh; box-sizing: border-box; padding: 48px; background: #e4ddcd;">
+
+  <div style="margin-bottom: 30px; max-width: 760px;">
+    <div style="font: 600 11px 'Work Sans'; letter-spacing: .18em; text-transform: uppercase; color: #8a7a55;">Kanolens · report page</div>
+    <div style="font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 30px; letter-spacing: -.01em; color: #28221c; margin-top: 6px;">Market-scan report — three redesign directions</div>
+    <div style="font-size: 14px; color: #6c645a; line-height: 1.55; margin-top: 8px;">Same warm editorial system you already have — Newsreader display, Work Sans text, terracotta brand. Each direction attacks the same problems differently: cramped competitor headers, a matrix that's hard to scan, and the tinted, repetitive insight boxes. The one added accent is a muted teal already in your tokens, used only to mean "verified / positive".</div>
+  </div>
+
+  <div style="display: flex; gap: 48px; align-items: flex-start;">
+
+    <!-- ============================================================= -->
+    <!-- DIRECTION A — REFINED EDITORIAL                                -->
+    <!-- ============================================================= -->
+    <section style="flex: none; width: 1180px;" data-screen-label="Direction A">
+      <div style="font: 600 12px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #7a7264; margin-bottom: 11px;">Direction A — Refined editorial</div>
+      <div style="background: #f0ece1; border: 1px solid #d6cdba; border-radius: 4px; box-shadow: 0 2px 10px rgba(40,30,20,.10); overflow: hidden;">
+
+        <!-- topbar -->
+        <div style="height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(244,240,232,.92); border-bottom: 1px solid #e0d8c9;">
+          <div style="display: flex; align-items: center; gap: 9px;">
+            <span style="width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #df9266, #b4502f 56%, #8f3c22); box-shadow: 0 1px 2px rgba(120,60,30,.4), inset 0 0 0 1px rgba(255,245,230,.18);"></span>
+            <span style="font-family: 'Newsreader', serif; font-weight: 600; font-size: 17px; color: #28221c;">kanolens</span>
+            <span style="font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #9a9286; border-left: 1px solid #d8cfbd; padding-left: 10px; margin-left: 2px;">Kano model</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px; font-size: 12.5px; color: #6c645a;">
+            <span>Dashboard</span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 4px 11px 4px 5px; border: 1px solid #e0d8c9; border-radius: 99px; background: #fcfaf5;">
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: #b4502f; color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700;">J</span>
+              <span style="font-size: 11px; color: #857d70;">1 run</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- header -->
+        <div style="padding: 24px 30px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+            <div style="min-width: 0;">
+              <div style="font: 600 10.5px 'Work Sans'; letter-spacing: .16em; text-transform: uppercase; color: #8a7a55;">Analysis complete</div>
+              <h1 style="font-family: 'Newsreader', serif; font-weight: 500; font-size: 30px; letter-spacing: -.01em; color: #28221c; margin: 5px 0 0;">Market scan</h1>
+              <p style="font-size: 13.5px; color: #6c645a; line-height: 1.55; margin: 9px 0 0; max-width: 640px;">Onebrief leads in AI-assisted planning speed and live COP integration but can't verify core operational features like COA development. Thunderforge shows promise in AI-powered wargaming and coalition interoperability.</p>
+            </div>
+            <button style="display: inline-flex; align-items: center; gap: 7px; flex: none; font: 500 13px 'Work Sans'; color: #5e564c; background: #fcfaf5; border: 1px solid #d8cfbd; border-radius: 9px; padding: 8px 15px; cursor: pointer;"><span style="font-size: 13px;">⇪</span>Share</button>
+          </div>
+          <!-- scope strip -->
+          <div style="margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 26px; background: #f5f1e8; border: 1px solid #e3dbcb; border-radius: 10px; padding: 12px 18px;">
+            <div style="display: flex; align-items: baseline; gap: 8px;"><span style="font: 600 10px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #9a9079;">Product</span><span style="font-size: 13.5px; font-weight: 500; color: #3a342c;">Market scan</span></div>
+            <div style="width: 1px; height: 16px; background: #ddd4c2;"></div>
+            <div style="display: flex; align-items: baseline; gap: 8px;"><span style="font: 600 10px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #9a9079;">Scope</span><span style="font-size: 13.5px; font-weight: 500; color: #3a342c;">6 competitors · 12 benefits</span></div>
+            <div style="width: 1px; height: 16px; background: #ddd4c2;"></div>
+            <div style="display: flex; align-items: baseline; gap: 8px;"><span style="font: 600 10px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #9a9079;">Analyzed</span><span style="font-size: 13.5px; font-weight: 500; color: #3a342c;">Jun 22, 2026</span></div>
+          </div>
+        </div>
+
+        <!-- matrix -->
+        <div style="padding: 22px 30px 28px;">
+          <div style="background: #fcfaf5; border: 1px solid #e3dbcb; border-radius: 12px; overflow: hidden;">
+            <!-- header row -->
+            <div style="display: grid; grid-template-columns: 280px repeat(6, minmax(0,1fr)); border-bottom: 1px solid #e3dbcb; background: #f7f2e8;">
+              <div style="padding: 14px 14px 13px 18px; font: 600 10.5px 'Work Sans'; letter-spacing: .1em; text-transform: uppercase; color: #857d70; align-self: end;">Feature / Benefit</div>
+              <div style="padding: 14px 6px 11px; text-align: center; align-self: end;"><div style="font: 600 11px 'Work Sans'; color: #28221c; line-height: 1.2;">Onebrief</div><div style="margin-top: 4px; display: inline-block; font: 700 8.5px 'Work Sans'; letter-spacing: .1em; color: #b4502f; border-bottom: 2px solid #b4502f; padding-bottom: 1px;">YOU</div></div>
+              <div style="padding: 14px 6px 11px; text-align: center; align-self: end; font: 500 11px 'Work Sans'; color: #6c645a; line-height: 1.25;">Scale AI<br>Thunderforge</div>
+              <div style="padding: 14px 6px 11px; text-align: center; align-self: end; font: 500 11px 'Work Sans'; color: #6c645a; line-height: 1.25;">Systematic<br>SitaWare</div>
+              <div style="padding: 14px 6px 11px; text-align: center; align-self: end; font: 500 11px 'Work Sans'; color: #6c645a; line-height: 1.25;">Palantir<br>Maven</div>
+              <div style="padding: 14px 6px 11px; text-align: center; align-self: end; font: 500 11px 'Work Sans'; color: #6c645a; line-height: 1.25;">Anduril<br>Lattice C2</div>
+              <div style="padding: 14px 6px 11px; text-align: center; align-self: end; font: 500 11px 'Work Sans'; color: #6c645a; line-height: 1.25;">Command AI<br>Prevail</div>
+            </div>
+            <!-- body -->
+            <sc-for list="{{ catsA }}" as="cat" hint-placeholder-count="3">
+              <div style="display: flex; align-items: baseline; gap: 10px; padding: 16px 18px 8px; border-bottom: 1px solid #ece6d9;">
+                <span style="width: 9px; height: 9px; border-radius: 2px; background: {{ cat.dot }}; flex: none; align-self: center;"></span>
+                <span style="font: 600 11px 'Work Sans'; letter-spacing: .1em; text-transform: uppercase; color: #4a4136;">{{ cat.label }}</span>
+                <span style="margin-left: auto; font-family: 'Newsreader', serif; font-style: italic; font-size: 12.5px; color: #948b7d;">{{ cat.def }}</span>
+              </div>
+              <sc-for list="{{ cat.rows }}" as="row" hint-placeholder-count="3">
+                <div style="display: grid; grid-template-columns: 280px repeat(6, minmax(0,1fr)); border-top: 1px solid #f0ebdf; align-items: stretch;">
+                  <div style="padding: 13px 14px 13px 18px;">
+                    <div style="font-family: 'Newsreader', serif; font-size: 15.5px; color: #28221c; line-height: 1.25;">{{ row.name }}</div>
+                    <div style="font-size: 11.5px; color: #6c645a; margin-top: 4px; line-height: 1.45;">{{ row.benefit }}</div>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: center; padding: 10px 6px; background: #f7efe4;"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: {{ row.c0.color }}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.c0.dot }}; flex: none;"></span>{{ row.c0.label }}{{ row.c0.seal }}</span></div>
+                  <div style="display: flex; align-items: center; justify-content: center; padding: 10px 6px;"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: {{ row.c1.color }}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.c1.dot }}; flex: none;"></span>{{ row.c1.label }}{{ row.c1.seal }}</span></div>
+                  <div style="display: flex; align-items: center; justify-content: center; padding: 10px 6px;"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: {{ row.c2.color }}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.c2.dot }}; flex: none;"></span>{{ row.c2.label }}{{ row.c2.seal }}</span></div>
+                  <div style="display: flex; align-items: center; justify-content: center; padding: 10px 6px;"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: {{ row.c3.color }}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.c3.dot }}; flex: none;"></span>{{ row.c3.label }}{{ row.c3.seal }}</span></div>
+                  <div style="display: flex; align-items: center; justify-content: center; padding: 10px 6px;"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: {{ row.c4.color }}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.c4.dot }}; flex: none;"></span>{{ row.c4.label }}{{ row.c4.seal }}</span></div>
+                  <div style="display: flex; align-items: center; justify-content: center; padding: 10px 6px;"><span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: {{ row.c5.color }}; white-space: nowrap;"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{ row.c5.dot }}; flex: none;"></span>{{ row.c5.label }}{{ row.c5.seal }}</span></div>
+                </div>
+              </sc-for>
+            </sc-for>
+            <!-- legend -->
+            <div style="display: flex; flex-wrap: wrap; gap: 18px; padding: 12px 18px; border-top: 1px solid #e3dbcb; background: #f7f2e8; font-size: 11px; color: #857d70;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #3a8474;"></span>Yes · verified ✓</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #c4923f;"></span>Partial</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #d3cabb;"></span>Unverified — no basis found</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: #bd5a43;"></span>No</span>
+            </div>
+          </div>
+
+          <!-- insights as ruled editorial list -->
+          <div style="margin-top: 26px;">
+            <div style="font: 600 10.5px 'Work Sans'; letter-spacing: .16em; text-transform: uppercase; color: #8a7a55; margin-bottom: 4px;">Strategic insights</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 38px;">
+              <sc-for list="{{ insights }}" as="ins" hint-placeholder-count="5">
+                <div style="display: flex; gap: 13px; padding: 14px 0; border-top: 1px solid #e3dbcb;">
+                  <span style="font-size: 13px; color: {{ ins.color }}; line-height: 1.4; flex: none; width: 14px; text-align: center;">{{ ins.mark }}</span>
+                  <div style="min-width: 0;">
+                    <div style="font: 700 9.5px 'Work Sans'; letter-spacing: .13em; text-transform: uppercase; color: {{ ins.color }};">{{ ins.label }}</div>
+                    <div style="font-family: 'Newsreader', serif; font-size: 15px; color: #28221c; line-height: 1.3; margin-top: 3px;">{{ ins.feature }}</div>
+                    <div style="font-size: 12.5px; color: #6c645a; line-height: 1.45; margin-top: 3px;">{{ ins.note }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- DIRECTION B — SCAN HEATMAP                                     -->
+    <!-- ============================================================= -->
+    <section style="flex: none; width: 1180px;" data-screen-label="Direction B">
+      <div style="font: 600 12px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #7a7264; margin-bottom: 11px;">Direction B — Scan heatmap</div>
+      <div style="background: #f0ece1; border: 1px solid #d6cdba; border-radius: 4px; box-shadow: 0 2px 10px rgba(40,30,20,.10); overflow: hidden;">
+
+        <!-- topbar -->
+        <div style="height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(244,240,232,.92); border-bottom: 1px solid #e0d8c9;">
+          <div style="display: flex; align-items: center; gap: 9px;">
+            <span style="width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #df9266, #b4502f 56%, #8f3c22); box-shadow: 0 1px 2px rgba(120,60,30,.4), inset 0 0 0 1px rgba(255,245,230,.18);"></span>
+            <span style="font-family: 'Newsreader', serif; font-weight: 600; font-size: 17px; color: #28221c;">kanolens</span>
+            <span style="font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #9a9286; border-left: 1px solid #d8cfbd; padding-left: 10px; margin-left: 2px;">Kano model</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px; font-size: 12.5px; color: #6c645a;">
+            <span>Dashboard</span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 4px 11px 4px 5px; border: 1px solid #e0d8c9; border-radius: 99px; background: #fcfaf5;">
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: #b4502f; color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700;">J</span>
+              <span style="font-size: 11px; color: #857d70;">1 run</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- header -->
+        <div style="padding: 24px 30px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+            <div style="min-width: 0;">
+              <div style="font: 600 10.5px 'Work Sans'; letter-spacing: .16em; text-transform: uppercase; color: #8a7a55;">Analysis complete</div>
+              <h1 style="font-family: 'Newsreader', serif; font-weight: 500; font-size: 30px; letter-spacing: -.01em; color: #28221c; margin: 5px 0 0;">Market scan</h1>
+              <p style="font-size: 13.5px; color: #6c645a; line-height: 1.55; margin: 9px 0 0; max-width: 640px;">Onebrief leads in AI-assisted planning speed and live COP integration but can't verify core operational features like COA development. Thunderforge shows promise in AI-powered wargaming and coalition interoperability.</p>
+            </div>
+            <button style="display: inline-flex; align-items: center; gap: 7px; flex: none; font: 500 13px 'Work Sans'; color: #5e564c; background: #fcfaf5; border: 1px solid #d8cfbd; border-radius: 9px; padding: 8px 15px; cursor: pointer;"><span style="font-size: 13px;">⇪</span>Share</button>
+          </div>
+          <!-- signal strip (insights folded into counts) -->
+          <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+            <div style="background: #f5f1e8; border: 1px solid #e3dbcb; border-radius: 10px; padding: 12px 15px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Newsreader', serif; font-size: 26px; font-weight: 500; color: #9a6a26;">2</span><span style="font: 600 10px 'Work Sans'; letter-spacing: .12em; text-transform: uppercase; color: #9a6a26;">Gaps</span></div><div style="font-size: 11.5px; color: #857d70; margin-top: 3px; line-height: 1.35;">Must-haves you can't verify</div></div>
+            <div style="background: #f5f1e8; border: 1px solid #e3dbcb; border-radius: 10px; padding: 12px 15px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Newsreader', serif; font-size: 26px; font-weight: 500; color: #a64a36;">1</span><span style="font: 600 10px 'Work Sans'; letter-spacing: .12em; text-transform: uppercase; color: #a64a36;">Risk</span></div><div style="font-size: 11.5px; color: #857d70; margin-top: 3px; line-height: 1.35;">Rival confirms; you don't</div></div>
+            <div style="background: #f5f1e8; border: 1px solid #e3dbcb; border-radius: 10px; padding: 12px 15px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Newsreader', serif; font-size: 26px; font-weight: 500; color: #b4502f;">1</span><span style="font: 600 10px 'Work Sans'; letter-spacing: .12em; text-transform: uppercase; color: #b4502f;">Opening</span></div><div style="font-size: 11.5px; color: #857d70; margin-top: 3px; line-height: 1.35;">White-space to differentiate</div></div>
+            <div style="background: #f5f1e8; border: 1px solid #e3dbcb; border-radius: 10px; padding: 12px 15px;"><div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'Newsreader', serif; font-size: 26px; font-weight: 500; color: #2c6a5d;">1</span><span style="font: 600 10px 'Work Sans'; letter-spacing: .12em; text-transform: uppercase; color: #2c6a5d;">Strength</span></div><div style="font-size: 11.5px; color: #857d70; margin-top: 3px; line-height: 1.35;">Confirmed; rivals unproven</div></div>
+          </div>
+        </div>
+
+        <!-- heatmap -->
+        <div style="padding: 22px 30px 28px;">
+          <div style="background: #fcfaf5; border: 1px solid #e3dbcb; border-radius: 12px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 268px repeat(6, minmax(0,1fr)); border-bottom: 1px solid #e3dbcb; background: #f7f2e8;">
+              <div style="padding: 13px 14px 12px 18px; font: 600 10.5px 'Work Sans'; letter-spacing: .1em; text-transform: uppercase; color: #857d70; align-self: end;">Feature / Benefit</div>
+              <div style="padding: 12px 4px 10px; text-align: center; align-self: end; background: rgba(180,80,47,.07); border-bottom: 2px solid #b4502f;"><div style="font: 700 11px 'Work Sans'; color: #b4502f; line-height: 1.2;">Onebrief</div><div style="font: 600 8.5px 'Work Sans'; letter-spacing: .1em; color: #b4502f; margin-top: 2px;">YOU</div></div>
+              <div style="padding: 12px 4px 10px; text-align: center; align-self: end; font: 500 10.5px 'Work Sans'; color: #6c645a; line-height: 1.25;">Thunder-<br>forge</div>
+              <div style="padding: 12px 4px 10px; text-align: center; align-self: end; font: 500 10.5px 'Work Sans'; color: #6c645a; line-height: 1.25;">SitaWare<br>HQ</div>
+              <div style="padding: 12px 4px 10px; text-align: center; align-self: end; font: 500 10.5px 'Work Sans'; color: #6c645a; line-height: 1.25;">Maven</div>
+              <div style="padding: 12px 4px 10px; text-align: center; align-self: end; font: 500 10.5px 'Work Sans'; color: #6c645a; line-height: 1.25;">Lattice<br>C2</div>
+              <div style="padding: 12px 4px 10px; text-align: center; align-self: end; font: 500 10.5px 'Work Sans'; color: #6c645a; line-height: 1.25;">Prevail</div>
+            </div>
+            <sc-for list="{{ catsB }}" as="cat" hint-placeholder-count="3">
+              <div style="display: flex; align-items: baseline; gap: 10px; padding: 15px 18px 7px; border-bottom: 1px solid #ece6d9; background: #faf6ec;">
+                <span style="width: 9px; height: 9px; border-radius: 2px; background: {{ cat.dot }}; flex: none; align-self: center;"></span>
+                <span style="font: 600 11px 'Work Sans'; letter-spacing: .1em; text-transform: uppercase; color: #4a4136;">{{ cat.label }}</span>
+              </div>
+              <sc-for list="{{ cat.rows }}" as="row" hint-placeholder-count="3">
+                <div style="display: grid; grid-template-columns: 268px repeat(6, minmax(0,1fr)); border-top: 1px solid #f0ebdf; align-items: stretch;">
+                  <div style="padding: 11px 14px 11px 18px;">
+                    <div style="font-family: 'Newsreader', serif; font-size: 14.5px; color: #28221c; line-height: 1.25;">{{ row.name }}</div>
+                  </div>
+                  <div style="padding: 6px 5px; display: flex; align-items: center; justify-content: center; background: rgba(180,80,47,.05);"><span style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; width: 100%; font-size: 11.5px; font-weight: 600; color: {{ row.c0.color }}; background: {{ row.c0.bg }}; padding: 6px 6px; border-radius: 7px; box-shadow: 0 0 0 1.5px rgba(180,80,47,.32);"><span>{{ row.c0.glyph }}</span>{{ row.c0.label }}</span></div>
+                  <div style="padding: 6px 5px; display: flex; align-items: center; justify-content: center;"><span style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-size: 11.5px; font-weight: 500; color: {{ row.c1.color }}; background: {{ row.c1.bg }}; padding: 6px 6px; border-radius: 7px;"><span>{{ row.c1.glyph }}</span>{{ row.c1.label }}</span></div>
+                  <div style="padding: 6px 5px; display: flex; align-items: center; justify-content: center;"><span style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-size: 11.5px; font-weight: 500; color: {{ row.c2.color }}; background: {{ row.c2.bg }}; padding: 6px 6px; border-radius: 7px;"><span>{{ row.c2.glyph }}</span>{{ row.c2.label }}</span></div>
+                  <div style="padding: 6px 5px; display: flex; align-items: center; justify-content: center;"><span style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-size: 11.5px; font-weight: 500; color: {{ row.c3.color }}; background: {{ row.c3.bg }}; padding: 6px 6px; border-radius: 7px;"><span>{{ row.c3.glyph }}</span>{{ row.c3.label }}</span></div>
+                  <div style="padding: 6px 5px; display: flex; align-items: center; justify-content: center;"><span style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-size: 11.5px; font-weight: 500; color: {{ row.c4.color }}; background: {{ row.c4.bg }}; padding: 6px 6px; border-radius: 7px;"><span>{{ row.c4.glyph }}</span>{{ row.c4.label }}</span></div>
+                  <div style="padding: 6px 5px; display: flex; align-items: center; justify-content: center;"><span style="display: inline-flex; align-items: center; justify-content: center; gap: 5px; width: 100%; font-size: 11.5px; font-weight: 500; color: {{ row.c5.color }}; background: {{ row.c5.bg }}; padding: 6px 6px; border-radius: 7px;"><span>{{ row.c5.glyph }}</span>{{ row.c5.label }}</span></div>
+                </div>
+              </sc-for>
+            </sc-for>
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; padding: 12px 18px; border-top: 1px solid #e3dbcb; background: #f7f2e8; font-size: 11px; color: #857d70;">
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 16px; height: 12px; border-radius: 3px; background: #e4ede9;"></span>Yes ✓</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 16px; height: 12px; border-radius: 3px; background: #f4ebd6;"></span>Partial ◐</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 16px; height: 12px; border-radius: 3px; background: #f1ede4;"></span>Unverified –</span>
+              <span style="display: inline-flex; align-items: center; gap: 6px;"><span style="width: 16px; height: 12px; border-radius: 3px; background: #f4ded5;"></span>No ✕</span>
+              <span style="margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: #b4502f;"><span style="width: 16px; height: 12px; border-radius: 3px; background: rgba(180,80,47,.07); box-shadow: 0 0 0 1.5px rgba(180,80,47,.32);"></span>Your product</span>
+            </div>
+          </div>
+
+          <!-- compact insight list -->
+          <div style="margin-top: 22px;">
+            <div style="font: 600 10.5px 'Work Sans'; letter-spacing: .16em; text-transform: uppercase; color: #8a7a55; margin-bottom: 8px;">What it means</div>
+            <sc-for list="{{ insights }}" as="ins" hint-placeholder-count="5">
+              <div style="display: flex; align-items: center; gap: 13px; padding: 11px 0; border-top: 1px solid #e3dbcb;">
+                <span style="font: 700 9.5px 'Work Sans'; letter-spacing: .1em; text-transform: uppercase; color: {{ ins.color }}; flex: none; width: 78px;">{{ ins.label }}</span>
+                <span style="font-family: 'Newsreader', serif; font-size: 14.5px; color: #28221c; flex: none; width: 280px;">{{ ins.feature }}</span>
+                <span style="font-size: 12.5px; color: #6c645a; line-height: 1.4;">{{ ins.note }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- DIRECTION C — BENEFIT CARDS BY STRATEGIC STANCE                -->
+    <!-- ============================================================= -->
+    <section style="flex: none; width: 1180px;" data-screen-label="Direction C">
+      <div style="font: 600 12px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #7a7264; margin-bottom: 11px;">Direction C — Benefit cards, by stance</div>
+      <div style="background: #f0ece1; border: 1px solid #d6cdba; border-radius: 4px; box-shadow: 0 2px 10px rgba(40,30,20,.10); overflow: hidden;">
+
+        <!-- topbar -->
+        <div style="height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(244,240,232,.92); border-bottom: 1px solid #e0d8c9;">
+          <div style="display: flex; align-items: center; gap: 9px;">
+            <span style="width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #df9266, #b4502f 56%, #8f3c22); box-shadow: 0 1px 2px rgba(120,60,30,.4), inset 0 0 0 1px rgba(255,245,230,.18);"></span>
+            <span style="font-family: 'Newsreader', serif; font-weight: 600; font-size: 17px; color: #28221c;">kanolens</span>
+            <span style="font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: #9a9286; border-left: 1px solid #d8cfbd; padding-left: 10px; margin-left: 2px;">Kano model</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px; font-size: 12.5px; color: #6c645a;">
+            <span>Dashboard</span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 4px 11px 4px 5px; border: 1px solid #e0d8c9; border-radius: 99px; background: #fcfaf5;">
+              <span style="width: 22px; height: 22px; border-radius: 50%; background: #b4502f; color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700;">J</span>
+              <span style="font-size: 11px; color: #857d70;">1 run</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- header -->
+        <div style="padding: 24px 30px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+            <div style="min-width: 0;">
+              <div style="font: 600 10.5px 'Work Sans'; letter-spacing: .16em; text-transform: uppercase; color: #8a7a55;">Analysis complete</div>
+              <h1 style="font-family: 'Newsreader', serif; font-weight: 500; font-size: 30px; letter-spacing: -.01em; color: #28221c; margin: 5px 0 0;">Market scan</h1>
+              <p style="font-size: 13.5px; color: #6c645a; line-height: 1.55; margin: 9px 0 0; max-width: 640px;">Onebrief leads in AI-assisted planning speed and live COP integration but can't verify core operational features like COA development. Thunderforge shows promise in AI-powered wargaming and coalition interoperability.</p>
+            </div>
+            <button style="display: inline-flex; align-items: center; gap: 7px; flex: none; font: 500 13px 'Work Sans'; color: #5e564c; background: #fcfaf5; border: 1px solid #d8cfbd; border-radius: 9px; padding: 8px 15px; cursor: pointer;"><span style="font-size: 13px;">⇪</span>Share</button>
+          </div>
+        </div>
+
+        <!-- body: cards + rail -->
+        <div style="padding: 22px 30px 28px; display: grid; grid-template-columns: minmax(0,1fr) 330px; gap: 26px; align-items: start;">
+
+          <!-- left: stance groups -->
+          <div style="display: flex; flex-direction: column; gap: 22px; min-width: 0;">
+            <sc-for list="{{ groupsC }}" as="grp" hint-placeholder-count="3">
+              <div>
+                <div style="display: flex; align-items: center; gap: 11px; margin-bottom: 12px;">
+                  <span style="width: 4px; height: 22px; border-radius: 2px; background: {{ grp.accent }}; flex: none;"></span>
+                  <div>
+                    <div style="font-family: 'Newsreader', serif; font-size: 18px; color: #28221c; line-height: 1.15;">{{ grp.label }}</div>
+                    <div style="font-size: 12px; color: #857d70; margin-top: 1px;">{{ grp.sub }}</div>
+                  </div>
+                  <span style="margin-left: auto; font: 600 11px 'Work Sans'; color: {{ grp.accent }}; background: {{ grp.accentSoft }}; border-radius: 99px; padding: 3px 11px;">{{ grp.count }}</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <sc-for list="{{ grp.feats }}" as="feat" hint-placeholder-count="2">
+                    <div style="background: #fcfaf5; border: 1px solid #e3dbcb; border-radius: 12px; padding: 15px 18px;">
+                      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;">
+                        <div style="min-width: 0;">
+                          <div style="font-family: 'Newsreader', serif; font-size: 16px; color: #28221c; line-height: 1.25;">{{ feat.name }}</div>
+                          <div style="font-size: 12px; color: #6c645a; line-height: 1.45; margin-top: 4px;">{{ feat.benefit }}</div>
+                        </div>
+                        <span style="flex: none; display: inline-flex; align-items: center; gap: 5px; font: 600 11px 'Work Sans'; color: {{ feat.youColor }}; background: {{ feat.youBg }}; border-radius: 7px; padding: 5px 10px; white-space: nowrap;">{{ feat.youGlyph }} {{ feat.youLabel }}</span>
+                      </div>
+                      <div style="display: flex; align-items: flex-end; gap: 16px; margin-top: 14px; padding-top: 13px; border-top: 1px solid #f0ebdf;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><span style="width: {{ feat.p0.size }}; height: {{ feat.p0.size }}; border-radius: 50%; background: {{ feat.p0.color }}; flex: none;"></span><span style="font-size: 10px; font-weight: {{ feat.p0.weight }}; color: {{ feat.p0.labelColor }}; white-space: nowrap;">{{ feat.p0.short }}</span></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><span style="width: {{ feat.p1.size }}; height: {{ feat.p1.size }}; border-radius: 50%; background: {{ feat.p1.color }}; flex: none;"></span><span style="font-size: 10px; font-weight: {{ feat.p1.weight }}; color: {{ feat.p1.labelColor }}; white-space: nowrap;">{{ feat.p1.short }}</span></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><span style="width: {{ feat.p2.size }}; height: {{ feat.p2.size }}; border-radius: 50%; background: {{ feat.p2.color }}; flex: none;"></span><span style="font-size: 10px; font-weight: {{ feat.p2.weight }}; color: {{ feat.p2.labelColor }}; white-space: nowrap;">{{ feat.p2.short }}</span></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><span style="width: {{ feat.p3.size }}; height: {{ feat.p3.size }}; border-radius: 50%; background: {{ feat.p3.color }}; flex: none;"></span><span style="font-size: 10px; font-weight: {{ feat.p3.weight }}; color: {{ feat.p3.labelColor }}; white-space: nowrap;">{{ feat.p3.short }}</span></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><span style="width: {{ feat.p4.size }}; height: {{ feat.p4.size }}; border-radius: 50%; background: {{ feat.p4.color }}; flex: none;"></span><span style="font-size: 10px; font-weight: {{ feat.p4.weight }}; color: {{ feat.p4.labelColor }}; white-space: nowrap;">{{ feat.p4.short }}</span></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;"><span style="width: {{ feat.p5.size }}; height: {{ feat.p5.size }}; border-radius: 50%; background: {{ feat.p5.color }}; flex: none;"></span><span style="font-size: 10px; font-weight: {{ feat.p5.weight }}; color: {{ feat.p5.labelColor }}; white-space: nowrap;">{{ feat.p5.short }}</span></div>
+                        <span style="margin-left: auto; align-self: center; font-size: 10.5px; color: #a39a8c;">field coverage</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- right rail: scope + insights -->
+          <aside style="display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px;">
+            <div style="background: #f5f1e8; border: 1px solid #e3dbcb; border-radius: 12px; padding: 15px 17px;">
+              <div style="display: flex; flex-direction: column; gap: 11px;">
+                <div style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font: 600 10px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #9a9079;">Scope</span><span style="font-size: 13px; font-weight: 500; color: #3a342c;">6 competitors · 12 benefits</span></div>
+                <div style="height: 1px; background: #e3dbcb;"></div>
+                <div style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font: 600 10px 'Work Sans'; letter-spacing: .14em; text-transform: uppercase; color: #9a9079;">Analyzed</span><span style="font-size: 13px; font-weight: 500; color: #3a342c;">Jun 22, 2026</span></div>
+              </div>
+            </div>
+            <div style="background: #fcfaf5; border: 1px solid #e3dbcb; border-radius: 12px; padding: 16px 17px;">
+              <div style="font: 600 10.5px 'Work Sans'; letter-spacing: .16em; text-transform: uppercase; color: #8a7a55; margin-bottom: 4px;">Strategic insights</div>
+              <sc-for list="{{ insights }}" as="ins" hint-placeholder-count="5">
+                <div style="display: flex; gap: 11px; padding: 12px 0; border-top: 1px solid #ece6d9;">
+                  <span style="font-size: 12px; color: {{ ins.color }}; line-height: 1.4; flex: none; width: 12px; text-align: center;">{{ ins.mark }}</span>
+                  <div style="min-width: 0;">
+                    <div style="font: 700 9px 'Work Sans'; letter-spacing: .13em; text-transform: uppercase; color: {{ ins.color }};">{{ ins.label }}</div>
+                    <div style="font-family: 'Newsreader', serif; font-size: 14px; color: #28221c; line-height: 1.3; margin-top: 2px;">{{ ins.feature }}</div>
+                    <div style="font-size: 12px; color: #6c645a; line-height: 1.45; margin-top: 2px;">{{ ins.note }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const products = [
+      { short: "Onebrief", you: true },
+      { short: "Thunderforge" },
+      { short: "SitaWare" },
+      { short: "Maven" },
+      { short: "Lattice" },
+      { short: "Prevail" },
+    ];
+
+    const TONE = {
+      pos:  { color: "#2c6a5d", soft: "#e4ede9", dot: "#3a8474" },
+      mid:  { color: "#9a6a26", soft: "#f4ebd6", dot: "#c4923f" },
+      none: { color: "#a39a8c", soft: "#f1ede4", dot: "#d3cabb" },
+      neg:  { color: "#a64a36", soft: "#f4ded5", dot: "#bd5a43" },
+    };
+    const RATE = {
+      Y: { label: "Yes", glyph: "✓", tone: "pos", verified: true },
+      P: { label: "Partial", glyph: "◐", tone: "mid" },
+      U: { label: "Unverified", glyph: "–", tone: "none" },
+      N: { label: "No", glyph: "✕", tone: "neg" },
+    };
+
+    const feats = [
+      { id: "coa", cat: "must", name: "COA development and comparison", benefit: "Rigorous, defensible courses of action produced faster with less coordination overhead.", r: ["U", "Y", "P", "U", "P", "U"] },
+      { id: "collab", cat: "must", name: "Real-time collaboration across echelons", benefit: "Eliminates the email-and-brief cycle that delays synchronization between headquarters.", r: ["U", "U", "U", "U", "U", "U"] },
+      { id: "class", cat: "must", name: "Operates on classified networks (SIPR / JWICS)", benefit: "Work sensitive and classified material in-tool, with no transfer to separate systems.", r: ["Y", "Y", "P", "Y", "U", "U"] },
+      { id: "cop", cat: "must", name: "Live common operational picture in planning", benefit: "Battlefield geometry and unit positions live in the same workspace as the plan.", r: ["Y", "U", "U", "U", "P", "U"] },
+      { id: "sync", cat: "perf", name: "Multi-echelon plan synchronization", benefit: "Higher and lower headquarters plans stay aligned automatically.", r: ["Y", "P", "Y", "P", "U", "P"] },
+      { id: "coal", cat: "perf", name: "Coalition / multinational interoperability", benefit: "Plan alongside allied partners on shared data standards.", r: ["P", "U", "Y", "U", "U", "Y"] },
+      { id: "war", cat: "delight", name: "AI-powered wargaming", benefit: "Stress-test plans against adversary courses of action before execution.", r: ["N", "Y", "U", "P", "U", "U"] },
+      { id: "nlq", cat: "delight", name: "Natural-language plan querying", benefit: "Ask plans questions in plain language and get sourced answers.", r: ["P", "Y", "U", "U", "U", "N"] },
+    ];
+
+    const cellA = (code) => {
+      const rt = RATE[code], t = TONE[rt.tone];
+      return { label: rt.label, color: t.color, dot: t.dot, seal: rt.verified ? "  ✓" : "" };
+    };
+    const cellB = (code) => {
+      const rt = RATE[code], t = TONE[rt.tone];
+      return { label: rt.label, glyph: rt.glyph, color: t.color, bg: t.soft };
+    };
+    const spread = (arr) => ({ c0: arr[0], c1: arr[1], c2: arr[2], c3: arr[3], c4: arr[4], c5: arr[5] });
+
+    const catMeta = {
+      must:    { label: "Must-have features", def: "Essential — absence causes dissatisfaction; presence is merely expected.", dot: "#5a4f41" },
+      perf:    { label: "Performance features", def: "More is better — satisfaction scales with how well it performs.", dot: "#2c6a5d" },
+      delight: { label: "Delighters", def: "Unexpected — presence delights; absence is never missed.", dot: "#b07a2e" },
+    };
+    const catOrder = ["must", "perf", "delight"];
+
+    const buildCats = (cellFn) => catOrder.map((k) => ({
+      ...catMeta[k],
+      rows: feats.filter((f) => f.cat === k).map((f) => ({
+        name: f.name, benefit: f.benefit, ...spread(f.r.map(cellFn)),
+      })),
+    }));
+
+    const catsA = buildCats(cellA);
+    const catsB = buildCats(cellB);
+
+    // Direction C — group by Onebrief's stance
+    const stanceOf = (code) => (code === "Y" ? "hold" : code === "P" ? "contest" : "gap");
+    const stanceMeta = {
+      hold:    { label: "Where you hold the line", sub: "Confirmed for Onebrief — defend and message these.", accent: "#2c6a5d", accentSoft: "#e4ede9" },
+      contest: { label: "Contested ground", sub: "Partial or unproven — winnable with focus.", accent: "#9a6a26", accentSoft: "#f4ebd6" },
+      gap:     { label: "Gaps to close", sub: "Unverified or absent while the field advances.", accent: "#a64a36", accentSoft: "#f4ded5" },
+    };
+    const stanceOrder = ["hold", "contest", "gap"];
+
+    const groupsC = stanceOrder.map((s) => {
+      const list = feats.filter((f) => stanceOf(f.r[0]) === s);
+      return {
+        ...stanceMeta[s],
+        count: list.length,
+        feats: list.map((f) => {
+          const you = RATE[f.r[0]], yt = TONE[you.tone];
+          const pips = f.r.map((code, i) => {
+            const t = TONE[RATE[code].tone];
+            return {
+              short: products[i].short,
+              color: t.dot,
+              size: i === 0 ? "18px" : "12px",
+              weight: i === 0 ? "700" : "500",
+              labelColor: i === 0 ? "#b4502f" : "#a39a8c",
+            };
+          });
+          return {
+            name: f.name, benefit: f.benefit,
+            youLabel: you.label, youGlyph: you.glyph, youColor: yt.color, youBg: yt.soft,
+            ...{ p0: pips[0], p1: pips[1], p2: pips[2], p3: pips[3], p4: pips[4], p5: pips[5] },
+          };
+        }),
+      };
+    }).filter((g) => g.feats.length > 0);
+
+    const insMeta = {
+      gap:         { label: "Gap", color: "#9a6a26", mark: "△" },
+      risk:        { label: "Risk", color: "#a64a36", mark: "▲" },
+      opportunity: { label: "Opportunity", color: "#b4502f", mark: "◆" },
+      strength:    { label: "Strength", color: "#2c6a5d", mark: "✦" },
+    };
+    const insightsRaw = [
+      { type: "gap", feature: "COA development and comparison", note: "You can't verify it — Thunderforge already confirms it. Baseline gap." },
+      { type: "gap", feature: "Real-time collaboration across echelons", note: "Unverified field-wide; first to prove it owns the baseline." },
+      { type: "risk", feature: "AI-powered wargaming", note: "Thunderforge confirmed it; Onebrief shows No. Close it or cede the edge." },
+      { type: "opportunity", feature: "Coalition interoperability", note: "Only SitaWare and Prevail confirm it — open lane to differentiate." },
+      { type: "strength", feature: "Live common operational picture", note: "Confirmed in-planning while rivals stay unproven. Lead with it." },
+    ];
+    const insights = insightsRaw.map((x) => ({ ...insMeta[x.type], feature: x.feature, note: x.note }));
+
+    return { catsA, catsB, groupsC, insights };
+  }
+}
+</script>
+</body>
+</html>
