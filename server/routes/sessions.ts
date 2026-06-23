@@ -21,6 +21,7 @@ sessionRoutes.get("/", async (c) => {
       id: schema.sessions.id,
       title: schema.sessions.title,
       status: schema.sessions.status,
+      parentSessionId: schema.sessions.parentSessionId,
       createdAt: schema.sessions.createdAt,
       updatedAt: schema.sessions.updatedAt,
     })
@@ -78,6 +79,47 @@ sessionRoutes.get("/:id", async (c) => {
     .where(eq(schema.analyses.sessionId, id))
     .limit(1);
   return c.json({ session, analysis: analysisRow[0] ?? null });
+});
+
+// Re-run an existing analysis: clone its scope into a fresh session linked to the
+// original (parentSessionId), so the new run can be diffed against it. The new run
+// only spends a credit when the user actually starts it (existing guardRunStart flow).
+sessionRoutes.post("/:id/re-run", async (c) => {
+  const user = await requireUser(c);
+  if (!user) return c.json({ error: "unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  if (!id) return c.json({ error: "missing_id" }, 400);
+  const db = getDb();
+
+  const [original] = await db
+    .select()
+    .from(schema.sessions)
+    .where(and(eq(schema.sessions.id, id), eq(schema.sessions.userId, user.id)))
+    .limit(1);
+  if (!original) return c.json({ error: "not_found" }, 404);
+
+  const [analysis] = await db
+    .select()
+    .from(schema.analyses)
+    .where(eq(schema.analyses.sessionId, id))
+    .limit(1);
+  if (!analysis?.scope) return c.json({ error: "scope_missing" }, 400);
+
+  const [session] = await db
+    .insert(schema.sessions)
+    .values({
+      userId: user.id,
+      title: original.title,
+      status: "scoped", // scope is copied; user reviews then starts (which spends a credit)
+      parentSessionId: id,
+    })
+    .returning();
+  if (!session) return c.json({ error: "create_failed" }, 500);
+
+  await db.insert(schema.analyses).values({ sessionId: session.id, scope: analysis.scope });
+
+  return c.json({ session }, 201);
 });
 
 sessionRoutes.delete("/:id", async (c) => {

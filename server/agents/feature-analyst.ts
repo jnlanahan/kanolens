@@ -32,7 +32,12 @@ export interface FeatureAnalystResult {
   /** Per-product: true when the rating is the analyst's best estimate (researched but
    *  not backed by a citable source), false when source-verified or an honest unknown. */
   estimated: Record<string, boolean>;
+  /** Per-product trust signal: "high" = verified source / first-party, "medium" =
+   *  weakly-verified or best-estimate, "low" = could not verify. */
+  confidence: Record<string, "high" | "medium" | "low">;
   sources: string[];
+  /** Source URL -> the specific claim that URL backs, for showing evidence in the UI. */
+  sourceClaims: Record<string, string>;
   inputTokens: number;
   outputTokens: number;
 }
@@ -109,7 +114,7 @@ const TOOLS: Anthropic.Messages.ToolUnion[] = [
   },
 ];
 
-const MAX_ITERATIONS = 8;
+const MAX_ITERATIONS = 10;
 
 export async function runFeatureAnalyst(args: {
   sessionId: string;
@@ -129,8 +134,11 @@ export async function runFeatureAnalyst(args: {
   ];
 
   let captured: UpsertResult | null = null;
+  let verificationRetried = false;
   let totalInput = 0;
   let totalOutput = 0;
+
+  publish(sessionId, { type: "narration", text: `Researching “${feature.name}”…` });
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await client.messages.create({
@@ -166,14 +174,46 @@ export async function runFeatureAnalyst(args: {
     for (const tool of toolUses) {
       if (tool.name === "upsert_feature_row") {
         const input = tool.input as UpsertInput;
-        const outcome = await handleUpsert({ sessionId, input, scope, feature });
-        captured = outcome.result;
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: tool.id,
-          content: outcome.message,
-          is_error: outcome.isError,
-        });
+        const outcome = await handleUpsert({ input, scope, feature });
+        if (outcome.isError || !outcome.result) {
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tool.id,
+            content: outcome.message,
+            is_error: true,
+          });
+          continue;
+        }
+
+        // Verification feedback loop: if competitors have no verified source, send the
+        // analyst back to search once more before committing — rather than silently
+        // shipping unverified estimates. Bounded to a single re-search per feature.
+        const canReverify =
+          !verificationRetried &&
+          outcome.ungroundedCompetitors.length > 0 &&
+          i < MAX_ITERATIONS - 2;
+        if (canReverify) {
+          verificationRetried = true;
+          publish(sessionId, {
+            type: "narration",
+            text: `Couldn't confirm ${outcome.ungroundedCompetitors.join(", ")} for “${feature.name}” — searching again…`,
+          });
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tool.id,
+            content: `Before this row is final: ${outcome.ungroundedCompetitors.join(", ")} have NO verified primary source, so they would ship as unverified estimates. Run 1–2 more targeted web_search queries to find a primary source for each, then call upsert_feature_row again with updated sources. If you still find nothing, commit as-is and they'll be flagged as estimates.`,
+            is_error: false,
+          });
+        } else {
+          captured = outcome.result;
+          publishRow(sessionId, feature, outcome.result);
+          toolResults.push({
+            type: "tool_result",
+            tool_use_id: tool.id,
+            content: outcome.message,
+            is_error: false,
+          });
+        }
       } else {
         // web_search is server-side; no manual handling
         continue;
@@ -193,17 +233,22 @@ export async function runFeatureAnalyst(args: {
 }
 
 async function handleUpsert(args: {
-  sessionId: string;
   input: UpsertInput;
   scope: FeatureScope;
   feature: FeatureDescriptor;
-}): Promise<{ result: UpsertResult | null; message: string; isError: boolean }> {
-  const { sessionId, input, scope, feature } = args;
+}): Promise<{
+  result: UpsertResult | null;
+  message: string;
+  isError: boolean;
+  ungroundedCompetitors: string[];
+}> {
+  const { input, scope, feature } = args;
 
   if (input.feature_id !== feature.id) {
     return {
       result: null,
       isError: true,
+      ungroundedCompetitors: [],
       message: `Expected feature_id "${feature.id}", got "${input.feature_id}". Retry with the correct id.`,
     };
   }
@@ -228,14 +273,28 @@ async function handleUpsert(args: {
     }),
   );
 
-  // A product is backed if it has its own verified/maybe source. A source with no
-  // explicit `products` list applies to every product (back-compat with old output).
+  // A source applies to a product when it lists that product, or lists none (back-compat).
+  const sourceApplies = (
+    v: { products?: string[] },
+    product: string,
+  ): boolean => !v.products || v.products.length === 0 || v.products.includes(product);
+
+  // A product is backed if it has its own verified/maybe source.
   const productSupported = (product: string): boolean =>
     verdicts.some(
-      (v) =>
-        (v.verdict === "verified" || v.verdict === "maybe") &&
-        (!v.products || v.products.length === 0 || v.products.includes(product)),
+      (v) => (v.verdict === "verified" || v.verdict === "maybe") && sourceApplies(v, product),
     );
+
+  // The strongest verdict backing a product, used to grade confidence.
+  const bestVerdictFor = (product: string): "verified" | "maybe" | null => {
+    let best: "verified" | "maybe" | null = null;
+    for (const v of verdicts) {
+      if (!sourceApplies(v, product)) continue;
+      if (v.verdict === "verified") return "verified";
+      if (v.verdict === "maybe") best = "maybe";
+    }
+    return best;
+  };
 
   // The user's own product can be rated from their first-party description (passed
   // to the analyst as <user_product_context>) without an external citation.
@@ -245,6 +304,7 @@ async function handleUpsert(args: {
   const ratings: Record<string, string> = {};
   const justifications: Record<string, string> = {};
   const estimated: Record<string, boolean> = {};
+  const confidence: Record<string, "high" | "medium" | "low"> = {};
   const allProducts = scope.userProductName
     ? [...scope.products, scope.userProductName]
     : scope.products;
@@ -254,6 +314,7 @@ async function handleUpsert(args: {
       ratings[product] = "Cannot Verify";
       justifications[product] = "not provided by analyst";
       estimated[product] = false;
+      confidence[product] = "low";
       continue;
     }
     const isUserProduct = scope.userProductName === product;
@@ -263,21 +324,60 @@ async function handleUpsert(args: {
       ratings[product] = row.rating;
       justifications[product] = row.justification;
       estimated[product] = false;
+      // A "verified" source or first-party knowledge is high confidence; a "maybe"
+      // verdict is only weak corroboration.
+      confidence[product] =
+        bestVerdictFor(product) === "verified" || (isUserProduct && userDescriptionAvailable)
+          ? "high"
+          : "medium";
     } else if (!row.rating || row.rating === "Cannot Verify") {
       // The analyst itself had no basis to judge — keep the honest unknown.
       ratings[product] = "Cannot Verify";
       justifications[product] = row.justification;
       estimated[product] = false;
+      confidence[product] = "low";
     } else {
       // Researched but no citable source found — keep the best-estimate rating,
       // flagged so the UI shows it as an unverified estimate rather than a fact.
       ratings[product] = row.rating;
       justifications[product] = row.justification;
       estimated[product] = true;
+      confidence[product] = "medium";
     }
   }
 
   const sourceUrls = input.sources.map((s) => s.url);
+  const sourceClaims: Record<string, string> = {};
+  for (const s of input.sources) {
+    if (s.claim?.trim()) sourceClaims[s.url] = s.claim.trim();
+  }
+
+  // Competitors (not the user's own product) whose rating is an unverified estimate —
+  // these are the cells a re-search could solidify with a primary source.
+  const ungroundedCompetitors = allProducts.filter(
+    (p) => p !== scope.userProductName && estimated[p] === true,
+  );
+
+  return {
+    result: {
+      featureId: feature.id,
+      committed: true,
+      ratings,
+      justifications,
+      estimated,
+      confidence,
+      sources: sourceUrls,
+      sourceClaims,
+    },
+    ungroundedCompetitors,
+    isError: false,
+    message: `row computed. verifier: ${verdicts.map((v) => v.verdict).join("/")}`,
+  };
+}
+
+/** Publish the committed row to the live stream. Kept separate from handleUpsert so the
+ *  loop only emits a row once it actually commits (not on a pre-commit verification pass). */
+function publishRow(sessionId: string, feature: FeatureDescriptor, result: UpsertResult): void {
   publish(sessionId, {
     type: "row",
     feature: {
@@ -287,22 +387,11 @@ async function handleUpsert(args: {
       customerBenefit: feature.customerBenefit,
       category: feature.category,
     },
-    ratings,
-    justifications,
-    estimated,
-    sources: sourceUrls,
+    ratings: result.ratings,
+    justifications: result.justifications,
+    estimated: result.estimated,
+    confidence: result.confidence,
+    sources: result.sources,
+    sourceClaims: result.sourceClaims,
   });
-
-  return {
-    result: {
-      featureId: feature.id,
-      committed: true,
-      ratings,
-      justifications,
-      estimated,
-      sources: sourceUrls,
-    },
-    isError: false,
-    message: `row committed. verifier: ${verdicts.map((v) => v.verdict).join("/")}`,
-  };
 }

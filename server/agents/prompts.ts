@@ -3,6 +3,9 @@ import path from "node:path";
 
 import type Anthropic from "@anthropic-ai/sdk";
 
+import type { TableJson } from "../db/schema";
+import type { CandidateSignal, MustHaveCoverage } from "./strategy/detectors";
+
 // Resolve from the working directory (repo root), not __dirname. In the prod
 // build everything is bundled into dist/server.js, so __dirname would be dist/
 // and a relative "../../docs" path climbs above the repo root. `npm start` runs
@@ -247,7 +250,16 @@ export function buildSummaryPrompt(args: {
     })
     .join("\n");
 
-  return `Summarize this completed Kano Model competitive analysis in 1–2 sentences. Describe the overall competitive position only — no speculation beyond what the table shows, no strategic recommendations, no URLs.
+  const youFraming = scope.userProductName
+    ? `Write it for the team behind ${scope.userProductName}. Lead with their competitive position, then give 1–3 concrete moves they should make.`
+    : `This is a market scan with no single "your product". Lead with where the field is strong vs. weak, then name 1–3 openings a new entrant could exploit.`;
+
+  return `You are writing the "Strategic read" — the sharp, opinionated takeaway a product manager pastes into a board deck. Base every claim STRICTLY on the table below; do not invent capabilities, numbers, or facts not present in it. ${youFraming}
+
+Guidance:
+- 2–4 sentences, plain and direct. No preamble, no headers, no bullet lists, no URLs.
+- Ground each recommendation in a specific pattern the table actually shows: a verified gap (a "No" / "Low" where rivals lead), a parity risk (a delighter most rivals already have), or a wedge (a strength only one product holds).
+- Be decisive — say what to do, not "consider exploring". But never overstate certainty for ratings marked Cannot Verify or estimates.
 
 <target_customer>${scope.targetCustomer}</target_customer>
 ${scope.userProductName ? `<user_product>${scope.userProductName}</user_product>\n` : ""}<products>${productsList.join(" | ")}</products>
@@ -256,5 +268,70 @@ ${scope.userProductName ? `<user_product>${scope.userProductName}</user_product>
 ${tableBlock}
 </table>
 
-Output only the 1–2 sentence summary. No preamble, no headers.`;
+Output only the strategic read prose. No preamble, no headers.`;
+}
+
+export function buildStrategyPrompt(args: {
+  scope: { userProductName: string | null; products: string[]; targetCustomer: string };
+  table: TableJson;
+  candidates: CandidateSignal[];
+  coverage: MustHaveCoverage;
+}): string {
+  const { scope, table, candidates, coverage } = args;
+  const you = scope.userProductName;
+
+  const ratingLine = (fid: string): string =>
+    table.products
+      .map((p) => {
+        const r = table.ratings[fid]?.[p] ?? "—";
+        const conf = table.confidence?.[fid]?.[p];
+        const est = table.estimated?.[fid]?.[p] ? " est" : "";
+        const tag = p === you ? "*" : "";
+        return `${p}${tag}=${r}${conf ? `(${conf}${est})` : est ? `(${est.trim()})` : ""}`;
+      })
+      .join(", ");
+
+  const tableBlock = table.features
+    .map((f) => `- [${f.category}] ${f.name}: ${ratingLine(f.id)}`)
+    .join("\n");
+
+  const signalsBlock = candidates
+    .map((s) => `- (${s.kind}, severity ${s.severity.toFixed(2)}, ${s.confidence} confidence) ${s.evidence}`)
+    .join("\n");
+
+  const coverageLine =
+    coverage.total > 0
+      ? `Must-have coverage: holds ${coverage.held}/${coverage.total} baseline must-haves${coverage.missing.length ? `; verifiably missing: ${coverage.missing.join(", ")}` : ""}.`
+      : "No user product (market scan) — frame openings for a prospective entrant.";
+
+  const framing = you
+    ? `You are advising the team behind ${you}.`
+    : `This is a market scan with no single "your product" — advise a prospective entrant.`;
+
+  return `You are the KanoLens Strategist. ${framing} Turn the analysis below into a sharp, PRIORITIZED set of strategic insights a product manager can act on.
+
+How to think (in priority order):
+1. MISSING MUST-HAVES are the most important insight — a verified gap on a real baseline is existential. Rank these first.
+2. Then performance positioning: where the user trails a leader (defend) or where NO product leads (open territory to seize).
+3. Then delighters: the user's unique strengths (lead with), single-competitor white space (steal targets), and delighters the field is converging on (fading).
+4. Then what NOT to pursue — where a rival has an entrenched, broad lead, advise concede ("concede" type).
+
+Hard rules:
+- Base every claim on the structural signals and table below. NEVER treat "Cannot Verify" as a competitive fact — it is a data gap, not an absence. Do not invent capabilities or numbers.
+- Weight by confidence: an insight resting on low-confidence/estimated cells is a HYPOTHESIS. Set needsValidation=true and write a one-line validationQuery (a web search that would confirm or refute it). High-confidence, table-evident claims set needsValidation=false.
+- Prefer fewer, sharper insights over many weak ones. Skip pure noise ("everyone has it").
+
+${coverageLine}
+
+<structural_signals>
+${signalsBlock || "(none)"}
+</structural_signals>
+
+<table note="* marks the user's product; (conf) is our trust in that cell">
+${tableBlock}
+</table>
+
+Return:
+- headline: the 2–4 sentence "strategic read" — opinionated, decisive, grounded; says what to do.
+- insights: ranked most-important-first. Each has type (gap | opportunity | risk | strength | concede), title (short), rationale (1–2 sentences), priority (critical | high | medium | low), confidence (high | medium | low), affectedFeatureIds (ids from the table), needsValidation (bool), validationQuery (string, "" if none).`;
 }

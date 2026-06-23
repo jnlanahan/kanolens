@@ -29,11 +29,14 @@ CREATE TABLE IF NOT EXISTS sessions (
   title text NOT NULL DEFAULT 'Untitled analysis',
   status session_status NOT NULL DEFAULT 'draft',
   error_message text,
+  parent_session_id uuid REFERENCES sessions(id) ON DELETE SET NULL,
   is_paid_run boolean NOT NULL DEFAULT false,
   refinements_used integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+-- For databases created before parent_session_id existed.
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS parent_session_id uuid REFERENCES sessions(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions(user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS analyses (

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import type { KanoTableData } from "@/lib/kano-types";
+import type { KanoTableData, Strategy } from "@/lib/kano-types";
 
-export type InsightType = "risk" | "opportunity" | "gap" | "strength";
+export type InsightType = "risk" | "opportunity" | "gap" | "strength" | "concede";
 
 export interface Insight {
   id: string;
@@ -9,6 +9,25 @@ export interface Insight {
   title: string;
   body: string;
   affectedFeatureIds: string[];
+  /** Present when sourced from the server strategist (ranked output). */
+  priority?: "critical" | "high" | "medium" | "low";
+  confidence?: "high" | "medium" | "low";
+  validation?: { verdict: "confirmed" | "refuted" | "unproven"; note: string };
+}
+
+/** Adapt the server strategist's ranked output to the Insight shape the panels consume.
+ *  Order is preserved (strategist already ranks by priority). */
+export function strategyToInsights(strategy: Strategy): Insight[] {
+  return strategy.insights.map((s) => ({
+    id: s.id,
+    type: s.type,
+    title: s.title,
+    body: s.rationale,
+    affectedFeatureIds: s.affectedFeatureIds,
+    priority: s.priority,
+    confidence: s.confidence,
+    validation: s.validation,
+  }));
 }
 
 const HIGH_RATINGS = new Set(["Yes", "High", "Maybe High"]);
@@ -164,6 +183,13 @@ const insightDisplay: Record<InsightType, { label: string; color: string; mark: 
   risk: { label: "Risk", color: "hsl(var(--destructive))", mark: "▲" },
   opportunity: { label: "Opening", color: "hsl(var(--brand-emerald))", mark: "◆" },
   strength: { label: "Strength", color: "hsl(var(--rate-yes))", mark: "✦" },
+  concede: { label: "Concede", color: "hsl(var(--rate-unknown))", mark: "▽" },
+};
+
+const VALIDATION_BADGE: Record<"confirmed" | "refuted" | "unproven", { text: string; color: string }> = {
+  confirmed: { text: "Validated ✓", color: "hsl(var(--rate-yes))" },
+  refuted: { text: "Refuted", color: "hsl(var(--destructive))" },
+  unproven: { text: "Unproven", color: "hsl(var(--rate-unknown))" },
 };
 
 /** Pulls the feature name out of a "Label: Feature" insight title. */
@@ -198,7 +224,22 @@ export function InsightsPanel({ insights, onInsightHover }: InsightsPanelProps) 
                 {d.label}
               </span>
               <span className="insight-row__feature">{featureFromTitle(insight.title)}</span>
-              <span className="insight-row__note">{insight.body}</span>
+              <span className="insight-row__note">
+                {insight.body}
+                {insight.validation ? (
+                  <span
+                    className="ml-1.5 text-[11px] font-medium"
+                    style={{ color: VALIDATION_BADGE[insight.validation.verdict].color }}
+                    title={insight.validation.note}
+                  >
+                    {VALIDATION_BADGE[insight.validation.verdict].text}
+                  </span>
+                ) : insight.confidence === "low" ? (
+                  <span className="ml-1.5 text-[11px] font-medium text-muted-foreground" title="Rests on low-confidence data — worth validating">
+                    Hypothesis
+                  </span>
+                ) : null}
+              </span>
             </div>
           );
         })}
@@ -208,22 +249,23 @@ export function InsightsPanel({ insights, onInsightHover }: InsightsPanelProps) 
 }
 
 const SIGNAL_TILES: { type: InsightType; label: string; color: string; caption: string }[] = [
-  { type: "gap", label: "Gaps", color: "hsl(var(--rate-maybe))", caption: "Must-haves you can't verify" },
-  { type: "risk", label: "Risk", color: "hsl(var(--destructive))", caption: "A rival confirms it; you don't" },
-  { type: "opportunity", label: "Opening", color: "hsl(var(--brand-emerald))", caption: "White-space to differentiate" },
-  { type: "strength", label: "Strengths", color: "hsl(var(--rate-yes))", caption: "Confirmed while rivals are unproven" },
+  { type: "gap", label: "Gaps", color: "hsl(var(--rate-maybe))", caption: "Baselines you're missing" },
+  { type: "risk", label: "Risk", color: "hsl(var(--destructive))", caption: "Eroding or commoditizing" },
+  { type: "opportunity", label: "Opening", color: "hsl(var(--brand-emerald))", caption: "White-space to seize" },
+  { type: "strength", label: "Strengths", color: "hsl(var(--rate-yes))", caption: "Edges to lead with" },
+  { type: "concede", label: "Concede", color: "hsl(var(--rate-unknown))", caption: "Not worth pursuing" },
 ];
 
 export function SignalStrip({ insights }: { insights: Insight[] }) {
   const counts = useMemo(() => {
-    const c: Record<InsightType, number> = { gap: 0, risk: 0, opportunity: 0, strength: 0 };
+    const c: Record<InsightType, number> = { gap: 0, risk: 0, opportunity: 0, strength: 0, concede: 0 };
     for (const i of insights) c[i.type] += 1;
     return c;
   }, [insights]);
 
   return (
     <div className="signal-strip">
-      {SIGNAL_TILES.map((t) => (
+      {SIGNAL_TILES.filter((t) => t.type !== "concede" || counts.concede > 0).map((t) => (
         <div key={t.type} className="signal-tile">
           <div className="signal-tile__top">
             <span className="signal-tile__num" style={{ color: t.color }}>{counts[t.type]}</span>

@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { getDb, schema } from "../db/client";
 
-const ADMIN_EMAIL = "jnlanahan@gmail.com";
+export const ADMIN_EMAIL = "jnlanahan@gmail.com";
 const REFINE_LIMIT = 3;
 
 export interface UsageError {

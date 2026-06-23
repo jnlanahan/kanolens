@@ -36,7 +36,7 @@ const ScopeProposalSchema = z.object({
     .string()
     .describe("the primary customer segment this analysis will focus on"),
   products: z
-    .array(z.string().transform(cleanProductName))
+    .array(z.string())
     .min(3)
     .max(5)
     .describe(
@@ -51,7 +51,7 @@ const ScopeProposalSchema = z.object({
     .string()
     .describe("≤3 sentences explaining why these products and features were chosen"),
   suggestedAdditionalCompetitors: z
-    .array(z.string().transform(cleanProductName))
+    .array(z.string())
     .min(0)
     .max(3)
     .optional()
@@ -69,22 +69,43 @@ export interface ProposeScopeResult {
 
 export async function proposeScope(ctx: ScopeProposalContext): Promise<ProposeScopeResult> {
   const client = getAnthropicClient();
-  const response = await client.messages.parse({
-    model: MODELS.proposer,
-    max_tokens: 4096,
-    system: buildSystemBlocks(),
-    messages: [{ role: "user", content: buildScopeProposalPrompt(ctx) }],
-    output_config: { format: zodOutputFormat(ScopeProposalSchema) },
-  });
 
-  if (!response.parsed_output) {
-    throw new Error(
-      `Scope proposer returned no structured output. stop_reason=${response.stop_reason}`,
-    );
+  // One free retry — scope proposal is a single shot, and an empty/garbled structured
+  // output or a transient API blip is often resolved by simply trying again.
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await client.messages.parse({
+        model: MODELS.proposer,
+        max_tokens: 4096,
+        system: buildSystemBlocks(),
+        messages: [{ role: "user", content: buildScopeProposalPrompt(ctx) }],
+        output_config: { format: zodOutputFormat(ScopeProposalSchema) },
+      });
+
+      if (!response.parsed_output) {
+        throw new Error(
+          `Scope proposer returned no structured output. stop_reason=${response.stop_reason}`,
+        );
+      }
+      // Clean product names here rather than via zod .transform() — the structured-output
+      // format can't represent transforms in JSON Schema.
+      const proposal: ScopeProposal = {
+        ...response.parsed_output,
+        products: response.parsed_output.products.map(cleanProductName),
+        suggestedAdditionalCompetitors: (response.parsed_output.suggestedAdditionalCompetitors ?? []).map(
+          cleanProductName,
+        ),
+      };
+      return {
+        proposal,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+      };
+    } catch (error) {
+      lastError = error;
+      console.warn(`[scope-proposer] attempt ${attempt + 1} failed:`, error);
+    }
   }
-  return {
-    proposal: response.parsed_output,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
-  };
+  throw lastError;
 }

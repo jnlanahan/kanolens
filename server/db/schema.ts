@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { type AnyPgColumn, boolean, index, integer, jsonb, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const sessionStatus = pgEnum("session_status", [
   "draft", // scope not yet proposed
@@ -37,6 +37,10 @@ export const sessions = pgTable(
     title: text("title").notNull().default("Untitled analysis"),
     status: sessionStatus("status").notNull().default("draft"),
     errorMessage: text("error_message"),
+    // Set when this session is a re-run of an earlier one — enables change-tracking.
+    parentSessionId: uuid("parent_session_id").references((): AnyPgColumn => sessions.id, {
+      onDelete: "set null",
+    }),
     isPaidRun: boolean("is_paid_run").notNull().default(false),
     refinementsUsed: integer("refinements_used").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -71,11 +75,39 @@ export interface TableJson {
   justifications: Record<string, Record<string, string>>;
   /** Per feature → per product: true when the rating is an unverified best-estimate. */
   estimated?: Record<string, Record<string, boolean>>;
+  /** Per feature → per product trust signal derived from source verdicts. */
+  confidence?: Record<string, Record<string, "high" | "medium" | "low">>;
   summary?: string;
+  /** Ranked, synthesized strategy produced by the strategist after the table is built. */
+  strategy?: Strategy;
+}
+
+export type StrategyInsightType = "gap" | "opportunity" | "risk" | "strength" | "concede";
+
+export interface StrategyInsight {
+  id: string;
+  type: StrategyInsightType;
+  title: string;
+  rationale: string;
+  priority: "critical" | "high" | "medium" | "low";
+  confidence: "high" | "medium" | "low";
+  affectedFeatureIds: string[];
+  /** Set by the validation loop (paid runs) when a hypothesis was checked against the web. */
+  validation?: { verdict: "confirmed" | "refuted" | "unproven"; note: string };
+}
+
+export interface Strategy {
+  /** The headline "strategic read" narrative. */
+  headline: string;
+  /** Insights ordered by priority (most important first). */
+  insights: StrategyInsight[];
+  mustHaveCoverage?: { held: number; total: number; missing: string[] };
 }
 
 export interface SourcesJson {
   byFeatureId: Record<string, string[]>;
+  /** Per feature → source URL → the specific claim that URL backs (evidence trail). */
+  claimsByFeatureId?: Record<string, Record<string, string>>;
 }
 
 export const analyses = pgTable("analyses", {

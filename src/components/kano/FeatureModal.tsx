@@ -48,6 +48,12 @@ function domainOf(url: string): string {
   }
 }
 
+const CONFIDENCE_LABEL: Record<"high" | "medium" | "low", { text: string; className: string }> = {
+  high: { text: "High confidence", className: "text-[hsl(var(--rate-yes))]" },
+  medium: { text: "Medium confidence", className: "text-[hsl(var(--rate-maybe))]" },
+  low: { text: "Low confidence", className: "text-muted-foreground" },
+};
+
 export function FeatureModal({ feature, tableData, open, onOpenChange }: FeatureModalProps) {
   if (!feature || !tableData) return null;
 
@@ -55,6 +61,8 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
   const sources = tableData.sources[feature.id] ?? [];
   const justifications = tableData.justifications?.[feature.id] ?? {};
   const estimatedMap = tableData.estimated?.[feature.id] ?? {};
+  const confidenceMap = tableData.confidence?.[feature.id] ?? {};
+  const claimMap = tableData.sourceClaims?.[feature.id] ?? {};
 
   const positive = Object.values(ratings).filter((r) => r === "Yes" || r === "High").length;
   const total = tableData.products.length;
@@ -99,6 +107,8 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
                     : "bg-muted/50 border";
                 const note = justifications[product];
                 const isEstimate = estimatedMap[product] ?? false;
+                const conf = confidenceMap[product];
+                const hasAnswer = rating !== "" && rating !== "N/A" && rating !== "Cannot Verify";
                 return (
                   <Card key={product} className={`p-3 ${tone}`}>
                     <div className="font-medium text-sm">{product}</div>
@@ -110,6 +120,11 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
                         </span>
                       ) : null}
                     </div>
+                    {conf && hasAnswer ? (
+                      <div className={`text-[11px] mt-1 font-medium ${CONFIDENCE_LABEL[conf].className}`}>
+                        {CONFIDENCE_LABEL[conf].text}
+                      </div>
+                    ) : null}
                     {note ? <div className="text-xs mt-2 text-foreground/80">{note}</div> : null}
                   </Card>
                 );
@@ -145,6 +160,7 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
               <ul className="space-y-2">
                 {sources.map((source, i) => {
                   const valid = source.startsWith("http://") || source.startsWith("https://");
+                  const claim = claimMap[source];
                   return (
                     <li key={i}>
                       <Card className="p-3">
@@ -166,6 +182,11 @@ export function FeatureModal({ feature, tableData, open, onOpenChange }: Feature
                         ) : (
                           <div className="text-sm text-muted-foreground">{source}</div>
                         )}
+                        {claim ? (
+                          <p className="text-xs text-foreground/70 mt-2 leading-snug border-t pt-2">
+                            “{claim}”
+                          </p>
+                        ) : null}
                       </Card>
                     </li>
                   );

@@ -1,4 +1,5 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, type ReactNode } from "react";
+import { RefreshCw } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -36,6 +37,8 @@ interface KanoTableProps {
   highlightedFeatureIds?: Set<string>;
   /** Name of the user's own product — its column is highlighted as "YOU" */
   userProductName?: string | null;
+  /** When provided, each rating cell offers a "re-research" action that calls this. */
+  onReResearch?: (featureId: string, product: string) => Promise<unknown>;
 }
 
 export function KanoTable({
@@ -46,6 +49,7 @@ export function KanoTable({
   selectedFeatureId,
   highlightedFeatureIds,
   userProductName,
+  onReResearch,
 }: KanoTableProps) {
   const [selected, setSelected] = useState<KanoFeature | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -179,16 +183,23 @@ export function KanoTable({
                       const rating = tableData.ratings[feature.id]?.[product] ?? "N/A";
                       const justification = tableData.justifications?.[feature.id]?.[product];
                       const isEstimate = tableData.estimated?.[feature.id]?.[product] ?? false;
+                      const confidence = tableData.confidence?.[feature.id]?.[product];
                       const featureSources = tableData.sources[feature.id] ?? [];
+                      const claimMap = tableData.sourceClaims?.[feature.id] ?? {};
                       return (
                         <RatingCell
                           key={product}
+                          featureId={feature.id}
+                          product={product}
                           rating={rating}
                           isEstimate={isEstimate}
+                          confidence={confidence}
                           isYou={isYouProduct(product)}
                           justification={justification}
                           sources={featureSources}
+                          sourceClaims={claimMap}
                           onChipClick={() => onFeatureClick(feature)}
+                          onReResearch={onReResearch}
                         />
                       );
                     })}
@@ -216,6 +227,10 @@ export function KanoTable({
           <span className="heatmap__legend-item">
             <span className="heatmap__legend-sw" style={{ background: "hsl(var(--rate-no-soft))" }} aria-hidden="true" />
             No ✕
+          </span>
+          <span className="heatmap__legend-item" title="How well-sourced each rating is">
+            <ConfidenceMeter level="high" />
+            <span className="ml-1">confidence</span>
           </span>
           {hasYou ? (
             <span className="heatmap__legend-item" style={{ marginLeft: "auto", color: "hsl(var(--brand-emerald))" }}>
@@ -267,26 +282,66 @@ function ratingDisplay(rating: string): { label: string; glyph: string; tone: To
   return { label: rating, glyph: "–", tone: "none" };
 }
 
+type ConfidenceLevel = "high" | "medium" | "low";
+
+const CONFIDENCE_META: Record<ConfidenceLevel, { label: string; color: string; filled: number }> = {
+  high: { label: "High confidence — backed by a verified source", color: "hsl(var(--rate-yes))", filled: 3 },
+  medium: { label: "Medium confidence — weakly sourced or a best estimate", color: "hsl(var(--rate-maybe))", filled: 2 },
+  low: { label: "Low confidence — could not be verified", color: "hsl(var(--rate-unknown))", filled: 1 },
+};
+
+function ConfidenceMeter({ level }: { level: ConfidenceLevel }) {
+  const { label, color, filled } = CONFIDENCE_META[level];
+  return (
+    <span className="inline-flex items-end gap-[2px]" role="img" aria-label={label} title={label}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{
+            width: 3,
+            height: 5 + i * 3,
+            borderRadius: 1,
+            background: i < filled ? color : "hsl(var(--rate-unknown) / 0.25)",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function RatingCell({
+  featureId,
+  product,
   rating,
   isEstimate,
+  confidence,
   isYou,
   justification,
   sources,
+  sourceClaims,
   onChipClick,
+  onReResearch,
 }: {
+  featureId: string;
+  product: string;
   rating: string;
   isEstimate: boolean;
+  confidence?: ConfidenceLevel;
   isYou: boolean;
   justification?: string;
   sources: string[];
+  sourceClaims?: Record<string, string>;
   onChipClick: () => void;
+  onReResearch?: (featureId: string, product: string) => Promise<unknown>;
 }) {
+  const [reResearching, setReResearching] = useState(false);
   const { label, glyph, tone } = ratingDisplay(rating);
   const { color, soft } = TONE[tone];
   // "Unverified" / "—" are genuine non-answers — never decorate them as estimates.
   const isAnswer = rating !== "" && rating !== "N/A" && rating !== "Cannot Verify";
   const showEst = isEstimate && isAnswer;
+  // Only show a confidence meter for an actual answer (a non-answer is self-evidently unverified).
+  const showConfidence = isAnswer && confidence != null;
   const chipClass = `heatmap__chip${isYou ? " heatmap__you-chip" : ""}${showEst ? " heatmap__chip--est" : ""}`;
   const chipStyle = { color, background: soft } as const;
 
@@ -300,19 +355,24 @@ function RatingCell({
     </>
   );
 
-  const hasContext = justification || sources.length > 0 || isEstimate;
+  const meter = showConfidence ? <ConfidenceMeter level={confidence!} /> : null;
+  const hasContext = justification || sources.length > 0 || isEstimate || showConfidence || Boolean(onReResearch);
   const cellClass = `heatmap__cell${isYou ? " heatmap__you-cell" : ""}`;
 
   if (!hasContext) {
     return (
       <div className={cellClass}>
-        <span className={chipClass} style={chipStyle}>{chipBody}</span>
+        <span className="inline-flex flex-col items-center gap-1">
+          <span className={chipClass} style={chipStyle}>{chipBody}</span>
+          {meter}
+        </span>
       </div>
     );
   }
 
   return (
     <div className={cellClass}>
+      <span className="inline-flex flex-col items-center gap-1">
       <Popover>
         <PopoverTrigger
           asChild
@@ -324,6 +384,12 @@ function RatingCell({
           <button type="button" className={chipClass} style={chipStyle}>{chipBody}</button>
         </PopoverTrigger>
         <PopoverContent className="text-xs space-y-2" onClick={(e) => e.stopPropagation()}>
+          {showConfidence ? (
+            <p className="flex items-center gap-1.5 leading-snug font-medium">
+              <ConfidenceMeter level={confidence!} />
+              <span>{CONFIDENCE_META[confidence!].label}</span>
+            </p>
+          ) : null}
           {isEstimate ? (
             <p className="leading-snug font-medium text-[hsl(var(--gold))]">
               <span aria-hidden="true">✦</span> Best estimate — based on research, not confirmed by a citable source.
@@ -331,26 +397,46 @@ function RatingCell({
           ) : null}
           {justification ? <p className="leading-snug">{justification}</p> : null}
           {sources.length > 0 ? (
-            <div className="space-y-1 pt-1 border-t">
+            <div className="space-y-1.5 pt-1 border-t">
               {sources.map((url, i) => {
                 let domain = url;
                 try { domain = new URL(url).hostname.replace("www.", ""); } catch { /* keep full url */ }
+                const claim = sourceClaims?.[url];
                 return (
-                  <a
-                    key={`${url}-${i}`}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block truncate text-[hsl(var(--kano-perf))] hover:underline"
-                  >
-                    {domain}
-                  </a>
+                  <div key={`${url}-${i}`}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block truncate text-[hsl(var(--kano-perf))] hover:underline"
+                    >
+                      {domain}
+                    </a>
+                    {claim ? <p className="text-muted-foreground leading-snug">“{claim}”</p> : null}
+                  </div>
                 );
               })}
             </div>
           ) : null}
+          {onReResearch ? (
+            <button
+              type="button"
+              disabled={reResearching}
+              className="flex items-center gap-1.5 w-full pt-2 border-t text-[hsl(var(--kano-perf))] hover:underline disabled:opacity-60"
+              onClick={(e) => {
+                e.stopPropagation();
+                setReResearching(true);
+                Promise.resolve(onReResearch(featureId, product)).finally(() => setReResearching(false));
+              }}
+            >
+              <RefreshCw className={`h-3 w-3${reResearching ? " animate-spin" : ""}`} aria-hidden="true" />
+              {reResearching ? "Re-researching…" : "This looks wrong — re-research"}
+            </button>
+          ) : null}
         </PopoverContent>
       </Popover>
+      {meter}
+      </span>
     </div>
   );
 }

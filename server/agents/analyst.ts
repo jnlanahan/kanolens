@@ -1,8 +1,10 @@
-import { getAnthropicClient, MODELS } from "../lib/anthropic";
+import type { Strategy, TableJson } from "../db/schema";
 import { publish } from "./event-bus";
 import { runFeatureAnalyst, type FeatureAnalystResult } from "./feature-analyst";
-import { buildSummaryPrompt, buildSystemBlocks, type PrimarySourceMap } from "./prompts";
+import { type PrimarySourceMap } from "./prompts";
 import { gatherPrimarySources } from "./source-prepass";
+import { generateStrategy } from "./strategy/strategist";
+import { validateStrategy } from "./strategy/validator";
 
 export interface AnalystScope {
   userProductName: string | null;
@@ -20,6 +22,9 @@ export interface AnalystScope {
 
 export interface AnalystResult {
   summary: string;
+  strategy: Strategy;
+  /** Insights flagged for outside validation — consumed by the paid validation loop. */
+  validationCandidates: { id: string; query: string }[];
   committedFeatureIds: string[];
   inputTokens: number;
   outputTokens: number;
@@ -30,8 +35,10 @@ const FAN_OUT_CONCURRENCY = 8;
 export async function runAnalyst(args: {
   sessionId: string;
   scope: AnalystScope;
+  /** When true (paid runs), validate the strategist's top hypotheses against the web. */
+  validate?: boolean;
 }): Promise<AnalystResult> {
-  const { sessionId, scope } = args;
+  const { sessionId, scope, validate = false } = args;
 
   publish(sessionId, {
     type: "status",
@@ -73,7 +80,7 @@ export async function runAnalyst(args: {
   const settled = await Promise.allSettled(
     scope.features.map((feature) =>
       limit(() =>
-        runFeatureAnalyst({
+        runFeatureWithRetry({
           sessionId,
           scope: featureScope,
           feature,
@@ -110,35 +117,81 @@ export async function runAnalyst(args: {
   publish(sessionId, {
     type: "status",
     status: "writing",
-    message: "Writing summary",
+    message: "Synthesizing strategy",
   });
 
   const committedFeatureIds = [...rowsByFeatureId.keys()];
-  const summaryResult = await generateSummary({
-    scope,
-    rows: scope.features
-      .map((f) => {
-        const row = rowsByFeatureId.get(f.id);
-        if (!row) return null;
-        return {
-          feature: { id: f.id, name: f.name, category: f.category },
-          ratings: row.ratings,
-          justifications: row.justifications,
-        };
-      })
-      .filter((r): r is NonNullable<typeof r> => r !== null),
-  });
-  totalInput += summaryResult.inputTokens;
-  totalOutput += summaryResult.outputTokens;
 
-  publish(sessionId, { type: "done", summary: summaryResult.summary });
+  // Assemble a table view for the strategist (same shape the route persists).
+  const strategyTable: TableJson = {
+    products: fullProducts,
+    features: scope.features,
+    ratings: {},
+    justifications: {},
+    estimated: {},
+    confidence: {},
+  };
+  for (const f of scope.features) {
+    const row = rowsByFeatureId.get(f.id);
+    strategyTable.ratings[f.id] = row?.ratings ?? {};
+    strategyTable.justifications[f.id] = row?.justifications ?? {};
+    strategyTable.estimated![f.id] = row?.estimated ?? {};
+    strategyTable.confidence![f.id] = row?.confidence ?? {};
+  }
+
+  const strategyResult = await generateStrategy({
+    scope: {
+      userProductName: scope.userProductName,
+      products: scope.products,
+      targetCustomer: scope.targetCustomer,
+    },
+    table: strategyTable,
+  });
+  totalInput += strategyResult.inputTokens;
+  totalOutput += strategyResult.outputTokens;
+
+  let strategy = strategyResult.strategy;
+  if (validate && strategyResult.validationCandidates.length > 0) {
+    publish(sessionId, { type: "status", status: "writing", message: "Validating top findings" });
+    const validated = await validateStrategy({
+      sessionId,
+      strategy,
+      candidates: strategyResult.validationCandidates,
+    });
+    strategy = validated.strategy;
+    totalInput += validated.inputTokens;
+    totalOutput += validated.outputTokens;
+  }
+
+  publish(sessionId, { type: "done", summary: strategy.headline });
 
   return {
-    summary: summaryResult.summary,
+    summary: strategy.headline,
+    strategy,
+    validationCandidates: strategyResult.validationCandidates,
     committedFeatureIds,
     inputTokens: totalInput,
     outputTokens: totalOutput,
   };
+}
+
+/** A transient API failure (overload, rate limit, timeout) is worth one retry; a
+ *  deterministic failure (bad output, no commit) is not — retrying just burns tokens. */
+function isTransientError(error: unknown): boolean {
+  const status = (error as { status?: number })?.status;
+  return typeof status === "number" && [408, 409, 429, 500, 502, 503, 529].includes(status);
+}
+
+async function runFeatureWithRetry(
+  args: Parameters<typeof runFeatureAnalyst>[0],
+): Promise<FeatureAnalystResult> {
+  try {
+    return await runFeatureAnalyst(args);
+  } catch (error) {
+    if (!isTransientError(error)) throw error;
+    console.warn(`[analyst] feature ${args.feature.id} hit a transient error — retrying once`);
+    return await runFeatureAnalyst(args);
+  }
 }
 
 function publishFallbackRow(args: {
@@ -167,55 +220,6 @@ function publishFallbackRow(args: {
     justifications,
     sources: [],
   });
-}
-
-async function generateSummary(args: {
-  scope: AnalystScope;
-  rows: {
-    feature: { id: string; name: string; category: string };
-    ratings: Record<string, string>;
-    justifications: Record<string, string>;
-  }[];
-}): Promise<{ summary: string; inputTokens: number; outputTokens: number }> {
-  if (args.rows.length === 0) {
-    return { summary: "No features could be rated from primary sources.", inputTokens: 0, outputTokens: 0 };
-  }
-
-  const client = getAnthropicClient();
-  try {
-    const response = await client.messages.create({
-      model: MODELS.verifier,
-      max_tokens: 400,
-      system: buildSystemBlocks(),
-      messages: [
-        {
-          role: "user",
-          content: buildSummaryPrompt({
-            scope: {
-              userProductName: args.scope.userProductName,
-              products: args.scope.products,
-              targetCustomer: args.scope.targetCustomer,
-            },
-            rows: args.rows,
-          }),
-        },
-      ],
-    });
-    const text = response.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
-    if (text) {
-      return { summary: text, inputTokens: response.usage.input_tokens, outputTokens: response.usage.output_tokens };
-    }
-  } catch (error) {
-    console.warn("[analyst] summary generation failed:", error);
-  }
-  return {
-    summary: `${args.rows.length} features rated across ${args.scope.products.length} products; see table for details.`,
-    inputTokens: 0,
-    outputTokens: 0,
-  };
 }
 
 function pLimit(n: number) {

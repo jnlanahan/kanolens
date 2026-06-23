@@ -13,8 +13,8 @@ import {
   type FeatureDescriptor,
 } from "../server/agents/feature-analyst";
 import { proposeScope, type ScopeProposal } from "../server/agents/scope-proposer";
-import { buildSummaryPrompt } from "../server/agents/prompts";
-import { getAnthropicClient, MODELS } from "../server/lib/anthropic";
+import { generateStrategy } from "../server/agents/strategy/strategist";
+import type { Strategy, StrategyInsightType, TableJson } from "../server/db/schema";
 
 // ─── Shared judge helper ────────────────────────────────────────────────────────
 // Always judge with Haiku — never grade an output with the same model that made it.
@@ -629,148 +629,189 @@ Respond with only JSON: {"score": <0-10>, "reason": "<one sentence>"}`);
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// PASS 3 — Table summary (the AI-written 1–2 sentence narrative)
+// PASS 4 — Strategist (ranked strategic insights from a finished table)
 // ════════════════════════════════════════════════════════════════════════════════
 
-const SUMMARY_DATASET = "kanolens-summary-v1";
+const STRATEGY_DATASET = "kanolens-strategy-v1";
 
-interface SummaryEvalInputs {
+interface StrategyEvalInputs {
   scope: { userProductName: string | null; products: string[]; targetCustomer: string };
-  rows: {
-    feature: { id: string; name: string; category: string };
-    ratings: Record<string, string>;
-    justifications: Record<string, string>;
-  }[];
+  table: TableJson;
+  /** The insight type that should rank #1 for this table. */
+  expectedTopType: StrategyInsightType;
+  /** A feature whose competitor cell is "Cannot Verify" — it must never become an edge. */
+  trapFeatureId?: string;
 }
 
-const SUMMARY_EXAMPLES: Array<{ inputs: SummaryEvalInputs }> = [
+function strategyTable(args: {
+  products: string[];
+  features: { id: string; name: string; category: "must-have" | "performance" | "delighter" }[];
+  ratings: Record<string, Record<string, string>>;
+}): TableJson {
+  return {
+    products: args.products,
+    features: args.features.map((f) => ({ ...f, description: "", customerBenefit: "" })),
+    ratings: args.ratings,
+    justifications: {},
+  };
+}
+
+const STRATEGY_EXAMPLES: Array<{ inputs: StrategyEvalInputs }> = [
+  // 1. Verified missing must-have → must rank as the top gap.
   {
     inputs: {
-      scope: {
-        userProductName: "Nucleus",
-        products: ["Jira", "Linear", "Nucleus"],
-        targetCustomer: "software teams tracking issues and roadmaps",
-      },
-      rows: [
-        {
-          feature: { id: "f1", name: "AI-assisted issue triage", category: "delighter" },
-          ratings: { Jira: "No", Linear: "Maybe", Nucleus: "Yes" },
-          justifications: {
-            Jira: "no native AI triage",
-            Linear: "limited AI suggestions",
-            Nucleus: "auto-triages new issues with AI",
-          },
+      scope: { userProductName: "Nucleus", products: ["Linear", "Jira", "Asana"], targetCustomer: "software teams" },
+      expectedTopType: "gap",
+      table: strategyTable({
+        products: ["Linear", "Jira", "Asana", "Nucleus"],
+        features: [
+          { id: "mh", name: "Mobile app", category: "must-have" },
+          { id: "del", name: "AI recaps", category: "delighter" },
+        ],
+        ratings: {
+          mh: { Linear: "Yes", Jira: "Yes", Asana: "Yes", Nucleus: "No" },
+          del: { Linear: "No", Jira: "No", Asana: "No", Nucleus: "Yes" },
         },
-        {
-          feature: { id: "f2", name: "Enterprise compliance reporting", category: "performance" },
-          ratings: { Jira: "High", Linear: "Low", Nucleus: "Low" },
-          justifications: {
-            Jira: "deep compliance suite",
-            Linear: "minimal reporting",
-            Nucleus: "basic reporting only",
-          },
-        },
-        {
-          feature: { id: "f3", name: "Fast keyboard-driven workflow", category: "performance" },
-          ratings: { Jira: "Low", Linear: "High", Nucleus: "Medium" },
-          justifications: {
-            Jira: "mouse-heavy UI",
-            Linear: "keyboard-first design",
-            Nucleus: "some shortcuts",
-          },
-        },
-      ],
+      }),
     },
   },
+  // 2. Cannot-Verify trap — the rival's unknown must NOT become a Nucleus "edge".
   {
     inputs: {
-      scope: {
-        userProductName: null,
-        products: ["Zoom", "Google Meet", "Microsoft Teams"],
-        targetCustomer: "distributed teams running daily calls",
-      },
-      rows: [
-        {
-          feature: { id: "g1", name: "HD video on weak networks", category: "performance" },
-          ratings: { Zoom: "High", "Google Meet": "Medium", "Microsoft Teams": "Medium" },
-          justifications: {
-            Zoom: "strong low-bandwidth mode",
-            "Google Meet": "adaptive but less robust",
-            "Microsoft Teams": "adaptive but less robust",
-          },
+      scope: { userProductName: "Nucleus", products: ["Rival"], targetCustomer: "ops teams" },
+      expectedTopType: "strength",
+      trapFeatureId: "mh",
+      table: strategyTable({
+        products: ["Rival", "Nucleus"],
+        features: [
+          { id: "mh", name: "SSO", category: "must-have" },
+          { id: "u", name: "Voice control", category: "delighter" },
+        ],
+        ratings: {
+          mh: { Rival: "Cannot Verify", Nucleus: "Yes" },
+          u: { Rival: "No", Nucleus: "Yes" },
         },
-        {
-          feature: { id: "g2", name: "AI meeting summaries", category: "delighter" },
-          ratings: { Zoom: "Yes", "Google Meet": "Yes", "Microsoft Teams": "Yes" },
-          justifications: {
-            Zoom: "AI Companion summaries",
-            "Google Meet": "Gemini summaries",
-            "Microsoft Teams": "Copilot summaries",
-          },
+      }),
+    },
+  },
+  // 3. Open performance territory + single-competitor white space.
+  {
+    inputs: {
+      scope: { userProductName: "Nucleus", products: ["Linear", "Jira"], targetCustomer: "pms" },
+      expectedTopType: "opportunity",
+      table: strategyTable({
+        products: ["Linear", "Jira", "Nucleus"],
+        features: [
+          { id: "p", name: "Forecast accuracy", category: "performance" },
+          { id: "w", name: "Gantt view", category: "delighter" },
+        ],
+        ratings: {
+          p: { Linear: "Medium", Jira: "Low", Nucleus: "Medium" }, // nobody leads
+          w: { Linear: "Yes", Jira: "No", Nucleus: "No" }, // one rival only
         },
-      ],
+      }),
+    },
+  },
+  // 4. Market scan (no user product) — frame openings for an entrant.
+  {
+    inputs: {
+      scope: { userProductName: null, products: ["Zoom", "Google Meet", "Teams"], targetCustomer: "distributed teams" },
+      expectedTopType: "opportunity",
+      table: strategyTable({
+        products: ["Zoom", "Google Meet", "Teams"],
+        features: [
+          { id: "v", name: "HD on weak networks", category: "performance" },
+          { id: "s", name: "AI summaries", category: "delighter" },
+        ],
+        ratings: {
+          v: { Zoom: "Medium", "Google Meet": "Medium", Teams: "Low" }, // nobody leads
+          s: { Zoom: "Yes", "Google Meet": "Yes", Teams: "Yes" }, // commoditized
+        },
+      }),
     },
   },
 ];
 
-/** Does the summary reflect the table AND obey its constraints (no recommendations,
- *  no speculation beyond the table, no URLs)? */
-async function summaryFaithfulness(args: {
+/** The #1 insight should match the labeled expectation for the table. */
+async function prioritizationCorrect(args: {
   inputs: Record<string, unknown>;
   outputs: Record<string, unknown>;
 }): Promise<EvaluationResult> {
-  const inputs = args.inputs as SummaryEvalInputs;
-  const out = args.outputs as { summary: string };
-  const summary = out?.summary ?? "";
-  if (!summary.trim()) {
-    return { key: "summary_faithfulness", score: 0, comment: "no summary produced" };
-  }
-
-  const tableText = inputs.rows
-    .map((r) => {
-      const cells = Object.entries(r.ratings)
-        .map(([p, rate]) => `${p}: ${rate}`)
-        .join(", ");
-      return `${r.feature.name} (${r.feature.category}) — ${cells}`;
-    })
-    .join("\n");
-
-  const result = await judge(`Judge a 1–2 sentence summary of a competitive analysis table.
-
-Table:
-${tableText}
-
-Summary:
-"${summary}"
-
-Score 0-10 on whether the summary:
-- accurately reflects what the table shows (no claims the table doesn't support),
-- contains NO strategic recommendations, NO speculation beyond the table, NO URLs.
-10 = fully faithful and within constraints. 5 = mostly faithful with a minor overreach. 0 = fabricates, contradicts the table, or gives recommendations.
-
-Respond with only JSON: {"score": <0-10>, "reason": "<one sentence>"}`);
-  if (!result) {
-    return { key: "summary_faithfulness", score: 0.5, comment: "judge unavailable" };
-  }
+  const inputs = args.inputs as StrategyEvalInputs;
+  const strategy = (args.outputs as { strategy: Strategy }).strategy;
+  const top = strategy?.insights?.[0];
+  const ok = top?.type === inputs.expectedTopType;
   return {
-    key: "summary_faithfulness",
-    score: Math.round(result.score * 100) / 100,
-    comment: result.reason || "judged summary",
+    key: "prioritization_correct",
+    score: ok ? 1 : 0,
+    comment: ok ? `top insight is ${top?.type}` : `expected ${inputs.expectedTopType}, got ${top?.type ?? "none"}`,
   };
 }
 
-async function generateSummaryForEval(inputs: SummaryEvalInputs): Promise<{ summary: string }> {
-  const client = getAnthropicClient();
-  const response = await client.messages.create({
-    model: MODELS.verifier,
-    max_tokens: 400,
-    messages: [{ role: "user", content: buildSummaryPrompt({ scope: inputs.scope, rows: inputs.rows }) }],
-  });
-  const summary = response.content
-    .map((b) => (b.type === "text" ? b.text : ""))
-    .join("")
-    .trim();
-  return { summary };
+/** No insight may cite the trap feature (a Cannot-Verify cell) as a strength. */
+async function noFalseEdge(args: {
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown>;
+}): Promise<EvaluationResult> {
+  const inputs = args.inputs as StrategyEvalInputs;
+  const strategy = (args.outputs as { strategy: Strategy }).strategy;
+  if (!inputs.trapFeatureId) return { key: "no_false_edge", score: 1, comment: "no trap in this example" };
+  const offending = (strategy?.insights ?? []).find(
+    (i) => i.type === "strength" && i.affectedFeatureIds.includes(inputs.trapFeatureId!),
+  );
+  return {
+    key: "no_false_edge",
+    score: offending ? 0 : 1,
+    comment: offending ? `built a strength on an unverified cell: ${offending.title}` : "no edge from Cannot Verify",
+  };
+}
+
+/** Judge: grounded in the table, and never treats Cannot Verify as a competitive fact? */
+async function strategyGrounding(args: {
+  inputs: Record<string, unknown>;
+  outputs: Record<string, unknown>;
+}): Promise<EvaluationResult> {
+  const inputs = args.inputs as StrategyEvalInputs;
+  const strategy = (args.outputs as { strategy: Strategy }).strategy;
+  if (!strategy?.insights?.length) return { key: "strategy_grounding", score: 0, comment: "no insights" };
+
+  const tableText = inputs.table.features
+    .map((f) => {
+      const cells = inputs.table.products.map((p) => `${p}: ${inputs.table.ratings[f.id]?.[p] ?? "—"}`).join(", ");
+      return `${f.name} (${f.category}) — ${cells}`;
+    })
+    .join("\n");
+  const insightsText = strategy.insights
+    .map((i) => `[${i.type}/${i.priority}] ${i.title}: ${i.rationale}`)
+    .join("\n");
+
+  const result = await judge(`Judge strategic insights drawn from a competitive Kano table.
+
+Table (ratings; "Cannot Verify" = unknown, NOT a confirmed absence):
+${tableText}
+
+Strategy (headline + ranked insights):
+"${strategy.headline}"
+${insightsText}
+
+Score 0-10 on whether the strategy:
+- grounds every claim in the table (no invented capabilities or numbers),
+- NEVER treats a "Cannot Verify" cell as a competitive fact (e.g. claiming an edge because a rival is unverified),
+- gives prioritized, actionable recommendations (recommendations ARE expected here).
+10 = fully grounded, no Cannot-Verify-as-fact, actionable. 5 = minor overreach. 0 = fabricates or treats unknowns as facts.
+
+Respond with only JSON: {"score": <0-10>, "reason": "<one sentence>"}`);
+  if (!result) return { key: "strategy_grounding", score: 0.5, comment: "judge unavailable" };
+  return {
+    key: "strategy_grounding",
+    score: Math.round(result.score * 100) / 100,
+    comment: result.reason || "judged strategy",
+  };
+}
+
+async function generateStrategyForEval(inputs: StrategyEvalInputs): Promise<{ strategy: Strategy }> {
+  const { strategy } = await generateStrategy({ scope: inputs.scope, table: inputs.table });
+  return { strategy };
 }
 
 // ─── Dataset helper ─────────────────────────────────────────────────────────────
@@ -814,9 +855,9 @@ async function main() {
   );
   await ensureDataset(
     ls,
-    SUMMARY_DATASET,
-    "Table-summary suite — faithfulness of the AI-written narrative",
-    SUMMARY_EXAMPLES.map((ex) => ({ inputs: ex.inputs as unknown as Record<string, unknown> })),
+    STRATEGY_DATASET,
+    "Strategist suite — prioritization + grounding of strategic insights",
+    STRATEGY_EXAMPLES.map((ex) => ({ inputs: ex.inputs as unknown as Record<string, unknown> })),
   );
 
   // ── Pass 1: feature analyst ──
@@ -879,19 +920,19 @@ async function main() {
     },
   );
 
-  // ── Pass 3: table summary ──
-  console.log("\n=== Pass 3: table summary ===");
-  let mIdx = 0;
+  // ── Pass 4: strategist ──
+  console.log("\n=== Pass 4: strategist ===");
+  let stIdx = 0;
   await evaluate(
     async (inputs: Record<string, unknown>) => {
-      const n = ++mIdx;
-      console.log(`  [${n}/${SUMMARY_EXAMPLES.length}] summary`);
-      return await generateSummaryForEval(inputs as unknown as SummaryEvalInputs);
+      const n = ++stIdx;
+      console.log(`  [${n}/${STRATEGY_EXAMPLES.length}] strategy`);
+      return await generateStrategyForEval(inputs as unknown as StrategyEvalInputs);
     },
     {
-      data: SUMMARY_DATASET,
-      evaluators: [summaryFaithfulness],
-      experimentPrefix: "summary",
+      data: STRATEGY_DATASET,
+      evaluators: [prioritizationCorrect, noFalseEdge, strategyGrounding],
+      experimentPrefix: "strategy",
       maxConcurrency: 2,
     },
   );

@@ -29,8 +29,33 @@ export interface KanoTableData {
   justifications?: Record<string, Record<string, string>>;
   /** Per feature → per product: true when the rating is an unverified best-estimate. */
   estimated?: Record<string, Record<string, boolean>>;
+  /** Per feature → per product trust signal derived from source verdicts. */
+  confidence?: Record<string, Record<string, "high" | "medium" | "low">>;
   sources: Record<string, string[]>;
+  /** Per feature → source URL → the claim that URL backs (evidence shown in the modal). */
+  sourceClaims?: Record<string, Record<string, string>>;
   summary?: string;
+  /** Ranked, synthesized strategy from the server-side strategist. */
+  strategy?: Strategy;
+}
+
+export type StrategyInsightType = "gap" | "opportunity" | "risk" | "strength" | "concede";
+
+export interface StrategyInsight {
+  id: string;
+  type: StrategyInsightType;
+  title: string;
+  rationale: string;
+  priority: "critical" | "high" | "medium" | "low";
+  confidence: "high" | "medium" | "low";
+  affectedFeatureIds: string[];
+  validation?: { verdict: "confirmed" | "refuted" | "unproven"; note: string };
+}
+
+export interface Strategy {
+  headline: string;
+  insights: StrategyInsight[];
+  mustHaveCoverage?: { held: number; total: number; missing: string[] };
 }
 
 export const CATEGORY_ORDER: KanoCategory[] = ["must-have", "performance", "delighter"];

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -55,6 +55,15 @@ function Dashboard() {
     onError: (err) => toast.error("Couldn't delete session", { description: String(err) }),
   });
 
+  const reRun = useMutation({
+    mutationFn: (id: string) => api.reRun(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: SESSIONS_KEY });
+      navigate({ to: "/scope/$sessionId", params: { sessionId: res.session.id } });
+    },
+    onError: (err) => toast.error("Couldn't re-run", { description: String(err) }),
+  });
+
   if (!me.data && !me.isLoading) {
     return (
       <div className="container py-16 text-center space-y-4">
@@ -107,7 +116,8 @@ function Dashboard() {
               <SessionCard
                 session={s}
                 onDelete={() => del.mutate(s.id)}
-                disabled={del.isPending}
+                onReRun={() => reRun.mutate(s.id)}
+                disabled={del.isPending || reRun.isPending}
               />
             </li>
           ))}
@@ -120,20 +130,28 @@ function Dashboard() {
 function SessionCard({
   session,
   onDelete,
+  onReRun,
   disabled,
 }: {
   session: ApiSessionSummary;
   onDelete: () => void;
+  onReRun: () => void;
   disabled: boolean;
 }) {
   const destination = destinationForStatus(session);
+  const canReRun = session.status === "complete";
   return (
     <div className="panel lift p-5 flex flex-col gap-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="font-semibold truncate">{session.title}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">
-            {new Date(session.updatedAt).toLocaleString()}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+            <span>{new Date(session.updatedAt).toLocaleString()}</span>
+            {session.parentSessionId ? (
+              <span className="inline-flex items-center gap-1 text-[hsl(var(--kano-perf))]">
+                <RefreshCw className="h-3 w-3" /> re-run
+              </span>
+            ) : null}
           </div>
         </div>
         <StatusChip status={session.status} />
@@ -144,15 +162,29 @@ function SessionCard({
             {destination.label} <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </Button>
-        <button
-          type="button"
-          onClick={onDelete}
-          disabled={disabled}
-          aria-label="Delete analysis"
-          className="text-muted-foreground hover:text-foreground disabled:opacity-40 p-1.5 rounded-md hover:bg-[hsl(var(--surface-muted))] transition-colors"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {canReRun ? (
+            <button
+              type="button"
+              onClick={onReRun}
+              disabled={disabled}
+              aria-label="Re-run analysis"
+              title="Re-run — compare against this analysis"
+              className="text-muted-foreground hover:text-foreground disabled:opacity-40 p-1.5 rounded-md hover:bg-[hsl(var(--surface-muted))] transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={disabled}
+            aria-label="Delete analysis"
+            className="text-muted-foreground hover:text-foreground disabled:opacity-40 p-1.5 rounded-md hover:bg-[hsl(var(--surface-muted))] transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

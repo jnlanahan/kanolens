@@ -33,6 +33,23 @@ function NewAnalysis() {
   const [description, setDescription] = useState("");
   const [targetCustomer, setTargetCustomer] = useState("");
   const [competitors, setCompetitors] = useState("");
+  const [prefillUrl, setPrefillUrl] = useState("");
+
+  const prefill = useMutation({
+    mutationFn: () => api.prefill(prefillUrl.trim()),
+    onSuccess: (data) => {
+      setMode("have-product");
+      if (data.productName) setProductName(data.productName);
+      if (data.description) setDescription(data.description);
+      if (data.competitors?.length) setCompetitors(data.competitors.join(", "));
+      toast.success("Pre-filled from your site — review and edit below.");
+    },
+    onError: (err) => {
+      const description =
+        err instanceof ApiError ? err.detailMessage : err instanceof Error ? err.message : String(err);
+      toast.error("Couldn't read that URL", { description });
+    },
+  });
 
   const submit = useMutation({
     mutationFn: async () => {
@@ -120,6 +137,44 @@ function NewAnalysis() {
       </header>
 
       <div className="panel p-6 space-y-5">
+        {/* Fast path: read a website and pre-fill everything */}
+        <div className="space-y-1.5">
+          <Label className="form-label" htmlFor="prefillUrl">
+            Have a website? Autofill from a URL{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <div className="flex gap-2">
+            <input
+              id="prefillUrl"
+              className="field"
+              placeholder="https://yourproduct.com"
+              value={prefillUrl}
+              onChange={(e) => setPrefillUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && prefillUrl.trim() && !prefill.isPending) prefill.mutate();
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              disabled={!prefillUrl.trim() || prefill.isPending}
+              onClick={() => prefill.mutate()}
+            >
+              {prefill.isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Reading…</>
+              ) : (
+                "Autofill"
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            We'll read your site and fill the form. You can edit everything before continuing.
+          </p>
+        </div>
+
+        <div className="border-t" />
+
         <ModeToggle value={mode} onChange={setMode} />
 
         {mode === "have-product" ? (

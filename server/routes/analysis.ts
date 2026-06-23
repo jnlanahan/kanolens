@@ -4,6 +4,8 @@ import { z } from "zod";
 
 import type { AnalystScope } from "../agents/analyst";
 import { runAnalyst } from "../agents/analyst";
+import { runFeatureAnalyst } from "../agents/feature-analyst";
+import { runPrefill } from "../agents/prefill-agent";
 import { applyMutation, runRefineAgent } from "../agents/refine-agent";
 import { clearStream, publish, subscribe } from "../agents/event-bus";
 import { proposeScope } from "../agents/scope-proposer";
@@ -12,7 +14,7 @@ import type { ScopeJson, SourcesJson, TableJson } from "../db/schema";
 import { mapAnthropicError } from "../lib/anthropic-errors";
 import { checkRateLimit } from "../lib/rate-limiter";
 import { streamAnalysisSSE } from "../lib/sse";
-import { guardRefine, guardRunStart } from "../lib/usage-guard";
+import { ADMIN_EMAIL, guardRefine, guardRunStart } from "../lib/usage-guard";
 import { requireUser, type AuthContext } from "./auth";
 
 export const analysisRoutes = new Hono<AuthContext>();
@@ -45,6 +47,15 @@ const RefineBody = z.object({
   message: z.string().trim().min(1).max(2000),
 });
 
+const ReResearchBody = z.object({
+  featureId: z.string().trim().min(1),
+  product: z.string().trim().min(1),
+});
+
+const PrefillBody = z.object({
+  url: z.string().trim().url().max(500),
+});
+
 async function loadSession(c: import("hono").Context<AuthContext>) {
   const user = await requireUser(c);
   if (!user) {
@@ -69,6 +80,40 @@ async function loadSession(c: import("hono").Context<AuthContext>) {
   }
   return { user, session, db, id } as const;
 }
+
+// Read a product URL and propose form values (product name, description, competitors).
+// Session-less: this runs before a session exists, during first-run intake.
+analysisRoutes.post("/prefill", async (c) => {
+  const user = await requireUser(c);
+  if (!user) return c.json({ error: "unauthorized" }, 401);
+
+  if (!checkRateLimit(`prefill:${user.id}`, 20, 3_600_000)) {
+    return c.json({ error: "rate_limited", message: "Too many requests. Try again in an hour." }, 429);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = PrefillBody.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "invalid_body", message: "Enter a valid URL (including https://)." }, 400);
+  }
+
+  try {
+    const result = await runPrefill(parsed.data.url);
+    return c.json({
+      productName: result.productName,
+      description: result.description,
+      competitors: result.competitors,
+    });
+  } catch (error) {
+    console.error("[prefill] failed:", error);
+    const mapped = mapAnthropicError(error);
+    const message = mapped?.userMessage ?? (error instanceof Error ? error.message : String(error));
+    return c.json(
+      { error: "prefill_failed", message },
+      (mapped?.status as 400 | 401 | 402 | 403 | 429 | 500 | 503) ?? 500,
+    );
+  }
+});
 
 analysisRoutes.post("/:id/scope", async (c) => {
   const loaded = await loadSession(c);
@@ -181,6 +226,15 @@ analysisRoutes.post("/:id/start", async (c) => {
     return c.json({ error: "scope_missing" }, 400);
   }
 
+  // Validate the strategist's top hypotheses against the web on paid runs (and for the admin tester).
+  const privileged = user.email === ADMIN_EMAIL;
+  const [paidRow] = await db
+    .select({ isPaidRun: schema.sessions.isPaidRun })
+    .from(schema.sessions)
+    .where(eq(schema.sessions.id, id))
+    .limit(1);
+  const validate = privileged || (paidRow?.isPaidRun ?? false);
+
   clearStream(id);
   publish(id, { type: "status", status: "queued" });
 
@@ -195,7 +249,9 @@ analysisRoutes.post("/:id/start", async (c) => {
       ratings: Record<string, string>;
       justifications: Record<string, string>;
       estimated: Record<string, boolean>;
+      confidence: Record<string, "high" | "medium" | "low">;
       sources: string[];
+      sourceClaims: Record<string, string>;
     }
   >();
 
@@ -206,7 +262,9 @@ analysisRoutes.post("/:id/start", async (c) => {
         ratings: event.ratings,
         justifications: event.justifications ?? {},
         estimated: event.estimated ?? {},
+        confidence: event.confidence ?? {},
         sources: event.sources,
+        sourceClaims: event.sourceClaims ?? {},
       });
     }
   });
@@ -222,7 +280,7 @@ analysisRoutes.post("/:id/start", async (c) => {
         targetCustomer: scope.targetCustomer,
         features: scope.features,
       };
-      const result = await runAnalyst({ sessionId: id, scope: analystScope });
+      const result = await runAnalyst({ sessionId: id, scope: analystScope, validate });
 
       const tableData: TableJson = {
         products: fullProducts,
@@ -230,15 +288,19 @@ analysisRoutes.post("/:id/start", async (c) => {
         ratings: {},
         justifications: {},
         estimated: {},
+        confidence: {},
         summary: result.summary,
+        strategy: result.strategy,
       };
-      const sources: SourcesJson = { byFeatureId: {} };
+      const sources: SourcesJson = { byFeatureId: {}, claimsByFeatureId: {} };
       for (const f of scope.features) {
         const row = rowsCollected.get(f.id);
         tableData.ratings[f.id] = row?.ratings ?? {};
         tableData.justifications[f.id] = row?.justifications ?? {};
         tableData.estimated![f.id] = row?.estimated ?? {};
+        tableData.confidence![f.id] = row?.confidence ?? {};
         sources.byFeatureId[f.id] = row?.sources ?? [];
+        sources.claimsByFeatureId![f.id] = row?.sourceClaims ?? {};
       }
 
       await getDb()
@@ -324,6 +386,104 @@ analysisRoutes.post("/:id/refine", async (c) => {
   }
 
   return c.json({ reply: result.reply });
+});
+
+// Re-research a SINGLE cell (one feature × one product) when the user flags it as wrong.
+analysisRoutes.post("/:id/re-research", async (c) => {
+  const loaded = await loadSession(c);
+  if ("response" in loaded) return loaded.response;
+  const { db, id, user } = loaded;
+
+  if (!checkRateLimit(`reresearch:${user.id}`, 30, 3_600_000)) {
+    return c.json({ error: "rate_limited", message: "Too many re-research requests. Try again in an hour." }, 429);
+  }
+
+  // Shares the refine budget — a re-research is a targeted refinement.
+  const refineError = await guardRefine(user.id, id);
+  if (refineError) {
+    return c.json({ error: refineError.code, message: refineError.message }, 402);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = ReResearchBody.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "invalid_body", detail: parsed.error.flatten() }, 400);
+  }
+  const { featureId, product } = parsed.data;
+
+  const [analysis] = await db
+    .select()
+    .from(schema.analyses)
+    .where(eq(schema.analyses.sessionId, id))
+    .limit(1);
+  if (!analysis?.tableData || !analysis.scope) {
+    return c.json({ error: "no_analysis" }, 400);
+  }
+  const scope = analysis.scope;
+  const feature = scope.features.find((f) => f.id === featureId);
+  if (!feature) return c.json({ error: "feature_not_found" }, 404);
+
+  const isUserProduct = product === scope.userProductName;
+  const allProducts = scope.userProductName ? [...scope.products, scope.userProductName] : scope.products;
+  if (!allProducts.includes(product)) return c.json({ error: "product_not_found" }, 404);
+
+  // Run the existing per-feature analyst, but scoped to just this one product.
+  const featureScope = {
+    userProductName: isUserProduct ? product : null,
+    userProductDescription: isUserProduct ? scope.userProductDescription : null,
+    products: isUserProduct ? [] : [product],
+    targetCustomer: scope.targetCustomer,
+  };
+
+  let result;
+  try {
+    result = await runFeatureAnalyst({
+      sessionId: id,
+      scope: featureScope,
+      feature,
+      siblingFeatureNames: scope.features.map((f) => f.name).filter((n) => n !== feature.name),
+      primarySources: {},
+    });
+  } catch (error) {
+    console.error("[re-research] failed:", error);
+    const mapped = mapAnthropicError(error);
+    const message = mapped?.userMessage ?? (error instanceof Error ? error.message : String(error));
+    return c.json({ error: "reresearch_failed", message }, 500);
+  }
+
+  // Merge the single-cell result back into the stored table + sources.
+  const td: TableJson = structuredClone(analysis.tableData);
+  td.ratings[featureId] = { ...(td.ratings[featureId] ?? {}), [product]: result.ratings[product] ?? "Cannot Verify" };
+  td.justifications[featureId] = { ...(td.justifications[featureId] ?? {}), [product]: result.justifications[product] ?? "" };
+  td.estimated = td.estimated ?? {};
+  td.estimated[featureId] = { ...(td.estimated[featureId] ?? {}), [product]: result.estimated[product] ?? false };
+  td.confidence = td.confidence ?? {};
+  td.confidence[featureId] = { ...(td.confidence[featureId] ?? {}), [product]: result.confidence[product] ?? "low" };
+
+  const srcs: SourcesJson = analysis.sources ? structuredClone(analysis.sources) : { byFeatureId: {} };
+  const mergedUrls = Array.from(new Set([...(srcs.byFeatureId[featureId] ?? []), ...result.sources]));
+  srcs.byFeatureId[featureId] = mergedUrls;
+  srcs.claimsByFeatureId = srcs.claimsByFeatureId ?? {};
+  srcs.claimsByFeatureId[featureId] = { ...(srcs.claimsByFeatureId[featureId] ?? {}), ...result.sourceClaims };
+
+  await db
+    .update(schema.analyses)
+    .set({
+      tableData: td,
+      sources: srcs,
+      inputTokens: sql`${schema.analyses.inputTokens} + ${result.inputTokens}`,
+      outputTokens: sql`${schema.analyses.outputTokens} + ${result.outputTokens}`,
+    })
+    .where(eq(schema.analyses.sessionId, id));
+
+  return c.json({
+    featureId,
+    product,
+    rating: td.ratings[featureId][product],
+    justification: td.justifications[featureId][product],
+    estimated: td.estimated[featureId][product],
+    confidence: td.confidence[featureId][product],
+  });
 });
 
 analysisRoutes.post("/:id/share", async (c) => {

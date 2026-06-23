@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 import { KanoTable } from "@/components/kano/KanoTable";
@@ -39,6 +39,18 @@ function RunAnalysis() {
     }
   }, [stream.status, navigate, sessionId, queryClient]);
 
+  const running = stream.status !== "done" && stream.status !== "error";
+
+  // Tick once a second while running so the ETA stays fresh.
+  const startRef = useRef<number | null>(null);
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    if (!running) return;
+    if (startRef.current == null) startRef.current = Date.now();
+    const t = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [running]);
+
   if (sessionQuery.isError) {
     return (
       <div className="container max-w-5xl py-16 text-center space-y-3">
@@ -52,6 +64,17 @@ function RunAnalysis() {
 
   const totalFeatures = sessionQuery.data?.analysis?.scope?.features?.length ?? 0;
   const pct = totalFeatures > 0 ? Math.min(100, Math.round((rowsDone / totalFeatures) * 100)) : 0;
+
+  let etaText: string | null = null;
+  if (running && totalFeatures > 0 && startRef.current != null) {
+    if (rowsDone > 0 && rowsDone < totalFeatures) {
+      const perRow = (Date.now() - startRef.current) / rowsDone;
+      const remaining = Math.max(1, Math.ceil(((totalFeatures - rowsDone) * perRow) / 1000));
+      etaText = `~${remaining}s left`;
+    } else if (rowsDone === 0) {
+      etaText = "Estimating…";
+    }
+  }
 
   return (
     <div className="container max-w-5xl py-10 space-y-6">
@@ -80,8 +103,14 @@ function RunAnalysis() {
       {/* Status card */}
       <div className="panel p-4 space-y-3">
         <StatusLine status={stream.status} text={statusText} error={stream.error} />
-        {stream.status !== "done" && stream.status !== "error" && totalFeatures > 0 ? (
-          <meter className="bar" value={pct} max={100} aria-label="Analysis progress" />
+        {running && totalFeatures > 0 ? (
+          <div className="space-y-1">
+            <meter className="bar" value={pct} max={100} aria-label="Analysis progress" />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{rowsDone} of {totalFeatures} features</span>
+              {etaText ? <span>{etaText}</span> : null}
+            </div>
+          </div>
         ) : null}
       </div>
 
@@ -140,7 +169,9 @@ function buildTableFromEvents(
   const ratings: Record<string, Record<string, Rating>> = {};
   const justifications: Record<string, Record<string, string>> = {};
   const estimated: Record<string, Record<string, boolean>> = {};
+  const confidence: Record<string, Record<string, "high" | "medium" | "low">> = {};
   const sources: Record<string, string[]> = {};
+  const sourceClaims: Record<string, Record<string, string>> = {};
   let narration = "Researching…";
 
   for (const ev of events) {
@@ -151,7 +182,9 @@ function buildTableFromEvents(
       ratings[ev.feature.id] = ev.ratings as Record<string, Rating>;
       justifications[ev.feature.id] = ev.justifications ?? {};
       estimated[ev.feature.id] = ev.estimated ?? {};
+      confidence[ev.feature.id] = ev.confidence ?? {};
       sources[ev.feature.id] = ev.sources;
+      sourceClaims[ev.feature.id] = ev.sourceClaims ?? {};
     }
   }
 
@@ -162,7 +195,9 @@ function buildTableFromEvents(
       ratings,
       justifications,
       estimated,
+      confidence,
       sources,
+      sourceClaims,
     },
     statusText: narration,
     rowsDone: featuresOrdered.length,

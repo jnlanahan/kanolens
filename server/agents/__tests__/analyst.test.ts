@@ -79,16 +79,25 @@ describe("analyst coordinator", () => {
     };
 
     // Phase A: pre-pass (messages.parse)
-    parseMock.mockResolvedValueOnce({
-      parsed_output: {
-        products: [
-          { product: "Linear", sources: [{ url: "https://linear.app", purpose: "marketing" }] },
-          { product: "Jira", sources: [{ url: "https://atlassian.com/software/jira", purpose: "marketing" }] },
-          { product: "Acme Tasks", sources: [{ url: "https://acme.com", purpose: "marketing" }] },
-        ],
-      },
-      usage: { input_tokens: 100, output_tokens: 50 },
-    });
+    // First parse = source pre-pass; second parse = strategist synthesis.
+    parseMock
+      .mockResolvedValueOnce({
+        parsed_output: {
+          products: [
+            { product: "Linear", sources: [{ url: "https://linear.app", purpose: "marketing" }] },
+            { product: "Jira", sources: [{ url: "https://atlassian.com/software/jira", purpose: "marketing" }] },
+            { product: "Acme Tasks", sources: [{ url: "https://acme.com", purpose: "marketing" }] },
+          ],
+        },
+        usage: { input_tokens: 100, output_tokens: 50 },
+      })
+      .mockResolvedValueOnce({
+        parsed_output: {
+          headline: "Acme matches Linear on palette but uniquely offers AI recaps.",
+          insights: [],
+        },
+        usage: { input_tokens: 100, output_tokens: 50 },
+      });
 
     // Phase B: two feature-analyst calls (one per feature) + Phase C: summary call
     createMock
@@ -113,8 +122,7 @@ describe("analyst coordinator", () => {
           },
           sources: [{ url: "https://acme.com/roadmap", claim: "Acme has planned AI recaps" }],
         }),
-      )
-      .mockResolvedValueOnce(textResponse("Acme matches Linear on palette but uniquely offers AI recaps."));
+      );
 
     const events: AnalysisEvent[] = [];
     const { unsubscribe } = subscribe("t-session", (e) => events.push(e));
@@ -124,8 +132,8 @@ describe("analyst coordinator", () => {
     unsubscribe();
     clearStream("t-session");
 
-    expect(parseMock).toHaveBeenCalledTimes(1);
-    expect(createMock).toHaveBeenCalledTimes(3); // 2 feature loops + 1 summary
+    expect(parseMock).toHaveBeenCalledTimes(2); // pre-pass + strategist
+    expect(createMock).toHaveBeenCalledTimes(2); // 2 feature loops
 
     expect(result.committedFeatureIds.sort()).toEqual(["f1", "f2"]);
     expect(result.summary).toContain("Acme");
@@ -210,7 +218,7 @@ describe("analyst coordinator", () => {
     expect(done?.type === "done" && done.summary.length).toBeGreaterThan(0);
   });
 
-  it("downgrades ratings to Cannot Verify when no source verifies", async () => {
+  it("re-searches once, then keeps best-estimate ratings (flagged, not downgraded) when no source verifies", async () => {
     const scope = {
       userProductName: "Acme",
       products: ["Linear"],
@@ -231,6 +239,8 @@ describe("analyst coordinator", () => {
       usage: { input_tokens: 100, output_tokens: 50 },
     });
 
+    // First upsert has only an unverifiable source → the feedback loop asks the analyst
+    // to search again; the second upsert still finds nothing, so it commits as an estimate.
     createMock
       .mockResolvedValueOnce(
         upsertToolUseResponse("u1", {
@@ -242,7 +252,17 @@ describe("analyst coordinator", () => {
           sources: [{ url: "ftp://unverified", claim: "some blog mentioned it" }],
         }),
       )
-      .mockResolvedValueOnce(textResponse("both have dark mode"));
+      .mockResolvedValueOnce(
+        upsertToolUseResponse("u2", {
+          feature_id: "f1",
+          per_product: {
+            Acme: { rating: "Yes", justification: "we have it" },
+            Linear: { rating: "Yes", justification: "still only a blog" },
+          },
+          sources: [{ url: "ftp://unverified", claim: "some blog mentioned it" }],
+        }),
+      )
+      .mockResolvedValueOnce(textResponse("both appear to have dark mode"));
 
     const events: AnalysisEvent[] = [];
     const { unsubscribe } = subscribe("t-session-3", (e) => events.push(e));
@@ -252,8 +272,14 @@ describe("analyst coordinator", () => {
     unsubscribe();
     clearStream("t-session-3");
 
+    // The analyst was sent back to search at least once before committing.
+    const narrations = events.filter((e) => e.type === "narration");
+    expect(narrations.some((e) => e.type === "narration" && /searching again/i.test(e.text))).toBe(true);
+
+    // The competitor keeps its rating but is flagged as an unverified estimate, not downgraded.
     const row = events.find((e) => e.type === "row");
-    expect(row?.type === "row" && row.ratings.Acme).toBe("Cannot Verify");
-    expect(row?.type === "row" && row.ratings.Linear).toBe("Cannot Verify");
+    expect(row?.type === "row" && row.ratings.Linear).toBe("Yes");
+    expect(row?.type === "row" && row.estimated?.Linear).toBe(true);
+    expect(row?.type === "row" && row.confidence?.Linear).toBe("medium");
   });
 });

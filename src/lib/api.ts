@@ -15,6 +15,7 @@ export interface ApiSessionSummary {
   id: string;
   title: string;
   status: "draft" | "scoping" | "scoped" | "running" | "complete" | "error";
+  parentSessionId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -41,8 +42,13 @@ export interface ApiAnalysis {
   sessionId: string;
   scope: ApiScope | null;
   tableData: KanoTableData | null;
-  sources: { byFeatureId: Record<string, string[]> } | null;
+  sources: SourcesPayload | null;
   updatedAt: string;
+}
+
+export interface SourcesPayload {
+  byFeatureId: Record<string, string[]>;
+  claimsByFeatureId?: Record<string, Record<string, string>>;
 }
 
 class ApiError extends Error {
@@ -96,7 +102,14 @@ export const api = {
     request<{ session: ApiSessionSummary; analysis: ApiAnalysis | null }>(`/api/sessions/${id}`),
   deleteSession: (id: string) =>
     request<{ ok: true }>(`/api/sessions/${id}`, { method: "DELETE" }),
+  reRun: (id: string) =>
+    request<{ session: ApiSessionSummary }>(`/api/sessions/${id}/re-run`, { method: "POST" }),
 
+  prefill: (url: string) =>
+    request<{ productName: string; description: string; competitors: string[] }>(
+      "/api/analysis/prefill",
+      { method: "POST", body: JSON.stringify({ url }) },
+    ),
   proposeScope: (id: string, body: {
     userProductName?: string | null;
     userProductDescription: string;
@@ -119,6 +132,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message }),
     }),
+  reResearch: (id: string, featureId: string, product: string) =>
+    request<{
+      featureId: string;
+      product: string;
+      rating: string;
+      justification: string;
+      estimated: boolean;
+      confidence: "high" | "medium" | "low";
+    }>(`/api/analysis/${id}/re-research`, {
+      method: "POST",
+      body: JSON.stringify({ featureId, product }),
+    }),
   streamUrl: (id: string) => `/api/analysis/${id}/stream`,
 
   enableShare: (id: string) =>
@@ -127,7 +152,7 @@ export const api = {
     request<{
       tableData: KanoTableData | null;
       scope: ApiScope | null;
-      sources: { byFeatureId: Record<string, string[]> } | null;
+      sources: SourcesPayload | null;
       title: string;
     }>(`/api/share/${shareToken}`),
 
@@ -143,7 +168,9 @@ export type StreamEvent =
       ratings: Record<string, string>;
       justifications?: Record<string, string>;
       estimated?: Record<string, boolean>;
+      confidence?: Record<string, "high" | "medium" | "low">;
       sources: string[];
+      sourceClaims?: Record<string, string>;
     }
   | { type: "narration"; text: string }
   | { type: "done"; summary: string }

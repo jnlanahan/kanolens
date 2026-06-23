@@ -75,7 +75,9 @@ export function TLDRBanner({ insights, tableData, userProductName: _userProductN
     .filter((i) => i.type === "risk" || i.type === "gap")
     .map((i) => i.title.replace(/^(Trending to table stakes|Critical gap|Becoming a must-have): /, ""));
 
-  const ignoreItems = computeIgnoreFeatures(tableData);
+  // "Concede" insights (don't pursue) join the table-derived commoditized rows.
+  const concedeItems = insights.filter((i) => i.type === "concede").map((i) => i.title);
+  const ignoreItems = [...concedeItems, ...computeIgnoreFeatures(tableData)];
 
   const columns: Column[] = [
     {

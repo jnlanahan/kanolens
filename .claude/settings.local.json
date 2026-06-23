@@ -147,7 +147,9 @@
       "mcp__plugin_playwright_playwright__browser_evaluate",
       "PowerShell(npm run check)",
       "PowerShell(foreach \\($p in 3001,5173,5174\\) { Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { try { Stop-Process -Id $_ -Force -ErrorAction Stop; \"killed PID $_ on port $p\" } catch {} } }; \"ports cleared\")",
-      "mcp__plugin_playwright_playwright__browser_resize"
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "PowerShell(Get-NetTCPConnection -State Listen -LocalPort 3001,5173,5174 -ErrorAction SilentlyContinue | Select-Object LocalPort,OwningProcess | ForEach-Object { $p = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; [pscustomobject]@{ Port=$_.LocalPort; PID=$_.OwningProcess; Name=$p.Name; Started=$p.StartTime } } | Format-Table -AutoSize)",
+      "PowerShell(Stop-Process -Id 57252,52696,30156 -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 1; $still = Get-NetTCPConnection -State Listen -LocalPort 3001,5173,5174 -ErrorAction SilentlyContinue; if \\($still\\) { \"STILL IN USE: \" + \\($still.LocalPort -join ','\\) } else { \"ports 3001/5173/5174 are now free\" })"
     ],
     "deny": []
   }

@@ -4,7 +4,8 @@ import { ArrowRight, Lock } from "lucide-react";
 import { useMemo } from "react";
 
 import { KanoTable } from "@/components/kano/KanoTable";
-import { InsightsPanel, detectInsights } from "@/components/kano/InsightsPanel";
+import { InsightsPanel, detectInsights, strategyToInsights } from "@/components/kano/InsightsPanel";
+import { StrategicRead } from "@/components/kano/StrategicRead";
 import { TLDRBanner } from "@/components/kano/TLDRBanner";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,6 +54,7 @@ function SharedReport() {
   const table: KanoTableData = {
     ...rawTableData!,
     sources: sources?.byFeatureId ?? {},
+    sourceClaims: sources?.claimsByFeatureId ?? {},
   };
 
   return <SharedReportContent table={table} scope={scope} title={title} />;
@@ -68,7 +70,10 @@ function SharedReportContent({
   title: string;
 }) {
   const insights = useMemo(
-    () => detectInsights(table, scope?.userProductName ?? null),
+    () =>
+      table.strategy
+        ? strategyToInsights(table.strategy)
+        : detectInsights(table, scope?.userProductName ?? null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [table, scope?.userProductName],
   );
@@ -92,10 +97,10 @@ function SharedReportContent({
       <header className="space-y-1">
         <p className="eyebrow">Competitive analysis</p>
         <h1 className="text-2xl">{title}</h1>
-        {table.summary ? (
-          <p className="text-sm text-muted-foreground max-w-3xl">{table.summary}</p>
-        ) : null}
       </header>
+
+      {/* Strategic read */}
+      <StrategicRead summary={table.strategy?.headline ?? table.summary} />
 
       {/* TL;DR banner */}
       <TLDRBanner insights={insights} tableData={table} userProductName={scope?.userProductName ?? null} />
