@@ -49,7 +49,7 @@
     "posthog-js": "^1.383.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-hook-form": "^7.73.0",
+    "react-hook-form": "^7.78.0",
     "sonner": "^2.0.7",
     "stripe": "^22.2.0",
     "tailwind-merge": "^3.5.0",
